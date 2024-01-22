@@ -7,47 +7,6 @@ To understand the framework better, please read the overview in the
 and dig into the [cosmwasm docs](https://www.cosmwasm.com).
 This assumes you understand the theory and just want to get coding.
 
-## Creating a new repo from template
-
-Assuming you have a recent version of rust and cargo installed (via [rustup](https://rustup.rs/)),
-then the following should get you a new repo to start a contract:
-
-First, install
-[cargo-generate](https://github.com/ashleygwilliams/cargo-generate).
-Unless you did that before, run this line now:
-
-```sh
-cargo install cargo-generate --features vendored-openssl
-```
-
-Now, use it to create your new contract.
-Go to the folder in which you want to place it and run:
-
-```sh
-cargo generate --git https://github.com/secretuniversity/secret-template.git --name YOUR_NAME_HERE
-```
-
-You will now have a new folder called `YOUR_NAME_HERE` (I hope you changed that to something else)
-containing a simple working contract and build system that you can customize.
-
-Don't forget to change the `name` and the `authors` fields in the `Cargo.toml` file.
-
-## Create a Repo
-
-After generating, you have a initialized local git repo, but no commits, and no remote.
-Go to a server (eg. github) and create a new upstream repo (called `YOUR-GIT-URL` below).
-Then run the following:
-
-```sh
-# this is needed to create a valid Cargo.lock file (see below)
-cargo check
-git checkout -b master # in case you generate from non-master
-git add .
-git commit -m 'Initial Commit'
-git remote add origin YOUR-GIT-URL
-git push -u origin master
-```
-
 ## Using your project
 
 Once you have your custom repo, you should check out [Developing](./Developing.md) to explain
