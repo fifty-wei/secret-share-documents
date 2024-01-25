@@ -1,11 +1,25 @@
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, Env, Deps, DepsMut,
+    entry_point, to_binary, Addr, Binary, Env, Deps, DepsMut,
     MessageInfo, Response, StdError, StdResult,
 };
+// use secret_toolkit_storage::Keymap;
 
 use crate::error::ContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{config, config_read, State};
+
+use cosmwasm_storage::PrefixedStorage;
+
+use crate::state::save;
+use crate::state::FileState;
+use crate::state::PREFIX_FILES;
+
+// Some tutorials
+// https://github.com/darwinzer0/secret-contract-tutorials/tree/main/tutorial1
+
+// use sha2::{Digest, Sha256};
+// https://github.com/scrtlabs/SecretDice/blob/master/src/contract.rs
+
 
 #[entry_point]
 pub fn instantiate(
@@ -16,11 +30,22 @@ pub fn instantiate(
 ) -> Result<Response, StdError> {
 
     let state = State {
+        // file_state: Keymap::new(b"files"),
         count: msg.count,
         owner: info.sender.clone(),
     };
 
     config(deps.storage).save(&state)?;
+
+
+
+
+// let mut password_store = PrefixedStorage::new(PREFIX_FILES, &mut deps.storage);
+// let key: &[u8] = env.message.sender.to_string().as_bytes();
+// save(&mut password_store, key, &msg.password)?;
+
+
+
 
     deps.api.debug(&format!("Contract was initialized by {}", info.sender));
 
@@ -35,10 +60,56 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
+        ExecuteMsg::StoreNewFile { owner, payload } => request_store_new_file(deps, owner, payload),
         ExecuteMsg::Increment {} => try_increment(deps),
         ExecuteMsg::Reset { count } => try_reset(deps, info, count),
     }
 }
+
+
+pub fn request_store_new_file(
+    deps: DepsMut,
+    owner: Addr,
+    payload: String
+) -> Result<Response, ContractError> {
+
+    // Store the payload data
+    match store_new_file(deps, owner, payload) {
+        Ok(_key) => Ok(Response::default()),
+        Err(_data) =>Ok(Response::default()),
+    }
+
+}
+
+
+/// Store a new file in the smartcontract storage
+///
+pub fn store_new_file(
+    deps: DepsMut,
+    owner: Addr,
+    payload: String
+) -> StdResult<&[u8]> {
+
+    // Get the storage for files
+    let mut file_storage = PrefixedStorage::new(deps.storage, PREFIX_FILES);
+
+    // Create the file content
+    let file_state = FileState {
+        owner: owner,
+        payload: payload
+    };
+
+    // Create the associated key
+    let key: &[u8] = b"test_key";
+
+    // Save the file
+    save(&mut file_storage, key, &file_state)?;
+
+    Ok(key)
+}
+
+
+
 
 pub fn try_increment(
     deps: DepsMut,
@@ -89,12 +160,66 @@ fn query_count(
     Ok(CountResponse { count: state.count })
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
+
+
+    // use secret_toolkit_storage::{Item, Keymap};
+    // use serde::{Deserialize, Serialize};
+    // use cosmwasm_std::testing::MockStorage;
+    // use cosmwasm_std::StdResult;
+
+    use cosmwasm_std::Api;
+
+    use cosmwasm_storage::ReadonlyPrefixedStorage;
+    use crate::state::may_load;
+    use crate::state::PREFIX_FILES;
+
+    // https://docs.rs/cosmwasm-std/latest/cosmwasm_std/trait.Api.html
+    // let input = "what-users-provide";
+    // let validated: Addr = api.addr_validate(input).unwrap();
+    // assert_eq!(validated, input);
+
+    #[test]
+    fn test_store_new_file() {
+        let mut deps = mock_dependencies();
+
+        let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
+        let owner = deps.api.addr_validate(raw_address).unwrap();
+        let payload = String::from("{\"file\": \"content\"}");
+
+
+        // Store the new file
+        let store_new_file_result = store_new_file(deps.as_mut(), owner.clone(), payload.clone());
+        let key = match store_new_file_result {
+            Ok(storage_key) => storage_key,
+            Err(error) => panic!("Error when storing a new file: {:?}", error),
+        };
+
+        // Verify the key data
+        assert_eq!(key, b"test_key");
+        
+        // read the storage content
+        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
+        let key: &[u8] = b"test_key";
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, key);
+
+        let store_data : FileState = match loaded_payload {
+            Ok(Some(file_state)) => file_state,
+            Ok(None) => panic!("File not found from the given key."),
+            Err(error) => panic!("Error when loading file from storage: {:?}", error),
+        };
+
+        assert_eq!(store_data.owner, owner );
+        assert_eq!(store_data.payload, payload);
+    }
+
 
     #[test]
     fn proper_initialization() {

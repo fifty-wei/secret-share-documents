@@ -1,3 +1,5 @@
+use cosmwasm_std::Addr;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +11,10 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    StoreNewFile {
+        owner: Addr,
+        payload: String
+    },
     Increment {},
     Reset {
       count: i32
