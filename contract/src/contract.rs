@@ -4,6 +4,9 @@ use cosmwasm_std::{
 };
 // use secret_toolkit_storage::Keymap;
 
+use cosmwasm_storage::ReadonlyPrefixedStorage;
+use crate::state::may_load;
+
 use crate::error::ContractError;
 use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{config, config_read, State};
@@ -13,6 +16,10 @@ use cosmwasm_storage::PrefixedStorage;
 use crate::state::save;
 use crate::state::FileState;
 use crate::state::PREFIX_FILES;
+
+
+
+use hex;
 
 // Some tutorials
 // https://github.com/darwinzer0/secret-contract-tutorials/tree/main/tutorial1
@@ -110,7 +117,7 @@ pub fn store_new_file(
     deps: DepsMut,
     owner: Addr,
     payload: String
-) -> StdResult<[u8;32]> {
+) -> StdResult<String> {
 
     // Get the storage for files
     let mut file_storage = PrefixedStorage::new(deps.storage, PREFIX_FILES);
@@ -126,7 +133,33 @@ pub fn store_new_file(
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
 
-    Ok(key)
+    Ok(hex::encode(&key))
+}
+
+
+/// Read the data from the storage
+pub fn load_file(
+    deps: DepsMut,
+    key: String
+)-> StdResult<String> {
+
+    // TODO :: Future version :: Need to verify the user
+
+    let extracted_key = match hex::decode(key) {
+        Ok(k) => k,
+        _ => panic!("Invalid key"),
+    };
+    
+    let files_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES);
+    let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &extracted_key);
+
+    let payload : String = match loaded_payload {
+        Ok(Some(file_state)) => file_state.payload,
+        Ok(None) => panic!("Error."),
+        Err(_error) => panic!("Error."),
+    };
+
+    Ok(payload)
 }
 
 
@@ -225,11 +258,19 @@ mod tests {
         });
 
         // Verify the key data
-        assert_eq!(key, expected_key);
+        assert_eq!(key, hex::encode(expected_key));
         
+        let extracted_key = match hex::decode(key) {
+            Ok(k) => k,
+            _ => panic!("Invalid key"),
+        };
+
+        assert_eq!(extracted_key, expected_key);
+        
+
         // read the storage content
         let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &key);
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &extracted_key);
 
         let store_data : FileState = match loaded_payload {
             Ok(Some(file_state)) => file_state,
