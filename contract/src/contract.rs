@@ -17,7 +17,7 @@ use crate::state::PREFIX_FILES;
 // Some tutorials
 // https://github.com/darwinzer0/secret-contract-tutorials/tree/main/tutorial1
 
-// use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256};
 // https://github.com/scrtlabs/SecretDice/blob/master/src/contract.rs
 
 
@@ -40,9 +40,9 @@ pub fn instantiate(
 
 
 
-// let mut password_store = PrefixedStorage::new(PREFIX_FILES, &mut deps.storage);
-// let key: &[u8] = env.message.sender.to_string().as_bytes();
-// save(&mut password_store, key, &msg.password)?;
+    // let mut password_store = PrefixedStorage::new(PREFIX_FILES, &mut deps.storage);
+    // let key: &[u8] = env.message.sender.to_string().as_bytes();
+    // save(&mut password_store, key, &msg.password)?;
 
 
 
@@ -81,6 +81,28 @@ pub fn request_store_new_file(
 
 }
 
+/// Create a key from a given file data.
+///
+/// When storing new data, we need to have a unique key for the given data.
+/// We decide to create a hash using the struct element to have a unique
+/// key, allowing us to store the data.
+///
+pub fn create_key_from_file_state(
+    file_state: &FileState
+) -> [u8;32] {
+
+    // Encode the file state struct data 
+    let encoded_file_state: Vec<u8> = bincode::serialize(file_state).unwrap();
+
+    // Hash the data 
+    let mut hasher = Sha256::new();
+    hasher.update(&encoded_file_state);
+    
+    // Retrieve the hash
+    let key: [u8;32] = hasher.finalize().into();
+
+    key
+}
 
 /// Store a new file in the smartcontract storage
 ///
@@ -88,7 +110,7 @@ pub fn store_new_file(
     deps: DepsMut,
     owner: Addr,
     payload: String
-) -> StdResult<&[u8]> {
+) -> StdResult<[u8;32]> {
 
     // Get the storage for files
     let mut file_storage = PrefixedStorage::new(deps.storage, PREFIX_FILES);
@@ -99,11 +121,10 @@ pub fn store_new_file(
         payload: payload
     };
 
-    // Create the associated key
-    let key: &[u8] = b"test_key";
+    let key: [u8;32] = create_key_from_file_state(&file_state);
 
     // Save the file
-    save(&mut file_storage, key, &file_state)?;
+    save(&mut file_storage, &key, &file_state)?;
 
     Ok(key)
 }
@@ -181,10 +202,6 @@ mod tests {
     use crate::state::may_load;
     use crate::state::PREFIX_FILES;
 
-    // https://docs.rs/cosmwasm-std/latest/cosmwasm_std/trait.Api.html
-    // let input = "what-users-provide";
-    // let validated: Addr = api.addr_validate(input).unwrap();
-    // assert_eq!(validated, input);
 
     #[test]
     fn test_store_new_file() {
@@ -202,13 +219,17 @@ mod tests {
             Err(error) => panic!("Error when storing a new file: {:?}", error),
         };
 
+        let expected_key = create_key_from_file_state(&FileState {
+            owner: owner.clone(),
+            payload: payload.clone()
+        });
+
         // Verify the key data
-        assert_eq!(key, b"test_key");
+        assert_eq!(key, expected_key);
         
         // read the storage content
         let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let key: &[u8] = b"test_key";
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, key);
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &key);
 
         let store_data : FileState = match loaded_payload {
             Ok(Some(file_state)) => file_state,
