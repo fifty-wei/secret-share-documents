@@ -8,7 +8,7 @@ use cosmwasm_storage::ReadonlyPrefixedStorage;
 use crate::state::may_load;
 
 use crate::error::ContractError;
-use crate::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{CountResponse, ExecuteMsg, FilePayloadResponse, InstantiateMsg, QueryMsg};
 use crate::state::{config, config_read, State};
 
 use cosmwasm_storage::PrefixedStorage;
@@ -139,7 +139,7 @@ pub fn store_new_file(
 
 /// Read the data from the storage
 pub fn load_file(
-    deps: DepsMut,
+    deps: Deps,
     key: String
 )-> StdResult<String> {
 
@@ -196,6 +196,9 @@ pub fn try_reset(
     Ok(Response::default())
 }
 
+
+
+
 #[entry_point]
 pub fn query(
     deps: Deps,
@@ -204,14 +207,26 @@ pub fn query(
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetCount {} => to_binary(&query_count(deps)?),
+        QueryMsg::GetFileContent { key } => to_binary(&query_file_content(deps, key)?),
     }
 }
+
 
 fn query_count(
     deps: Deps,
 ) -> StdResult<CountResponse> {
     let state = config_read(deps.storage).load()?;
     Ok(CountResponse { count: state.count })
+}
+
+fn query_file_content(
+    deps: Deps,
+    key: String
+) ->  StdResult<FilePayloadResponse> {
+
+    let file_content: String = load_file(deps, key)?;
+
+    Ok(FilePayloadResponse { payload: file_content })
 }
 
 
