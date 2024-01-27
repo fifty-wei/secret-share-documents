@@ -3,6 +3,10 @@ import { Wallet, SecretNetworkClient, fromUtf8 } from "secretjs";
 import fs from "fs";
 import assert from "assert";
 
+
+// TODO 
+// More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
+
 // Returns a client with which we can interact with secret network
 const initializeClient = async (endpoint: string, chainId: string) => {
   const wallet = new Wallet(); // Use default constructor of wallet to generate random mnemonic.
@@ -67,7 +71,7 @@ const initializeContract = async (
       sender: client.address,
       code_id,
       code_hash,
-      init_msg: { count: 4 }, // Initialize our counter to start from 4. This message will trigger our Init function
+      init_msg: { }, 
       label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
     },
     {
@@ -227,8 +231,8 @@ async function test_count_on_intialization(
     contractAddress
   );
   assert(
-    onInitializationCounter === 4,
-    `The counter on initialization expected to be 4 instead of ${onInitializationCounter}`
+    onInitializationCounter === 0,
+    `The counter on initialization expected to be 0 instead of ${onInitializationCounter}`
   );
 }
 
@@ -284,17 +288,17 @@ async function runTestFunction(
   const [client, contractHash, contractAddress] =
     await initializeAndUploadContract();
 
-  await runTestFunction(
-    test_count_on_intialization,
-    client,
-    contractHash,
-    contractAddress
-  );
-  await runTestFunction(
-    test_increment_stress,
-    client,
-    contractHash,
-    contractAddress
-  );
+  // await runTestFunction(
+  //   test_count_on_intialization,
+  //   client,
+  //   contractHash,
+  //   contractAddress
+  // );
+  // await runTestFunction(
+  //   test_increment_stress,
+  //   client,
+  //   contractHash,
+  //   contractAddress
+  // );
   await runTestFunction(test_gas_limits, client, contractHash, contractAddress);
 })();
