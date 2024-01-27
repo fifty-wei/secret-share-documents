@@ -5,10 +5,30 @@
     {
       "type": "object",
       "required": [
-        "get_count"
+        "get_file_content"
       ],
       "properties": {
-        "get_count": {
+        "get_file_content": {
+          "type": "object",
+          "required": [
+            "key"
+          ],
+          "properties": {
+            "key": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_contract_key"
+      ],
+      "properties": {
+        "get_contract_key": {
           "type": "object"
         }
       },
