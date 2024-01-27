@@ -3,8 +3,8 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use secret_template_cw1::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
-use secret_template_cw1::state::State;
+use secret_share_documents::msg::{CountResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use secret_share_documents::state::State;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();

@@ -127,13 +127,15 @@ async function initializeAndUploadContract() {
   let endpoint = "http://localhost:1317";
   let chainId = "secretdev-1";
 
+  let wasmPath = "../contract.wasm";
+
   const client = await initializeClient(endpoint, chainId);
 
   await fillUpFromFaucet(client, 100_000_000);
 
   const [contractHash, contractAddress] = await initializeContract(
     client,
-    "../contract.wasm"
+    wasmPath
   );
 
   var clientInfo: [SecretNetworkClient, string, string] = [
