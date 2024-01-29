@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError,
     StdResult,
@@ -73,6 +75,7 @@ pub fn execute(
             payload,
             public_key: user_public_key,
         } => decrypt_and_store(deps, payload, user_public_key),
+        _ => Ok(Response::default())
     }
 }
 
@@ -108,12 +111,16 @@ fn _decrypt_with_user_public_key(
 
     match aes_siv_decrypt(&payload, ad, &key) {
         Ok(decrypted_data) => {
+
+            // TODO :: Cannot use Bincode2 as float issue
+            //         Need to change to other way to decode it
+
             // TODO :: See if I can map to a ExecuteMsg directly instead of a Some
-            let data = Bincode2::deserialize(&decrypted_data).map(Some);
+            // let data = Bincode2::deserialize(&decrypted_data).map(Some);
 
-            println!("Here the data deserialized: {:?}", data);
+            // println!("Here the data deserialized: {:?}", data);
 
-            Ok(data.unwrap().unwrap())
+            Ok(ExecuteMsg::Test {})
         }
         Err(_e) => {
             // warn!("Error decrypting data: {:?}", e);

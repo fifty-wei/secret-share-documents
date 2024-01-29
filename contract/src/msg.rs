@@ -18,6 +18,7 @@ pub enum ExecuteMsg {
         payload: Binary,
         public_key: Vec<u8>,
     },
+    Test {}
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
