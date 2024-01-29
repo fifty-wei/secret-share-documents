@@ -4,6 +4,14 @@ import fs from "fs";
 import assert from "assert";
 
 
+// https://docs.rs/getrandom/latest/getrandom/#webassembly-support
+
+
+import { webcrypto } from 'node:crypto'
+// globalThis.crypto = webcrypto
+
+
+
 // TODO 
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
 
@@ -71,7 +79,7 @@ const initializeContract = async (
       sender: client.address,
       code_id,
       code_hash,
-      init_msg: { }, 
+      init_msg: {}, 
       label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
     },
     {
