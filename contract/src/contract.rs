@@ -9,11 +9,12 @@ use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use cosmwasm_storage::ReadonlyPrefixedStorage;
 use secret_toolkit::serialization::{Bincode2, Serde};
 
+
 use crate::error::{ContractError, CryptoError};
 use crate::msg::{ContractKeyResponse, ExecuteMsg, FilePayloadResponse, InstantiateMsg, QueryMsg};
 
 use crate::state::{
-    config, may_load, save, ContractKeys, FileState, State, CONTRACT_KEYS, PREFIX_FILES,
+    may_load, save, ContractKeys, FileState, CONTRACT_KEYS, PREFIX_FILES
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -22,17 +23,9 @@ use sha2::{Digest, Sha256};
 
 use aes_siv::aead::generic_array::GenericArray;
 use aes_siv::siv::Aes128Siv;
-use aes_siv::KeyInit;
 
 use hex;
 
-// Some tutorials
-// https://github.com/darwinzer0/secret-contract-tutorials/tree/main/tutorial1
-
-// https://github.com/scrtlabs/SecretDice/blob/master/src/contract.rs
-
-// Learn about encryption
-// https://users.rust-lang.org/t/how-to-use-aes256/83889/2
 
 #[entry_point]
 pub fn instantiate(
@@ -46,7 +39,7 @@ pub fn instantiate(
     let secp = Secp256k1::new();
 
     let private_key = SecretKey::from_slice(&rng).unwrap();
-    let private_key_string = private_key.display_secret().to_string();
+    let private_key_string = private_key.to_string();
     let private_key_bytes = hex::decode(private_key_string).unwrap();
 
     let public_key = PublicKey::from_secret_key(&secp, &private_key);
@@ -59,18 +52,6 @@ pub fn instantiate(
 
     CONTRACT_KEYS.save(deps.storage, &my_keys)?;
 
-    // Ok(Response::default())
-
-    let state = State {
-        count: 0,
-        owner: info.sender.clone(),
-    };
-
-    config(deps.storage).save(&state)?;
-
-    // let mut password_store = PrefixedStorage::new(PREFIX_FILES, &mut deps.storage);
-    // let key: &[u8] = env.message.sender.to_string().as_bytes();
-    // save(&mut password_store, key, &msg.password)?;
 
     deps.api
         .debug(&format!("Contract was initialized by {}", info.sender));
@@ -85,6 +66,7 @@ pub fn execute(
     _info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    // TODO :: Prefix function by `try_`
     match msg {
         ExecuteMsg::StoreNewFile { owner, payload } => request_store_new_file(deps, owner, payload),
         ExecuteMsg::EncryptedFilePayload {
@@ -119,7 +101,7 @@ fn _decrypt_with_user_public_key(
 
     // Create a shared secret from the user public key and the conrtact private key
     let shared_secret = SharedSecret::new(&other_public_key, &contract_private_key);
-    let key = shared_secret.secret_bytes(); // to_vec();
+    let key = shared_secret.to_vec();
 
     let ad_data: &[&[u8]] = &[];
     let ad = Some(ad_data);
@@ -175,7 +157,7 @@ pub fn aes_siv_decrypt(
 ) -> Result<Vec<u8>, CryptoError> {
     let ad = ad.unwrap_or(&[&[]]);
 
-    let mut cipher = Aes128Siv::new(&GenericArray::clone_from_slice(key));
+    let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(key));
     cipher.decrypt(ad, plaintext).map_err(|_e| {
         // warn!("aes_siv_encrypt error: {:?}", e);
         CryptoError::EncryptionError
@@ -413,7 +395,7 @@ mod tests {
         let secp = Secp256k1::new();
 
         let private_key = SecretKey::from_slice(&rng).unwrap();
-        let private_key_string = private_key.display_secret().to_string();
+        let private_key_string = private_key.to_string();
         let private_key_bytes = hex::decode(private_key_string).unwrap();
 
         let public_key = PublicKey::from_secret_key(&secp, &private_key);
@@ -439,17 +421,17 @@ mod tests {
             .unwrap();
 
         let shared_secret = SharedSecret::new(&other_public_key, &my_private_key);
-        let key = shared_secret.secret_bytes();
+        let key = shared_secret.to_vec();
 
         // Encrypt our payload
         let ad_data: &[&[u8]] = &[];
         let ad = Some(ad_data);
         let ad = ad.unwrap_or(&[&[]]);
 
-        let mut cipher = Aes128Siv::new(&GenericArray::clone_from_slice(&key));
+        let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
         let encrypt_message = cipher
             .encrypt(ad, message)
-            .map_err(|e| CryptoError::EncryptionError)
+            .map_err(|_e| CryptoError::EncryptionError)
             .unwrap();
 
         // Send the request

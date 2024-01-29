@@ -4,37 +4,24 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr, StdError, StdResult, Storage};
-use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
 
 use secret_toolkit::serialization::{Bincode2, Serde};
 use serde::de::DeserializeOwned;
 
-use secret_toolkit_storage::Item;
+use secret_toolkit::storage::Item;
 
 // use secret_toolkit_storage::Keymap;
 
-pub static CONFIG_KEY: &[u8] = b"config";
-
+/// Prefix to store all the files in the smart contract
 pub const PREFIX_FILES: &[u8] = b"files";
 
-// Some code example
-// https://github.com/scrtlabs/shielded-voting/blob/master/contracts/secret-poll/src/state.rs
+/// Item to store the public/private key of the Secret Smart Contract
+pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(b"contract_keys");
 
-// TODO
+
+// Some documentation
 // https://docs.scrt.network/secret-network-documentation/development/secret-contract-cosmwasm-framework/contract-components/storage/prefixed-storage
 
-// let mut password_store = PrefixedStorage::new(PREFIX_FILES, &mut deps.storage);
-// let key: &[u8] = env.message.sender.to_string().as_bytes();
-// save(&mut password_store, key, &msg.password)?;
-
-// let mut password_store = PrefixedStorage::new(PREFIX_PASSWORDS, &mut deps.storage);
-// let key: &[u8] = env.message.sender.to_string().as_bytes();
-// // Throws error if there is no password saved before
-// let password: String = load(&password_store, key)?;
-
-// let password_store = ReadonlyPrefixedStorage::new(PREFIX_PASSWORDS, &deps.storage);
-// let key = address.to_string().as_bytes();
-// let may_password: Option<String> = may_load(&password_store, key)?;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct ContractKeys {
@@ -42,33 +29,12 @@ pub struct ContractKeys {
     pub public_key: Vec<u8>,
 }
 
-pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(b"contract_keys");
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct FileState {
     pub owner: Addr,
-    pub payload: String, // pub viewers: Keymap<Addr, bool> // = Keymap::new(b"votes");
+    pub payload: String, 
+    // pub viewers: Keymap<Addr, bool> // = Keymap::new(b"votes");
 }
-
-// ID -> FileState
-
-// TODO :: To be deleted
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
-pub struct State {
-    pub count: i32,
-    pub owner: Addr,
-}
-
-pub fn config(storage: &mut dyn Storage) -> Singleton<State> {
-    singleton(storage, CONFIG_KEY)
-}
-
-pub fn config_read(storage: &dyn Storage) -> ReadonlySingleton<State> {
-    singleton_read(storage, CONFIG_KEY)
-}
-
-// TODO :: End to be deleted
 
 /// Returns StdResult<()> resulting from saving an item to storage
 ///
@@ -121,7 +87,8 @@ pub fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
     storage.remove(key);
 }
 
-// TODO :: Use it when we have enum as we
+// TODO :: Should we change the encoding method - Use it when we have enum 
+
 // /// Returns StdResult<()> resulting from saving an item to storage using Json (de)serialization
 // /// because bincode2 annoyingly uses a float op when deserializing an enum
 // ///

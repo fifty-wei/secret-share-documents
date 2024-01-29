@@ -29,30 +29,24 @@ default = []
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.1.10" }
-cosmwasm-storage = { package = "secret-cosmwasm-storage", version = "1.1.10" }
-secret-toolkit-storage = "0.9.0"
+cosmwasm-std = { package = "secret-cosmwasm-std", version = "1.1.11" }
+cosmwasm-storage = { package = "secret-cosmwasm-storage", version = "1.1.11" }
+secret-toolkit = { git = "https://github.com/scrtlabs/secret-toolkit", branch = "master", default-features = false, features = ["utils", "storage", "serialization"]}
 
-secret-toolkit = { package = "secret-toolkit", version = "0.10.0" }
-
-
+cosmwasm-schema = "1.0.0"
 schemars = { version = "0.8.11" }
+
 serde = { version = "1.0" }
 thiserror = { version = "1.0" }
 
 sha2 = "0.10.8"
 bincode = "1.3.3"
 hex = "0.4.3"
-getrandom = { version = "0.2.12", features = ["js"] }
 
-# Uncomment these for some common extra tools
-# secret-toolkit = { git = "https://github.com/scrtlabs/secret-toolkit", tag = "v0.8.0" }
-# cw-storage-plus = { version = "1.0.1", default-features = false }
+secp256k1 = { git = "https://github.com/scrtlabs/rust-secp256k1" }
+aes-siv = "0.6.2" # Issue with version "0.7.0" when building wasm contract
 
-# [dev-dependencies]
-cosmwasm-schema = "1.0.0"
-secp256k1 = "0.28.1"
-aes-siv = "0.7.0"
+
 
 [dev-dependencies]
 rstest = "0.18.2"
