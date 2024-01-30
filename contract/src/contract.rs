@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError,
     StdResult,
@@ -9,7 +7,7 @@ use secp256k1::ecdh::SharedSecret;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 use cosmwasm_storage::ReadonlyPrefixedStorage;
-use secret_toolkit::serialization::{Bincode2, Serde};
+use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::{ContractError, CryptoError};
@@ -84,7 +82,7 @@ pub fn execute(
 /// Create a shared secret by using the user public key and the contract private key.
 /// Then, used this shared secet to decrypt the cyphertext.
 fn _decrypt_with_user_public_key(
-    deps: DepsMut,
+    deps: &DepsMut,
     payload: Binary,
     user_public_key: Vec<u8>,
 ) -> Result<ExecuteMsg, ContractError> {
@@ -112,15 +110,26 @@ fn _decrypt_with_user_public_key(
     match aes_siv_decrypt(&payload, ad, &key) {
         Ok(decrypted_data) => {
 
-            // TODO :: Cannot use Bincode2 as float issue
-            //         Need to change to other way to decode it
+            // Cannot use Bincode2 as float issue
+            // Need to change to other way to decode it
+            // let data = Bincode2::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
 
             // TODO :: See if I can map to a ExecuteMsg directly instead of a Some
-            // let data = Bincode2::deserialize(&decrypted_data).map(Some);
+            let data = Json::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
 
             // println!("Here the data deserialized: {:?}", data);
 
-            Ok(ExecuteMsg::Test {})
+            match data {
+                Ok(d) => match d {
+                    Some(msg) => Ok(msg),
+                    None => Err(ContractError::CustomError {
+                        val: format!("Error empty object when deserialized"),
+                    }),
+                },
+                Err(e) => Err(ContractError::CustomError {
+                    val: format!("Error when deserialize payload message {:?}", e.to_string()),
+                })
+            }
         }
         Err(_e) => {
             // warn!("Error decrypting data: {:?}", e);
@@ -138,13 +147,13 @@ pub fn decrypt_and_store(
     payload: Binary,
     user_public_key: Vec<u8>,
 ) -> Result<Response, ContractError> {
-    match _decrypt_with_user_public_key(deps, payload, user_public_key) {
+    match _decrypt_with_user_public_key(&deps, payload, user_public_key) {
         Ok(ExecuteMsg::StoreNewFile {
-            owner: _,
-            payload: _,
+            owner,
+            payload,
         }) => {
             println!("Alright");
-            // let _ = request_store_new_file(deps, owner, payload);
+            let _ = request_store_new_file(deps, owner, payload);
         }
         Ok(_) => {
             println!("Other message");
@@ -290,11 +299,6 @@ mod tests {
 
     use crate::msg::ExecuteMsg::StoreNewFile;
 
-    // use secret_toolkit_storage::{Item, Keymap};
-    // use serde::{Deserialize, Serialize};
-    // use cosmwasm_std::testing::MockStorage;
-    // use cosmwasm_std::StdResult;
-
     use cosmwasm_std::Api;
 
     use crate::state::may_load;
@@ -393,9 +397,12 @@ mod tests {
         let payload = String::from("{\"file\": \"content\"}");
 
         // Create the message for storing a new file
-        let store_new_file_msg = StoreNewFile { owner, payload };
+        let store_new_file_msg = StoreNewFile { 
+            owner: owner.clone(), 
+            payload: payload.clone() 
+        };
 
-        let message = &Bincode2::serialize(&store_new_file_msg).unwrap();
+        let message = &Json::serialize(&store_new_file_msg).unwrap();
 
         // Generate public/private key locally
         let rng = env.block.random.unwrap().0;
@@ -448,20 +455,29 @@ mod tests {
         };
 
         let unauth_env = mock_info("anyone", &coins(0, "token"));
-        let res = execute(deps.as_mut(), mock_env(), unauth_env, msg);
-        // match res {
-        //     Err(ContractError::Unauthorized {}) => {}
-        //     _ => panic!("Must return unauthorized error"),
-        // }
+        let _res = execute(deps.as_mut(), mock_env(), unauth_env, msg);
+        
 
-        println!("Result {:?}", res);
+        // Check the file has been encrypted
+        // TODO :: remove this verification, check directly by requesting the user key
+        // read the storage content
+        let expected_key = create_key_from_file_state(&FileState {
+            owner: owner.clone(),
+            payload: payload.clone(),
+        });
+    
+        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
 
-        // encrypt_message
+        let store_data: FileState = match loaded_payload {
+            Ok(Some(file_state)) => file_state,
+            Ok(None) => panic!("File not found from the given key."),
+            Err(error) => panic!("Error when loading file from storage: {:?}", error),
+        };
 
-        // ExecuteMsg::EncryptedFilePayload {
-        //     payload,
-        //     public_key: user_public_key,
-        // }
+        assert_eq!(store_data.owner, owner);
+        assert_eq!(store_data.payload, payload);
+
     }
 
     // TODO :: ~/Project/examples/EVM-encrypt-decrypt/secret_network
