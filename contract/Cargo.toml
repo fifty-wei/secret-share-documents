@@ -47,6 +47,14 @@ secp256k1 = { git = "https://github.com/scrtlabs/rust-secp256k1" }
 aes-siv = "0.6.2" # Issue with version "0.7.0" when building wasm contract
 
 
+# EVM
+prost = { version = "0.12.1", default-features = false, features = [
+    "prost-derive",
+] }
+ethabi = { version = "18.0.0", default-features = false, features = [] }
+
 
 [dev-dependencies]
 rstest = "0.18.2"
+
+

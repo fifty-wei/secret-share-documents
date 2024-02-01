@@ -18,6 +18,11 @@ pub enum ExecuteMsg {
         payload: Binary,
         public_key: Vec<u8>,
     },
+    ReceiveMessageEvm {
+        source_chain: String,
+        source_address: String,
+        payload: Binary,
+    },
     Test {}
 }
 
