@@ -19,6 +19,11 @@ pub const PREFIX_FILES: &[u8] = b"files";
 pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(b"contract_keys");
 
 
+
+// TODO :: Do a working approach then improve !
+pub const PREFIX_USERS: &[u8] = b"users";
+
+
 // Some documentation
 // https://docs.scrt.network/secret-network-documentation/development/secret-contract-cosmwasm-framework/contract-components/storage/prefixed-storage
 
@@ -35,6 +40,14 @@ pub struct FileState {
     pub payload: String, 
     // pub viewers: Keymap<Addr, bool> // = Keymap::new(b"votes");
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+pub struct UserInfo {
+    pub files: Vec<[u8; 32]>, 
+}
+
+
+
 
 /// Returns StdResult<()> resulting from saving an item to storage
 ///
