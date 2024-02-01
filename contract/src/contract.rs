@@ -1,3 +1,4 @@
+
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError,
     StdResult,
@@ -25,6 +26,8 @@ use aes_siv::aead::generic_array::GenericArray;
 use aes_siv::siv::Aes128Siv;
 
 use hex;
+
+// use ethabi::{decode, ParamType};
 
 
 #[entry_point]
@@ -73,9 +76,49 @@ pub fn execute(
             payload,
             public_key: user_public_key,
         } => decrypt_and_store(deps, payload, user_public_key),
+        ExecuteMsg::ReceiveMessageEvm {
+            source_chain,
+            source_address,
+            payload,
+        } => receive_message_evm(deps, source_chain, source_address, payload),
         _ => Ok(Response::default())
     }
 }
+
+pub fn receive_message_evm(
+    deps: DepsMut,
+    _source_chain: String,
+    _source_address: String,
+    payload: Binary,
+) -> Result<Response, ContractError> {
+
+    // decode the payload
+    // executeMsgPayload: [sender, message]
+    // let decoded = decode(&vec![ParamType::Bytes], payload.as_slice()).unwrap();
+
+    let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
+
+    let execute_msg = match data {
+        Ok(Some(d)) => d,
+        _ => return Err(ContractError::CustomError {
+            val: format!("Invalid execute message"),
+        }),
+        // Err(error) => panic!("Error when loading file from storage: {:?}", error),   
+    };
+
+    match execute_msg {
+        ExecuteMsg::EncryptedFilePayload {
+            payload,
+            public_key: user_public_key,
+        } => decrypt_and_store(deps, payload, user_public_key),
+        _ => Err(ContractError::CustomError {
+            val: format!("Cannot handle other message type"),
+        }),
+    }
+
+}
+
+
 
 /// Decrypt a cyphertext using a given public key and the contract private key.
 ///
@@ -227,7 +270,10 @@ pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResul
         Ok(None) => UserInfo {
             files: Vec::new()
         },
-        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
+        Err(error) => {
+            println!("Error when retrieving the data, TODO :: have exception here : {:?}", error);
+            return Ok(());
+        }
     };
 
     user_info.files.push(file_key);
