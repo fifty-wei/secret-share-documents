@@ -26,6 +26,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     GetFileContent { key: String },
     GetContractKey {},
+    GetFileIds {},
 }
 
 // We define a custom struct for each query response
@@ -37,4 +38,9 @@ pub struct FilePayloadResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct ContractKeyResponse {
     pub public_key: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+pub struct FileIdsResponse {
+    pub ids: Vec<[u8; 32]>,
 }

@@ -11,10 +11,10 @@ use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::{ContractError, CryptoError};
-use crate::msg::{ContractKeyResponse, ExecuteMsg, FilePayloadResponse, InstantiateMsg, QueryMsg};
+use crate::msg::{ContractKeyResponse, ExecuteMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg};
 
 use crate::state::{
-    may_load, save, ContractKeys, FileState, CONTRACT_KEYS, PREFIX_FILES
+    may_load, save, ContractKeys, FileState, UserInfo, CONTRACT_KEYS, PREFIX_FILES, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -212,6 +212,30 @@ pub fn create_key_from_file_state(file_state: &FileState) -> [u8; 32] {
     key
 }
 
+
+/// Add a key to a user
+pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResult<()> {
+
+    let user_address = owner.as_bytes();
+
+    // Get user storage
+    let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
+    let loaded_info: StdResult<Option<UserInfo>> = may_load(&users_store, user_address);
+
+    let mut user_info = match loaded_info {
+        Ok(Some(user_info)) => user_info,
+        Ok(None) => UserInfo {
+            files: Vec::new()
+        },
+        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
+    };
+
+    user_info.files.push(file_key);
+
+    save(&mut users_store, user_address, &user_info)
+}
+
+
 /// Store a new file in the smartcontract storage
 ///
 pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<String> {
@@ -220,7 +244,7 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
 
     // Create the file content
     let file_state = FileState {
-        owner: owner,
+        owner: owner.clone(),
         payload: payload,
     };
 
@@ -228,6 +252,10 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
 
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
+
+    // Add the key to the user
+    // TODO :: handle error
+    let _ = store_new_key(deps, owner, key);
 
     Ok(hex::encode(&key))
 }
@@ -267,11 +295,28 @@ pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
 // }
 
 #[entry_point]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::GetFileContent { key } => to_binary(&query_file_content(deps, key)?),
         QueryMsg::GetContractKey {} => to_binary(&query_key(deps)?),
+        QueryMsg::GetFileIds {} => to_binary(&query_file_ids(deps, env)?),
     }
+}
+
+fn query_file_ids(deps: Deps, env: Env) -> StdResult<FileIdsResponse> {
+
+    let sender = env.contract.address.as_bytes();
+
+    // Get user storage
+    let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
+    let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, sender);
+
+    match loaded_payload {
+        Ok(Some(user_info)) => Ok(FileIdsResponse { ids: user_info.files }),
+        Ok(None) => panic!("File not found from the given key."),
+        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
+    }
+
 }
 
 fn query_key(deps: Deps) -> StdResult<ContractKeyResponse> {
