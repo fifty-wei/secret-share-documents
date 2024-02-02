@@ -72,10 +72,6 @@ pub fn execute(
     // TODO :: Prefix function by `try_`
     match msg {
         ExecuteMsg::StoreNewFile { owner, payload } => request_store_new_file(deps, owner, payload),
-        ExecuteMsg::EncryptedFilePayload {
-            payload,
-            public_key: user_public_key,
-        } => decrypt_and_store(deps, payload, user_public_key),
         ExecuteMsg::ReceiveMessageEvm {
             source_chain,
             source_address,
@@ -405,25 +401,41 @@ mod tests {
     // See this project - organization
     // https://github.com/desmos-labs/desmos-contracts/tree/master/contracts/poap
 
-    fn _contract_initialization() {
-        let mut deps = mock_dependencies();
 
+
+    /// Instanciate a new smart contract
+    fn setup_contract(deps: DepsMut) {
         // Instanciate our Secret Contract
         let msg = InstantiateMsg {};
         let info = mock_info("creator", &coins(0, ""));
-        let _response = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let response = instantiate(deps, mock_env(), info, msg).unwrap();
+        assert_eq!(0, response.messages.len());
     }
 
-    #[fixture]
-    fn contract_public_key() -> Vec<u8> {
-        let deps = mock_dependencies();
 
-        _contract_initialization();
+    // #[fixture]
+    // fn contract_public_key() -> Vec<u8> {
+    //     let deps = mock_dependencies();
 
-        let msg = QueryMsg::GetContractKey {};
-        let response = query(deps.as_ref(), mock_env(), msg).unwrap();
-        let public_key_response: ContractKeyResponse = from_binary(&response).unwrap();
-        public_key_response.public_key
+    //     _contract_initialization();
+
+    //     let msg = QueryMsg::GetContractKey {};
+    //     let response = query(deps.as_ref(), mock_env(), msg).unwrap();
+    //     let public_key_response: ContractKeyResponse = from_binary(&response).unwrap();
+    //     public_key_response.public_key
+    // }
+
+
+
+
+    #[test]
+    fn proper_initialization() {
+
+        // Initialize the smart contract
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // TODO :: Let's query the publc key of the smart contract
     }
 
     #[test]
@@ -470,17 +482,13 @@ mod tests {
         assert_eq!(store_data.payload, payload);
     }
 
-    #[rstest]
+    #[test]
     fn test_encrypted_file_payload_request() {
-        // contract_initilization();
-
+        
+        // Initialize the smart contract
         let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
 
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(0, ""));
-        let _response = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // let mut deps = mock_dependencies();
         let env = mock_env();
 
         let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
@@ -545,9 +553,23 @@ mod tests {
             public_key: public_key_bytes,
         };
 
+        // let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
+
+        let encoded_evm_message = Json::serialize(&msg).unwrap();
+
+        let evm_message = ExecuteMsg::ReceiveMessageEvm {
+            source_chain: String::from("polygon"),
+            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
+            payload: Binary::from(encoded_evm_message),
+        };
+
+
         let unauth_env = mock_info("anyone", &coins(0, "token"));
-        let _res = execute(deps.as_mut(), mock_env(), unauth_env, msg);
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
         
+        // Retrieve list of file given a user
+
 
         // Check the file has been encrypted
         // TODO :: remove this verification, check directly by requesting the user key
@@ -599,17 +621,5 @@ mod tests {
         assert!(public_key == storage_public_key);
     }
 
-    #[test]
-    fn proper_initialization() {
-        let mut deps = mock_dependencies();
-
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(1000, "earth"));
-
-        // we can just call .unwrap() to assert this was a success
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
-
-        // TODO :: Let's query the publc key of the smart contract
-    }
+    
 }
