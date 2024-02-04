@@ -14,7 +14,7 @@ use secret_toolkit::permit::Permit;
 use secret_toolkit::serialization::{Json, Serde};
 
 
-use crate::error::{ContractError, CryptoError};
+use crate::error::ContractError;
 use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
@@ -31,6 +31,12 @@ use aes_siv::siv::Aes128Siv;
 use hex;
 
 // use ethabi::{decode, ParamType};
+
+
+// TODO :: See Revoking permits - need implementation ?
+// I do not think this can be done on a permits execute message
+// Maybe need to execute directly on secret network
+// https://scrt.university/pathways/33/implementing-viewing-keys-and-permits
 
 
 #[entry_point]
@@ -70,10 +76,6 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
-
-// TODO :: See Revoking permits - need implementation ?
-// https://scrt.university/pathways/33/implementing-viewing-keys-and-permits
-
 #[entry_point]
 pub fn execute(
     deps: DepsMut,
@@ -86,8 +88,7 @@ pub fn execute(
             source_chain,
             source_address,
             payload,
-        } => receive_message_evm(deps, source_chain, source_address, payload),
-        _ => Ok(Response::default())
+        } => receive_message_evm(deps, source_chain, source_address, payload)
     }
 }
 
@@ -103,48 +104,41 @@ pub fn receive_message_evm(
     let user_public_key = execute_msg.public_key;
     let encrypted_data = execute_msg.payload;
 
-    // TODO :: Owner can be set by the permit
-
     // Decrypt the EVM message
-    match _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key) {
-
-        Ok(ExecutePermitMsg::WithPermit { permit, execute }) => {
-
-            let _ = permit_execute_message(deps, permit, execute);
-
-            println!("Alright");
-
-        }
-        Ok(_) => {
-            println!("Other message");
-        }
-        Err(_e) => {
-            println!("Error");
+    let decrypt_msg = _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key)?;
+    match decrypt_msg {
+        ExecutePermitMsg::WithPermit { permit, execute } => {
+            return permit_execute_message(deps, permit, execute);
         }
     };
-
-    Ok(Response::default())
-
 }
 
-
-
-fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction) -> Result<Response, ContractError> {
-    // Validate permit content
-    let token_address = CONFIG.load(deps.storage)?.contract_address;
+/// Verify the permit and check if it is the right users.
+/// Returns: verified user address.
+fn _verify_permit(deps: Deps, permit: Permit, contract_address: Addr) -> Result<Addr, ContractError> {
 
     // Get and validate user address
     let account = secret_toolkit::permit::validate(
-        deps.as_ref(),
+        deps,
         PREFIX_REVOKED_PERMITS,
         &permit,
-        token_address.into_string(),
+        contract_address.into_string(),
         None,
     )?;
 
     let account = Addr::unchecked(account);
 
-    // Permit validated! We can now execute the query.
+    return Ok(account);
+}
+
+
+fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction) -> Result<Response, ContractError> {
+
+    // Verify the account
+    let contract_address = CONFIG.load(deps.storage)?.contract_address;
+    let account = _verify_permit(deps.as_ref(), permit, contract_address)?;
+
+    // Execute the message
     match query {
         ExecuteMsgAction::StoreNewFile { payload } => {
             let _ = store_new_file(deps, account, payload);
@@ -160,12 +154,13 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
 }
 
 
-
-
 /// Decrypt a cyphertext using a given public key and the contract private key.
 ///
 /// Create a shared secret by using the user public key and the contract private key.
 /// Then, used this shared secet to decrypt the cyphertext.
+/// 
+/// Note: for the ExecutePermitMsg, we cannot use Bincode2 as encoder as we are using 
+/// enum values, which is not manage by this library.
 fn _decrypt_with_user_public_key(
     deps: &DepsMut,
     payload: Binary,
@@ -173,57 +168,33 @@ fn _decrypt_with_user_public_key(
 ) -> Result<ExecutePermitMsg, ContractError> {
     // Read the private key from the storage
     let contract_keys = CONTRACT_KEYS.load(deps.storage)?;
+    let contract_private_key = SecretKey::from_slice(contract_keys.private_key.as_slice()).unwrap();
 
-    let contract_private_key = SecretKey::from_slice(contract_keys.private_key.as_slice())
-        .map_err(|e| ContractError::CustomError {
-            val: format!("Invalid private key: {}", e),
+    // Conver the user public key
+    let user_public_key = PublicKey::from_slice(user_public_key.as_slice())
+        .map_err(|e| {
+            ContractError::InvalidPublicKey { val: e.to_string() }
         })?;
 
-    let other_public_key = PublicKey::from_slice(user_public_key.as_slice()).map_err(|e| {
-        ContractError::CustomError {
-            val: format!("Invalid public key: {}", e),
-        }
-    })?;
-
     // Create a shared secret from the user public key and the conrtact private key
-    let shared_secret = SharedSecret::new(&other_public_key, &contract_private_key);
+    let shared_secret = SharedSecret::new(&user_public_key, &contract_private_key);
     let key = shared_secret.secret_bytes();
 
     let ad_data: &[&[u8]] = &[];
     let ad = Some(ad_data);
 
-    match aes_siv_decrypt(&payload, ad, &key) {
-        Ok(decrypted_data) => {
-
-            // Cannot use Bincode2 as float issue
-            // Need to change to other way to decode it
-            // let data = Bincode2::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
-
-            // TODO :: See if I can map to a ExecuteMsg directly instead of a Some
-            let data = Json::deserialize::<ExecutePermitMsg>(&decrypted_data).map(Some);
-
-            // println!("Here the data deserialized: {:?}", data);
-
-            match data {
-                Ok(d) => match d {
-                    Some(msg) => Ok(msg),
-                    None => Err(ContractError::CustomError {
-                        val: format!("Error empty object when deserialized"),
-                    }),
-                },
-                Err(e) => Err(ContractError::CustomError {
-                    val: format!("Error when deserialize payload message {:?}", e.to_string()),
-                })
+    // Decrypt the data and deserialized the message
+    let decrypted_data = aes_siv_decrypt(&payload, ad, &key)?;
+    let data = Json::deserialize::<ExecutePermitMsg>(&decrypted_data).map(Some);
+    
+    match data {
+        Ok(execute_permit_message) => {
+            match execute_permit_message {
+                Some(msg) => Ok(msg),
+                None => Err(ContractError::UnknownExecutePermitMsg)
             }
-        }
-        Err(_e) => {
-            // warn!("Error decrypting data: {:?}", e);
-            println!("Hola some issue here Crypto error.");
-            // Optionally, return an error here if you need to indicate a failure to the caller
-            Err(ContractError::CustomError {
-                val: format!("Invalid public key"),
-            })
-        }
+        },
+        Err(_) => Err(ContractError::UnknownExecutePermitMsg)
     }
 }
 
@@ -231,13 +202,12 @@ pub fn aes_siv_decrypt(
     plaintext: &[u8],
     ad: Option<&[&[u8]]>,
     key: &[u8],
-) -> Result<Vec<u8>, CryptoError> {
+) -> Result<Vec<u8>, ContractError> {
     let ad = ad.unwrap_or(&[&[]]);
 
     let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(key));
     cipher.decrypt(ad, plaintext).map_err(|_e| {
-        // warn!("aes_siv_encrypt error: {:?}", e);
-        CryptoError::EncryptionError
+        ContractError::EncryptionError
     })
 }
 
@@ -270,21 +240,18 @@ pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResul
 
     // Get user storage
     let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-    let loaded_info: StdResult<Option<UserInfo>> = may_load(&users_store, user_address);
+    let loaded_info: Option<UserInfo> = may_load(&users_store, user_address)?;
 
+    // Get user info if exists, else create new one
     let mut user_info = match loaded_info {
-        Ok(Some(user_info)) => user_info,
-        Ok(None) => UserInfo {
+        Some(user_info) => user_info,
+        None => UserInfo {
             files: Vec::new()
         },
-        Err(error) => {
-            println!("Error when retrieving the data, TODO :: have exception here : {:?}", error);
-            return Ok(());
-        }
     };
 
+    // Update and save the user info
     user_info.files.push(file_key);
-
     save(&mut users_store, user_address, &user_info)
 }
 
@@ -306,17 +273,13 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
 
-
     // Add the viewing right for the user
-    // TODO :: Manage error
-    // let _ = add_viewing_rights(deps, owner.clone(), key.clone());
-    let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
+    FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true)?;
 
     // Add the key to the user
-    // TODO :: handle error
-    let _ = store_new_key(deps, owner.clone(), key);
+    store_new_key(deps, owner.clone(), key)?;
 
-
+    // Return the key of the file
     Ok(hex::encode(&key))
 }
 
@@ -358,19 +321,13 @@ fn query_key(deps: Deps) -> StdResult<ContractKeyResponse> {
 }
 
 fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<Binary, StdError> {
-    // Validate permit content
-    let token_address = CONFIG.load(deps.storage)?.contract_address;
-
-    // Get and validate user address
-    let account = secret_toolkit::permit::validate(
-        deps,
-        PREFIX_REVOKED_PERMITS,
-        &permit,
-        token_address.into_string(),
-        None,
-    )?;
-
-    let account = Addr::unchecked(account);
+    
+    // Verify the account through the permit
+    let contract_address = CONFIG.load(deps.storage)?.contract_address;
+    let account = match _verify_permit(deps, permit, contract_address) {
+        Ok(account) => account,
+        Err(e) => panic!("Error {:?}", e),
+    };
 
     // Permit validated! We can now execute the query.
     match query {
@@ -524,7 +481,7 @@ mod tests {
         let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
         let encrypt_message = cipher
             .encrypt(ad, message_to_encrypt)
-            .map_err(|_e| CryptoError::EncryptionError)
+            .map_err(|_e| ContractError::EncryptionError)
             .unwrap();
 
         return encrypt_message;
@@ -742,7 +699,7 @@ mod tests {
         let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
         let encrypt_message = cipher
             .encrypt(ad, message)
-            .map_err(|_e| CryptoError::EncryptionError)
+            .map_err(|_e| ContractError::EncryptionError)
             .unwrap();
 
         // Send the request
