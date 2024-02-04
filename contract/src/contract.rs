@@ -18,7 +18,7 @@ use crate::error::{ContractError, CryptoError};
 use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
-    may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
+    may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -102,6 +102,8 @@ pub fn receive_message_evm(
 
     let user_public_key = execute_msg.public_key;
     let encrypted_data = execute_msg.payload;
+
+    // TODO :: Owner can be set by the permit
 
     // Decrypt the EVM message
     match _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key) {
@@ -270,9 +272,16 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
 
+
+    // Add the viewing right for the user
+    // TODO :: Manage error
+    // let _ = add_viewing_rights(deps, owner.clone(), key.clone());
+    let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
+
     // Add the key to the user
     // TODO :: handle error
-    let _ = store_new_key(deps, owner, key);
+    let _ = store_new_key(deps, owner.clone(), key);
+
 
     Ok(hex::encode(&key))
 }
@@ -327,6 +336,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
         None,
     )?;
 
+    let account = Addr::unchecked(account);
 
     // Permit validated! We can now execute the query.
     match query {
@@ -336,16 +346,23 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
         },
         QueryWithPermit::GetFileContent { key } => {
 
+            let u8_key: [u8; 32] = key.as_bytes().try_into().unwrap();
+
             // Check the permission - whitelisted
+            // let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
+            let whitelisted = FILE_PERMISSIONS.get(deps.storage, &(u8_key, account));
 
-
-            // if !permit.check_permission(&TokenPermissions::Balance) {
-            //     return Err(StdError::generic_err(format!(
-            //         "No permission to query balance, got permissions {:?}",
-            //         permit.params.permissions
-            //     )));
-            // }
-
+            match whitelisted {
+                Some(authorized) => {
+                    if !authorized {
+                        panic!("Unauthorized user");
+                    }
+                },
+                _ => {
+                    panic!("Unauthorized user");
+                }
+            };
+            
             // Get the file content
             to_binary(&query_file_content(deps, key)?)
         }
@@ -354,9 +371,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
 
 /// Return the file ids given a user.
 /// We need to verify with a permit that only the given account is the one that can retrieve the data.
-fn query_file_ids(deps: Deps, account: String) -> StdResult<FileIdsResponse> {
-
-    let account = Addr::unchecked(account);
+fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
 
     // Get user storage
     let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
@@ -609,9 +624,9 @@ mod tests {
         let payload = String::from("{\"file\": \"content\"}");
 
         // Mock a new file for a user A
-        let _ = store_new_file(deps.as_mut(), owner, payload);
+        let _ = store_new_file(deps.as_mut(), owner.clone(), payload);
 
-        let file_ids = query_file_ids(deps.as_ref(), String::from(user_address)).unwrap();
+        let file_ids = query_file_ids(deps.as_ref(), owner.clone()).unwrap();
         assert_eq!(file_ids.ids.len(), 1);
 
         let file_id = file_ids.ids[0];
