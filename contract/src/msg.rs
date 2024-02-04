@@ -26,7 +26,7 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub struct EncryptedExecuteMsg {
     pub payload: Binary,
-    pub public_key: Vec<u8>,
+    pub public_key: Vec<u8>,  // TODO :: See with fron if it is better to have it in hex instead
 }
 
 
@@ -72,10 +72,10 @@ pub struct FilePayloadResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct ContractKeyResponse {
-    pub public_key: Vec<u8>,
+    pub public_key: Vec<u8>,  // TODO :: See with fron if it is better to have it in hex instead
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct FileIdsResponse {
-    pub ids: Vec<[u8; 32]>,
+    pub ids: Vec<String>,
 }
