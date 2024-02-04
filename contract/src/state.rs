@@ -2,30 +2,43 @@ use std::any::type_name;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 use cosmwasm_std::{Addr, StdError, StdResult, Storage};
 
 use secret_toolkit::serialization::{Bincode2, Serde};
-use serde::de::DeserializeOwned;
-
 use secret_toolkit::storage::Item;
 
-// use secret_toolkit_storage::Keymap;
+
+
+pub const KEY_CONFIG: &[u8] = b"config";
+pub const KEY_CONTRACT_KEYS: &[u8] = b"contract_keys";
+
 
 /// Prefix to store all the files in the smart contract
 pub const PREFIX_FILES: &[u8] = b"files";
+pub const PREFIX_REVOKED_PERMITS: &str = "revoked_permits";
+pub const PREFIX_USERS: &[u8] = b"users";  // TODO :: Do a working approach then improve !
+
+
+
+pub static CONFIG: Item<Config> = Item::new(KEY_CONFIG);
 
 /// Item to store the public/private key of the Secret Smart Contract
-pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(b"contract_keys");
+pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(KEY_CONTRACT_KEYS);
 
-
-
-// TODO :: Do a working approach then improve !
-pub const PREFIX_USERS: &[u8] = b"users";
 
 
 // Some documentation
 // https://docs.scrt.network/secret-network-documentation/development/secret-contract-cosmwasm-framework/contract-components/storage/prefixed-storage
+
+
+#[derive(Serialize, Debug, Deserialize, Clone, JsonSchema)]
+#[cfg_attr(test, derive(Eq, PartialEq))]
+pub struct Config {
+    // the address of this contract, used to validate query permits
+    pub contract_address: Addr,
+}
 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
