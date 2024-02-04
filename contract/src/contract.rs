@@ -4,18 +4,21 @@ use cosmwasm_std::{
     StdResult,
 };
 
+
 use secp256k1::ecdh::SharedSecret;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 use cosmwasm_storage::ReadonlyPrefixedStorage;
+
+use secret_toolkit::permit::Permit;
 use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::{ContractError, CryptoError};
-use crate::msg::{ContractKeyResponse, ExecuteMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg};
+use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
-    may_load, save, ContractKeys, FileState, UserInfo, CONTRACT_KEYS, PREFIX_FILES, PREFIX_USERS
+    may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -42,7 +45,7 @@ pub fn instantiate(
     let secp = Secp256k1::new();
 
     let private_key = SecretKey::from_slice(&rng).unwrap();
-    let private_key_string = private_key.to_string();
+    let private_key_string = private_key.display_secret().to_string();
     let private_key_bytes = hex::decode(private_key_string).unwrap();
 
     let public_key = PublicKey::from_secret_key(&secp, &private_key);
@@ -55,12 +58,21 @@ pub fn instantiate(
 
     CONTRACT_KEYS.save(deps.storage, &my_keys)?;
 
+    // Save the configuration of this contract
+    let _ = CONFIG.save(deps.storage, &Config {
+        contract_address: env.contract.address,
+    });
+
 
     deps.api
         .debug(&format!("Contract was initialized by {}", info.sender));
 
     Ok(Response::default())
 }
+
+
+// TODO :: See Revoking permits - need implementation ?
+// https://scrt.university/pathways/33/implementing-viewing-keys-and-permits
 
 #[entry_point]
 pub fn execute(
@@ -69,9 +81,7 @@ pub fn execute(
     _info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    // TODO :: Prefix function by `try_`
     match msg {
-        ExecuteMsg::StoreNewFile { owner, payload } => request_store_new_file(deps, owner, payload),
         ExecuteMsg::ReceiveMessageEvm {
             source_chain,
             source_address,
@@ -81,39 +91,39 @@ pub fn execute(
     }
 }
 
+
+/// Decrypt and execute the message passed from EVM
 pub fn receive_message_evm(
     deps: DepsMut,
     _source_chain: String,
     _source_address: String,
-    payload: Binary,
+    execute_msg: EncryptedExecuteMsg,
 ) -> Result<Response, ContractError> {
 
-    // decode the payload
-    // executeMsgPayload: [sender, message]
-    // let decoded = decode(&vec![ParamType::Bytes], payload.as_slice()).unwrap();
+    let user_public_key = execute_msg.public_key;
+    let encrypted_data = execute_msg.payload;
 
-    let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
+    // Decrypt the EVM message
+    match _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key) {
+        Ok(ExecuteMsgAction::StoreNewFile {
+            owner,
+            payload,
+        }) => {
+            println!("Alright");
 
-    let execute_msg = match data {
-        Ok(Some(d)) => d,
-        _ => return Err(ContractError::CustomError {
-            val: format!("Invalid execute message"),
-        }),
-        // Err(error) => panic!("Error when loading file from storage: {:?}", error),   
+            let _ = store_new_file(deps, owner, payload);
+        }
+        Ok(_) => {
+            println!("Other message");
+        }
+        Err(_e) => {
+            println!("Error");
+        }
     };
 
-    match execute_msg {
-        ExecuteMsg::EncryptedFilePayload {
-            payload,
-            public_key: user_public_key,
-        } => decrypt_and_store(deps, payload, user_public_key),
-        _ => Err(ContractError::CustomError {
-            val: format!("Cannot handle other message type"),
-        }),
-    }
+    Ok(Response::default())
 
 }
-
 
 
 /// Decrypt a cyphertext using a given public key and the contract private key.
@@ -124,7 +134,7 @@ fn _decrypt_with_user_public_key(
     deps: &DepsMut,
     payload: Binary,
     user_public_key: Vec<u8>,
-) -> Result<ExecuteMsg, ContractError> {
+) -> Result<ExecuteMsgAction, ContractError> {
     // Read the private key from the storage
     let contract_keys = CONTRACT_KEYS.load(deps.storage)?;
 
@@ -141,7 +151,7 @@ fn _decrypt_with_user_public_key(
 
     // Create a shared secret from the user public key and the conrtact private key
     let shared_secret = SharedSecret::new(&other_public_key, &contract_private_key);
-    let key = shared_secret.to_vec();
+    let key = shared_secret.secret_bytes();
 
     let ad_data: &[&[u8]] = &[];
     let ad = Some(ad_data);
@@ -154,7 +164,7 @@ fn _decrypt_with_user_public_key(
             // let data = Bincode2::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
 
             // TODO :: See if I can map to a ExecuteMsg directly instead of a Some
-            let data = Json::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
+            let data = Json::deserialize::<ExecuteMsgAction>(&decrypted_data).map(Some);
 
             // println!("Here the data deserialized: {:?}", data);
 
@@ -181,30 +191,6 @@ fn _decrypt_with_user_public_key(
     }
 }
 
-pub fn decrypt_and_store(
-    deps: DepsMut,
-    payload: Binary,
-    user_public_key: Vec<u8>,
-) -> Result<Response, ContractError> {
-    match _decrypt_with_user_public_key(&deps, payload, user_public_key) {
-        Ok(ExecuteMsg::StoreNewFile {
-            owner,
-            payload,
-        }) => {
-            println!("Alright");
-            let _ = request_store_new_file(deps, owner, payload);
-        }
-        Ok(_) => {
-            println!("Other message");
-        }
-        Err(_e) => {
-            println!("Error");
-        }
-    };
-
-    Ok(Response::default())
-}
-
 pub fn aes_siv_decrypt(
     plaintext: &[u8],
     ad: Option<&[&[u8]]>,
@@ -219,17 +205,6 @@ pub fn aes_siv_decrypt(
     })
 }
 
-pub fn request_store_new_file(
-    deps: DepsMut,
-    owner: Addr,
-    payload: String,
-) -> Result<Response, ContractError> {
-    // Store the payload data
-    match store_new_file(deps, owner, payload) {
-        Ok(_key) => Ok(Response::default()),
-        Err(_data) => Ok(Response::default()),
-    }
-}
 
 /// Create a key from a given file data.
 ///
@@ -323,42 +298,13 @@ pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
     Ok(payload)
 }
 
-// pub fn try_reset(deps: DepsMut, info: MessageInfo, count: i32) -> Result<Response, ContractError> {
-//     config(deps.storage).update(|mut state| -> Result<_, ContractError> {
-//         if info.sender != state.owner {
-//             return Err(ContractError::Unauthorized {});
-//         }
-//         state.count = count;
-//         Ok(state)
-//     })?;
-
-//     deps.api.debug("count reset successfully");
-//     Ok(Response::default())
-// }
 
 #[entry_point]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {    
     match msg {
-        QueryMsg::GetFileContent { key } => to_binary(&query_file_content(deps, key)?),
         QueryMsg::GetContractKey {} => to_binary(&query_key(deps)?),
-        QueryMsg::GetFileIds {} => to_binary(&query_file_ids(deps, env)?),
+        QueryMsg::WithPermit { permit, query } => permit_queries(deps, permit, query)
     }
-}
-
-fn query_file_ids(deps: Deps, env: Env) -> StdResult<FileIdsResponse> {
-
-    let sender = env.contract.address.as_bytes();
-
-    // Get user storage
-    let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-    let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, sender);
-
-    match loaded_payload {
-        Ok(Some(user_info)) => Ok(FileIdsResponse { ids: user_info.files }),
-        Ok(None) => panic!("File not found from the given key."),
-        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
-    }
-
 }
 
 fn query_key(deps: Deps) -> StdResult<ContractKeyResponse> {
@@ -366,6 +312,62 @@ fn query_key(deps: Deps) -> StdResult<ContractKeyResponse> {
     Ok(ContractKeyResponse {
         public_key: contract_keys.public_key,
     })
+}
+
+fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<Binary, StdError> {
+    // Validate permit content
+    let token_address = CONFIG.load(deps.storage)?.contract_address;
+
+    // Get and validate user address
+    let account = secret_toolkit::permit::validate(
+        deps,
+        PREFIX_REVOKED_PERMITS,
+        &permit,
+        token_address.into_string(),
+        None,
+    )?;
+
+
+    // Permit validated! We can now execute the query.
+    match query {
+        QueryWithPermit::GetFileIds {} => {
+            // Get user file
+            to_binary(&query_file_ids(deps, account)?)
+        },
+        QueryWithPermit::GetFileContent { key } => {
+
+            // Check the permission - whitelisted
+
+
+            // if !permit.check_permission(&TokenPermissions::Balance) {
+            //     return Err(StdError::generic_err(format!(
+            //         "No permission to query balance, got permissions {:?}",
+            //         permit.params.permissions
+            //     )));
+            // }
+
+            // Get the file content
+            to_binary(&query_file_content(deps, key)?)
+        }
+    }
+}
+
+/// Return the file ids given a user.
+/// We need to verify with a permit that only the given account is the one that can retrieve the data.
+fn query_file_ids(deps: Deps, account: String) -> StdResult<FileIdsResponse> {
+
+    let account = Addr::unchecked(account);
+
+    // Get user storage
+    let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
+    let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, account.as_bytes());
+
+    match loaded_payload {
+        Ok(Some(user_info)) => Ok(FileIdsResponse { ids: user_info.files }),
+        Ok(None) => panic!("File not found from the given key."),
+        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
+    }
+
 }
 
 fn query_file_content(deps: Deps, key: String) -> StdResult<FilePayloadResponse> {
@@ -376,15 +378,18 @@ fn query_file_content(deps: Deps, key: String) -> StdResult<FilePayloadResponse>
     })
 }
 
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_binary};
-    use secret_toolkit::serialization::{Bincode2, Serde};
+    use cosmwasm_std::{coins, from_binary, QueryResponse};
+    use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
+    use secret_toolkit::serialization::Serde;
 
-    use crate::msg::ExecuteMsg::StoreNewFile;
+    use crate::msg::ExecuteMsgAction::StoreNewFile;
 
     use cosmwasm_std::Api;
 
@@ -413,30 +418,324 @@ mod tests {
     }
 
 
-    // #[fixture]
-    // fn contract_public_key() -> Vec<u8> {
-    //     let deps = mock_dependencies();
+    fn _query_contract_pubic_key(deps: Deps) -> ContractKeyResponse {
+        let query_msg = QueryMsg::GetContractKey {};
+        let response = query(deps, mock_env(), query_msg).unwrap();
+        let key_response: ContractKeyResponse = from_binary(&response).unwrap();
+        key_response
+    }
 
-    //     _contract_initialization();
+    fn _generate_local_public_private_key(env: Env) -> (Vec<u8>, Vec<u8>) {
+        // Generate public/private key locally
+        let rng = env.block.random.unwrap().0;
+        let secp = Secp256k1::new();
 
-    //     let msg = QueryMsg::GetContractKey {};
-    //     let response = query(deps.as_ref(), mock_env(), msg).unwrap();
-    //     let public_key_response: ContractKeyResponse = from_binary(&response).unwrap();
-    //     public_key_response.public_key
-    // }
+        let private_key = SecretKey::from_slice(&rng).unwrap();
+        let private_key_string = private_key.display_secret().to_string();
+        let private_key_bytes = hex::decode(private_key_string).unwrap();
 
+        let public_key = PublicKey::from_secret_key(&secp, &private_key);
+        let public_key_bytes = public_key.serialize().to_vec();
 
+        return (public_key_bytes, private_key_bytes);
+    }
 
+    fn _encrypt_with_share_secret(
+        local_private_key: Vec<u8>, 
+        contract_public_key: Vec<u8>, 
+        message_to_encrypt: &Vec<u8>
+    ) -> Vec<u8> {
+        let my_private_key = SecretKey::from_slice(&local_private_key)
+            .map_err(|e| ContractError::CustomError {
+                val: format!("Invalid private key: {}", e),
+            })
+            .unwrap();
+
+        let other_public_key = PublicKey::from_slice(contract_public_key.as_slice())
+            .map_err(|e| ContractError::CustomError {
+                val: format!("Invalid public key: {}", e),
+            })
+            .unwrap();
+
+        let shared_secret = SharedSecret::new(&other_public_key, &my_private_key);
+        let key = shared_secret.secret_bytes();
+
+        // Encrypt our payload
+        let ad_data: &[&[u8]] = &[];
+        let ad = Some(ad_data);
+        let ad = ad.unwrap_or(&[&[]]);
+
+        let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
+        let encrypt_message = cipher
+            .encrypt(ad, message_to_encrypt)
+            .map_err(|_e| CryptoError::EncryptionError)
+            .unwrap();
+
+        return encrypt_message;
+    }
 
     #[test]
-    fn proper_initialization() {
-
+    fn test_contract_initialization() {
         // Initialize the smart contract
         let mut deps = mock_dependencies();
         setup_contract(deps.as_mut());
 
-        // TODO :: Let's query the publc key of the smart contract
+        // Check that the contract generate a public key
+        let key_response = _query_contract_pubic_key(deps.as_ref());
+        assert_eq!(33, key_response.public_key.len());        
     }
+
+    #[test]
+    fn test_evm_store_new_file() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        let env = mock_env();
+
+        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
+        let permit_name = "default";
+        let chain_id = "secretdev-1";
+        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
+        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
+
+
+        let raw_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
+        let owner = deps.api.addr_validate(raw_address).unwrap();
+        let payload = String::from("{\"file\": \"content\"}");
+
+        // Create the message for storing a new file
+        let store_new_file_msg = ExecuteMsgAction::StoreNewFile { 
+            owner: owner.clone(), 
+            payload: payload.clone() 
+        };
+
+        let message = &Json::serialize(&store_new_file_msg).unwrap();
+
+        // Generate public/private key locally
+        let (local_public_key, local_private_key) = _generate_local_public_private_key(env);
+        
+        // Query the contract public key
+        let contract_public_key = _query_contract_pubic_key(deps.as_ref()).public_key;
+
+        // Create share secret
+        let encrypted_message = _encrypt_with_share_secret(local_private_key, contract_public_key, message);
+       
+        // Create the request
+        let evm_message = ExecuteMsg::ReceiveMessageEvm {
+            source_chain: String::from("polygon"),
+            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
+            payload: EncryptedExecuteMsg {
+                payload: Binary::from(encrypted_message),
+                public_key: local_public_key,
+            },
+        };
+
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+        
+        // Query the user file
+        // let Query
+
+        let token_address = CONFIG.load(deps.as_mut().storage).unwrap().contract_address;
+
+
+        // Retrieve list of file given a user
+        let query_msg = QueryMsg::WithPermit { 
+            permit: Permit {
+                params: PermitParams {
+                    allowed_tokens: vec![String::from(token_address)],
+                    permit_name: permit_name.to_string(),
+                    chain_id: chain_id.to_string(),
+                    permissions: vec![TokenPermissions::Owner],
+                },
+                signature: PermitSignature {
+                    pub_key: PubKey {
+                        r#type: "tendermint/PubKeySecp256k1".to_string(),
+                        value: Binary::from_base64(pub_key).unwrap(),
+                    },
+                    signature: Binary::from_base64(signature).unwrap(),
+                }
+            }, 
+            query: QueryWithPermit::GetFileIds {}
+        };
+        let res = query(deps.as_ref(), mock_env(), query_msg);
+        assert!(res.is_ok());
+        
+        let file_id_response = Json::deserialize::<FileIdsResponse>(&res.unwrap()).map(Some);
+
+        // We should now have one key
+        assert_eq!(file_id_response.unwrap().unwrap().ids.len(), 1);
+
+
+
+
+        // Check the file has been encrypted
+        // TODO :: remove this verification, check directly by requesting the user key
+        // read the storage content
+        let expected_key = create_key_from_file_state(&FileState {
+            owner: owner.clone(),
+            payload: payload.clone(),
+        });
+    
+        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
+
+        let store_data: FileState = match loaded_payload {
+            Ok(Some(file_state)) => file_state,
+            Ok(None) => panic!("File not found from the given key."),
+            Err(error) => panic!("Error when loading file from storage: {:?}", error),
+        };
+
+        assert_eq!(store_data.owner, owner);
+        assert_eq!(store_data.payload, payload);
+    }
+
+
+    #[test]
+    fn test_unauthorized_file_access() {
+        
+        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
+        let permit_name = "default";
+        let chain_id = "secretdev-1";
+        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
+        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
+
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        let owner = deps.api.addr_validate(user_address).unwrap();
+        let payload = String::from("{\"file\": \"content\"}");
+
+        // Mock a new file for a user A
+        let _ = store_new_file(deps.as_mut(), owner, payload);
+
+        let file_ids = query_file_ids(deps.as_ref(), String::from(user_address)).unwrap();
+        assert_eq!(file_ids.ids.len(), 1);
+
+        let file_id = file_ids.ids[0];
+
+        // TODO :: Query file ok for owner
+
+        // TODO :: Query file unauthorize user error
+        
+
+
+
+    }
+
+
+    #[test]
+    fn test_encrypted_file_payload_request() {
+        
+        // Initialize the smart contract
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        let env = mock_env();
+
+        let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
+        let owner = deps.api.addr_validate(raw_address).unwrap();
+        let payload = String::from("{\"file\": \"content\"}");
+
+        // Create the message for storing a new file
+        let store_new_file_msg = StoreNewFile { 
+            owner: owner.clone(), 
+            payload: payload.clone() 
+        };
+
+        let message = &Json::serialize(&store_new_file_msg).unwrap();
+
+        // Generate public/private key locally
+        let rng = env.block.random.unwrap().0;
+        let secp = Secp256k1::new();
+
+        let private_key = SecretKey::from_slice(&rng).unwrap();
+        let private_key_string = private_key.display_secret().to_string();
+        let private_key_bytes = hex::decode(private_key_string).unwrap();
+
+        let public_key = PublicKey::from_secret_key(&secp, &private_key);
+        let public_key_bytes = public_key.serialize().to_vec();
+
+        // Query the contract public key
+        let public_key_response = _query_contract_pubic_key(deps.as_ref());
+        let contract_public_key = public_key_response.public_key;
+
+        // Create share secret
+        let my_private_key = SecretKey::from_slice(&private_key_bytes)
+            .map_err(|e| ContractError::CustomError {
+                val: format!("Invalid private key: {}", e),
+            })
+            .unwrap();
+
+        let other_public_key = PublicKey::from_slice(contract_public_key.as_slice())
+            .map_err(|e| ContractError::CustomError {
+                val: format!("Invalid public key: {}", e),
+            })
+            .unwrap();
+
+        let shared_secret = SharedSecret::new(&other_public_key, &my_private_key);
+        let key = shared_secret.secret_bytes();
+
+        // Encrypt our payload
+        let ad_data: &[&[u8]] = &[];
+        let ad = Some(ad_data);
+        let ad = ad.unwrap_or(&[&[]]);
+
+        let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
+        let encrypt_message = cipher
+            .encrypt(ad, message)
+            .map_err(|_e| CryptoError::EncryptionError)
+            .unwrap();
+
+        // Send the request
+        let msg = EncryptedExecuteMsg {
+            payload: Binary::from(encrypt_message),
+            public_key: public_key_bytes,
+        };
+
+        // let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
+
+        // let encoded_evm_message = Json::serialize(&msg).unwrap();
+
+        let evm_message = ExecuteMsg::ReceiveMessageEvm {
+            source_chain: String::from("polygon"),
+            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
+            payload: msg,
+        };
+
+
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+        
+        // Retrieve list of file given a user
+
+
+        // Check the file has been encrypted
+        // TODO :: remove this verification, check directly by requesting the user key
+        // read the storage content
+        let expected_key = create_key_from_file_state(&FileState {
+            owner: owner.clone(),
+            payload: payload.clone(),
+        });
+    
+        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
+        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
+
+        let store_data: FileState = match loaded_payload {
+            Ok(Some(file_state)) => file_state,
+            Ok(None) => panic!("File not found from the given key."),
+            Err(error) => panic!("Error when loading file from storage: {:?}", error),
+        };
+
+        assert_eq!(store_data.owner, owner);
+        assert_eq!(store_data.payload, payload);
+
+    }
+
+
 
     #[test]
     fn test_store_new_file() {
@@ -480,117 +779,6 @@ mod tests {
 
         assert_eq!(store_data.owner, owner);
         assert_eq!(store_data.payload, payload);
-    }
-
-    #[test]
-    fn test_encrypted_file_payload_request() {
-        
-        // Initialize the smart contract
-        let mut deps = mock_dependencies();
-        setup_contract(deps.as_mut());
-
-        let env = mock_env();
-
-        let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
-        let owner = deps.api.addr_validate(raw_address).unwrap();
-        let payload = String::from("{\"file\": \"content\"}");
-
-        // Create the message for storing a new file
-        let store_new_file_msg = StoreNewFile { 
-            owner: owner.clone(), 
-            payload: payload.clone() 
-        };
-
-        let message = &Json::serialize(&store_new_file_msg).unwrap();
-
-        // Generate public/private key locally
-        let rng = env.block.random.unwrap().0;
-        let secp = Secp256k1::new();
-
-        let private_key = SecretKey::from_slice(&rng).unwrap();
-        let private_key_string = private_key.to_string();
-        let private_key_bytes = hex::decode(private_key_string).unwrap();
-
-        let public_key = PublicKey::from_secret_key(&secp, &private_key);
-        let public_key_bytes = public_key.serialize().to_vec();
-
-        // Query the contract public key
-        let msg = QueryMsg::GetContractKey {};
-        let response = query(deps.as_ref(), mock_env(), msg).unwrap();
-        let public_key_response: ContractKeyResponse = from_binary(&response).unwrap();
-        let contract_public_key = public_key_response.public_key;
-
-        // Create share secret
-        let my_private_key = SecretKey::from_slice(&private_key_bytes)
-            .map_err(|e| ContractError::CustomError {
-                val: format!("Invalid private key: {}", e),
-            })
-            .unwrap();
-
-        let other_public_key = PublicKey::from_slice(contract_public_key.as_slice())
-            .map_err(|e| ContractError::CustomError {
-                val: format!("Invalid public key: {}", e),
-            })
-            .unwrap();
-
-        let shared_secret = SharedSecret::new(&other_public_key, &my_private_key);
-        let key = shared_secret.to_vec();
-
-        // Encrypt our payload
-        let ad_data: &[&[u8]] = &[];
-        let ad = Some(ad_data);
-        let ad = ad.unwrap_or(&[&[]]);
-
-        let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
-        let encrypt_message = cipher
-            .encrypt(ad, message)
-            .map_err(|_e| CryptoError::EncryptionError)
-            .unwrap();
-
-        // Send the request
-        let msg = ExecuteMsg::EncryptedFilePayload {
-            payload: Binary::from(encrypt_message),
-            public_key: public_key_bytes,
-        };
-
-        // let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
-
-        let encoded_evm_message = Json::serialize(&msg).unwrap();
-
-        let evm_message = ExecuteMsg::ReceiveMessageEvm {
-            source_chain: String::from("polygon"),
-            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
-            payload: Binary::from(encoded_evm_message),
-        };
-
-
-        let unauth_env = mock_info("anyone", &coins(0, "token"));
-        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
-        assert!(res_store_file.is_ok());
-        
-        // Retrieve list of file given a user
-
-
-        // Check the file has been encrypted
-        // TODO :: remove this verification, check directly by requesting the user key
-        // read the storage content
-        let expected_key = create_key_from_file_state(&FileState {
-            owner: owner.clone(),
-            payload: payload.clone(),
-        });
-    
-        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
-
-        let store_data: FileState = match loaded_payload {
-            Ok(Some(file_state)) => file_state,
-            Ok(None) => panic!("File not found from the given key."),
-            Err(error) => panic!("Error when loading file from storage: {:?}", error),
-        };
-
-        assert_eq!(store_data.owner, owner);
-        assert_eq!(store_data.payload, payload);
-
     }
 
     // TODO :: ~/Project/examples/EVM-encrypt-decrypt/secret_network
