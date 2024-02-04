@@ -33,19 +33,27 @@ pub struct EncryptedExecuteMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub enum ExecuteMsgAction {
-    StoreNewFile {
-        owner: Addr,
-        payload: String,
+pub enum ExecutePermitMsg {
+    WithPermit {
+        permit: Permit,
+        execute: ExecuteMsgAction,
     },
-    ManageFileRights {
-        // TODO :: 
-        // Think also to add a permit here
-    }
 }
 
 
-
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecuteMsgAction {
+    StoreNewFile {
+        payload: String,
+    },
+    ManageFileRights { // Only owner of the file can call with this request
+        file_id: String,
+        add_viewing: Vec<Addr>, // Add viewing rights
+        delete_viewing: Vec<Addr>,  // Delete viewing rights
+        change_owner: Addr,  // Change owner of the file
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -61,7 +69,7 @@ pub enum QueryMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryWithPermit {
     GetFileIds {},
-    GetFileContent { key: String },
+    GetFileContent { file_id: String },
 }
 
 // We define a custom struct for each query response
@@ -77,5 +85,5 @@ pub struct ContractKeyResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct FileIdsResponse {
-    pub ids: Vec<String>,
+    pub file_ids: Vec<String>,
 }

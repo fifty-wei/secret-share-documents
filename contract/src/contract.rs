@@ -15,7 +15,7 @@ use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::{ContractError, CryptoError};
-use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
+use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
     may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
@@ -107,13 +107,13 @@ pub fn receive_message_evm(
 
     // Decrypt the EVM message
     match _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key) {
-        Ok(ExecuteMsgAction::StoreNewFile {
-            owner,
-            payload,
-        }) => {
+
+        Ok(ExecutePermitMsg::WithPermit { permit, execute }) => {
+
+            let _ = permit_execute_message(deps, permit, execute);
+
             println!("Alright");
 
-            let _ = store_new_file(deps, owner, payload);
         }
         Ok(_) => {
             println!("Other message");
@@ -128,6 +128,40 @@ pub fn receive_message_evm(
 }
 
 
+
+fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction) -> Result<Response, ContractError> {
+    // Validate permit content
+    let token_address = CONFIG.load(deps.storage)?.contract_address;
+
+    // Get and validate user address
+    let account = secret_toolkit::permit::validate(
+        deps.as_ref(),
+        PREFIX_REVOKED_PERMITS,
+        &permit,
+        token_address.into_string(),
+        None,
+    )?;
+
+    let account = Addr::unchecked(account);
+
+    // Permit validated! We can now execute the query.
+    match query {
+        ExecuteMsgAction::StoreNewFile { payload } => {
+            let _ = store_new_file(deps, account, payload);
+        },
+        ExecuteMsgAction::ManageFileRights { file_id, add_viewing, delete_viewing, change_owner } => {
+            // let u8_key: [u8; 32] = key.as_bytes().try_into().unwrap();
+            // let whitelisted = FILE_PERMISSIONS.get(deps.storage, &(u8_key, account));
+            // TODO 
+        }
+    };
+
+    Ok(Response::default())
+}
+
+
+
+
 /// Decrypt a cyphertext using a given public key and the contract private key.
 ///
 /// Create a shared secret by using the user public key and the contract private key.
@@ -136,7 +170,7 @@ fn _decrypt_with_user_public_key(
     deps: &DepsMut,
     payload: Binary,
     user_public_key: Vec<u8>,
-) -> Result<ExecuteMsgAction, ContractError> {
+) -> Result<ExecutePermitMsg, ContractError> {
     // Read the private key from the storage
     let contract_keys = CONTRACT_KEYS.load(deps.storage)?;
 
@@ -166,7 +200,7 @@ fn _decrypt_with_user_public_key(
             // let data = Bincode2::deserialize::<ExecuteMsg>(&decrypted_data).map(Some);
 
             // TODO :: See if I can map to a ExecuteMsg directly instead of a Some
-            let data = Json::deserialize::<ExecuteMsgAction>(&decrypted_data).map(Some);
+            let data = Json::deserialize::<ExecutePermitMsg>(&decrypted_data).map(Some);
 
             // println!("Here the data deserialized: {:?}", data);
 
@@ -344,9 +378,9 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             // Get user file
             to_binary(&query_file_ids(deps, account)?)
         },
-        QueryWithPermit::GetFileContent { key } => {
+        QueryWithPermit::GetFileContent { file_id } => {
 
-            let u8_key: [u8; 32] = key.as_bytes().try_into().unwrap();
+            let u8_key: [u8; 32] = file_id.as_bytes().try_into().unwrap();
 
             // Check the permission - whitelisted
             // let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
@@ -364,7 +398,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             };
 
             // Get the file content
-            to_binary(&query_file_content(deps, key)?)
+            to_binary(&query_file_content(deps, file_id)?)
         }
     }
 }
@@ -384,7 +418,7 @@ fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
                 hex::encode(&bytes_key)
             }).collect();
 
-            Ok(FileIdsResponse { ids: key_to_string })
+            Ok(FileIdsResponse { file_ids: key_to_string })
         }
         Ok(None) => panic!("File not found from the given key."),
         Err(error) => panic!("Error when loading file from storage: {:?}", error),        
@@ -527,7 +561,6 @@ mod tests {
 
         // Create the message for storing a new file
         let store_new_file_msg = ExecuteMsgAction::StoreNewFile { 
-            owner: owner.clone(), 
             payload: payload.clone() 
         };
 
@@ -588,7 +621,7 @@ mod tests {
         let file_id_response = Json::deserialize::<FileIdsResponse>(&res.unwrap()).map(Some);
 
         // We should now have one key
-        assert_eq!(file_id_response.unwrap().unwrap().ids.len(), 1);
+        assert_eq!(file_id_response.unwrap().unwrap().file_ids.len(), 1);
 
 
 
@@ -634,9 +667,9 @@ mod tests {
         let _ = store_new_file(deps.as_mut(), owner.clone(), payload);
 
         let file_ids = query_file_ids(deps.as_ref(), owner.clone()).unwrap();
-        assert_eq!(file_ids.ids.len(), 1);
+        assert_eq!(file_ids.file_ids.len(), 1);
 
-        let file_id = &file_ids.ids[0];
+        let file_id = &file_ids.file_ids[0];
 
         println!("Here the key {:?}", file_id);
 
@@ -665,7 +698,6 @@ mod tests {
 
         // Create the message for storing a new file
         let store_new_file_msg = StoreNewFile { 
-            owner: owner.clone(), 
             payload: payload.clone() 
         };
 
