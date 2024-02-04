@@ -362,7 +362,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
                     panic!("Unauthorized user");
                 }
             };
-            
+
             // Get the file content
             to_binary(&query_file_content(deps, key)?)
         }
@@ -378,7 +378,14 @@ fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
     let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, account.as_bytes());
 
     match loaded_payload {
-        Ok(Some(user_info)) => Ok(FileIdsResponse { ids: user_info.files }),
+        Ok(Some(user_info)) => {
+
+            let key_to_string : Vec<String> = user_info.files.iter().map(|&bytes_key| {
+                hex::encode(&bytes_key)
+            }).collect();
+
+            Ok(FileIdsResponse { ids: key_to_string })
+        }
         Ok(None) => panic!("File not found from the given key."),
         Err(error) => panic!("Error when loading file from storage: {:?}", error),        
     }
@@ -629,7 +636,9 @@ mod tests {
         let file_ids = query_file_ids(deps.as_ref(), owner.clone()).unwrap();
         assert_eq!(file_ids.ids.len(), 1);
 
-        let file_id = file_ids.ids[0];
+        let file_id = &file_ids.ids[0];
+
+        println!("Here the key {:?}", file_id);
 
         // TODO :: Query file ok for owner
 
