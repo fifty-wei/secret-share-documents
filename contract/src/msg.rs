@@ -16,7 +16,7 @@ pub enum ExecuteMsg {
     ReceiveMessageEvm {
         source_chain: String,
         source_address: String,
-        payload: EncryptedExecuteMsg,  // TODO :: Change to EVMExecuteMsg as we do not need to encrypt this one
+        payload: EncryptedExecuteMsg, 
     },
 }
 
@@ -26,7 +26,7 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub struct EncryptedExecuteMsg {
     pub payload: Binary,
-    pub public_key: Vec<u8>,  // TODO :: See with fron if it is better to have it in hex instead
+    pub public_key: Vec<u8>,  // TODO :: See with front if it is better to have it in hex instead
 }
 
 
@@ -80,7 +80,7 @@ pub struct FilePayloadResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct ContractKeyResponse {
-    pub public_key: Vec<u8>,  // TODO :: See with fron if it is better to have it in hex instead
+    pub public_key: Vec<u8>,  // TODO :: See with front if it is better to have it in hex instead
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
