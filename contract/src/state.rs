@@ -7,13 +7,13 @@ use serde::de::DeserializeOwned;
 use cosmwasm_std::{Addr, StdError, StdResult, Storage};
 
 use secret_toolkit::serialization::{Bincode2, Serde};
-use secret_toolkit::storage::Item;
+use secret_toolkit::storage::{Item, Keymap};
 
 
 
 pub const KEY_CONFIG: &[u8] = b"config";
 pub const KEY_CONTRACT_KEYS: &[u8] = b"contract_keys";
-
+pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
 
 /// Prefix to store all the files in the smart contract
 pub const PREFIX_FILES: &[u8] = b"files";
@@ -27,6 +27,8 @@ pub static CONFIG: Item<Config> = Item::new(KEY_CONFIG);
 /// Item to store the public/private key of the Secret Smart Contract
 pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(KEY_CONTRACT_KEYS);
 
+/// (file_id, user_address) => access
+pub static FILE_PERMISSIONS: Keymap<([u8; 32], Addr), bool> = Keymap::new(KEY_FILE_PERMISSIONS);
 
 
 // Some documentation
