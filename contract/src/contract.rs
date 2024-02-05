@@ -337,7 +337,12 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
         },
         QueryWithPermit::GetFileContent { file_id } => {
 
-            let u8_key: [u8; 32] = file_id.as_bytes().try_into().unwrap();
+            // hex::encode(&bytes_key)
+            let key = match hex::decode(&file_id) {
+                Ok(key) => key,
+                _ => panic!("key error")
+            };
+            let u8_key: [u8; 32] = key.try_into().unwrap();
 
             // Check the permission - whitelisted
             // let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
@@ -397,7 +402,7 @@ fn query_file_content(deps: Deps, key: String) -> StdResult<FilePayloadResponse>
 mod tests {
     use super::*;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
     use cosmwasm_std::{coins, from_binary, QueryResponse};
     use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
     use secret_toolkit::serialization::Serde;
@@ -428,6 +433,39 @@ mod tests {
         let info = mock_info("creator", &coins(0, ""));
         let response = instantiate(deps, mock_env(), info, msg).unwrap();
         assert_eq!(0, response.messages.len());
+    }
+
+    /// Generate a valid address and a valid permit
+    fn _generate_address_with_valid_permit(deps: DepsMut) -> (Addr, Permit) {
+
+        let token_address = CONFIG.load(deps.storage).unwrap().contract_address;
+
+        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
+        let permit_name = "default";
+        let chain_id = "secretdev-1";
+        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
+        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
+
+
+        let user_permit = Permit {
+            params: PermitParams {
+                allowed_tokens: vec![String::from(token_address)],
+                permit_name: permit_name.to_string(),
+                chain_id: chain_id.to_string(),
+                permissions: vec![TokenPermissions::Owner],
+            },
+            signature: PermitSignature {
+                pub_key: PubKey {
+                    r#type: "tendermint/PubKeySecp256k1".to_string(),
+                    value: Binary::from_base64(pub_key).unwrap(),
+                },
+                signature: Binary::from_base64(signature).unwrap(),
+            }
+        };
+
+        let user_address = deps.api.addr_validate(user_address).unwrap();
+
+        return (user_address, user_permit)
     }
 
 
@@ -505,23 +543,19 @@ mod tests {
 
         let env = mock_env();
 
-        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
-        let permit_name = "default";
-        let chain_id = "secretdev-1";
-        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
-        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
-
-
-        let raw_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
-        let owner = deps.api.addr_validate(raw_address).unwrap();
+        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        
         let payload = String::from("{\"file\": \"content\"}");
 
         // Create the message for storing a new file
-        let store_new_file_msg = ExecuteMsgAction::StoreNewFile { 
-            payload: payload.clone() 
-        };
-
-        let message = &Json::serialize(&store_new_file_msg).unwrap();
+        let message = &Json::serialize(
+            &ExecutePermitMsg::WithPermit { 
+                permit: user_permit.clone(), 
+                execute: ExecuteMsgAction::StoreNewFile { 
+                    payload: payload.clone() 
+                } 
+            }
+        ).unwrap();
 
         // Generate public/private key locally
         let (local_public_key, local_private_key) = _generate_local_public_private_key(env);
@@ -548,28 +582,10 @@ mod tests {
         assert!(res_store_file.is_ok());
         
         // Query the user file
-        // let Query
-
-        let token_address = CONFIG.load(deps.as_mut().storage).unwrap().contract_address;
-
 
         // Retrieve list of file given a user
         let query_msg = QueryMsg::WithPermit { 
-            permit: Permit {
-                params: PermitParams {
-                    allowed_tokens: vec![String::from(token_address)],
-                    permit_name: permit_name.to_string(),
-                    chain_id: chain_id.to_string(),
-                    permissions: vec![TokenPermissions::Owner],
-                },
-                signature: PermitSignature {
-                    pub_key: PubKey {
-                        r#type: "tendermint/PubKeySecp256k1".to_string(),
-                        value: Binary::from_base64(pub_key).unwrap(),
-                    },
-                    signature: Binary::from_base64(signature).unwrap(),
-                }
-            }, 
+            permit: user_permit.clone(),
             query: QueryWithPermit::GetFileIds {}
         };
         let res = query(deps.as_ref(), mock_env(), query_msg);
@@ -578,30 +594,21 @@ mod tests {
         let file_id_response = Json::deserialize::<FileIdsResponse>(&res.unwrap()).map(Some);
 
         // We should now have one key
-        assert_eq!(file_id_response.unwrap().unwrap().file_ids.len(), 1);
+        let user_file = file_id_response.unwrap().unwrap().file_ids;
+        assert_eq!(user_file.len(), 1);
 
 
-
-
-        // Check the file has been encrypted
-        // TODO :: remove this verification, check directly by requesting the user key
-        // read the storage content
-        let expected_key = create_key_from_file_state(&FileState {
-            owner: owner.clone(),
-            payload: payload.clone(),
-        });
-    
-        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
-
-        let store_data: FileState = match loaded_payload {
-            Ok(Some(file_state)) => file_state,
-            Ok(None) => panic!("File not found from the given key."),
-            Err(error) => panic!("Error when loading file from storage: {:?}", error),
+        // Query with the user the file
+        let query_msg = QueryMsg::WithPermit { 
+            permit: user_permit, 
+            query: QueryWithPermit::GetFileContent { file_id: user_file[0].clone() } 
         };
 
-        assert_eq!(store_data.owner, owner);
-        assert_eq!(store_data.payload, payload);
+        let response = query(deps.as_ref(), mock_env(), query_msg).unwrap();
+        let file_content: FilePayloadResponse = from_binary(&response).unwrap();
+        
+        // Verify that the store data is the same as the input one
+        assert_eq!(file_content.payload, payload);
     }
 
 
@@ -609,10 +616,10 @@ mod tests {
     fn test_unauthorized_file_access() {
         
         let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
-        let permit_name = "default";
-        let chain_id = "secretdev-1";
-        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
-        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
+        let _permit_name = "default";
+        let _chain_id = "secretdev-1";
+        let _pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
+        let _signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
 
         let mut deps = mock_dependencies();
         setup_contract(deps.as_mut());
@@ -638,116 +645,6 @@ mod tests {
 
 
     }
-
-
-    #[test]
-    fn test_encrypted_file_payload_request() {
-        
-        // Initialize the smart contract
-        let mut deps = mock_dependencies();
-        setup_contract(deps.as_mut());
-
-        let env = mock_env();
-
-        let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
-        let owner = deps.api.addr_validate(raw_address).unwrap();
-        let payload = String::from("{\"file\": \"content\"}");
-
-        // Create the message for storing a new file
-        let store_new_file_msg = StoreNewFile { 
-            payload: payload.clone() 
-        };
-
-        let message = &Json::serialize(&store_new_file_msg).unwrap();
-
-        // Generate public/private key locally
-        let rng = env.block.random.unwrap().0;
-        let secp = Secp256k1::new();
-
-        let private_key = SecretKey::from_slice(&rng).unwrap();
-        let private_key_string = private_key.display_secret().to_string();
-        let private_key_bytes = hex::decode(private_key_string).unwrap();
-
-        let public_key = PublicKey::from_secret_key(&secp, &private_key);
-        let public_key_bytes = public_key.serialize().to_vec();
-
-        // Query the contract public key
-        let public_key_response = _query_contract_pubic_key(deps.as_ref());
-        let contract_public_key = public_key_response.public_key;
-
-        // Create share secret
-        let my_private_key = SecretKey::from_slice(&private_key_bytes)
-            .map_err(|e| ContractError::CustomError {
-                val: format!("Invalid private key: {}", e),
-            })
-            .unwrap();
-
-        let other_public_key = PublicKey::from_slice(contract_public_key.as_slice())
-            .map_err(|e| ContractError::CustomError {
-                val: format!("Invalid public key: {}", e),
-            })
-            .unwrap();
-
-        let shared_secret = SharedSecret::new(&other_public_key, &my_private_key);
-        let key = shared_secret.secret_bytes();
-
-        // Encrypt our payload
-        let ad_data: &[&[u8]] = &[];
-        let ad = Some(ad_data);
-        let ad = ad.unwrap_or(&[&[]]);
-
-        let mut cipher = Aes128Siv::new(GenericArray::clone_from_slice(&key));
-        let encrypt_message = cipher
-            .encrypt(ad, message)
-            .map_err(|_e| ContractError::EncryptionError)
-            .unwrap();
-
-        // Send the request
-        let msg = EncryptedExecuteMsg {
-            payload: Binary::from(encrypt_message),
-            public_key: public_key_bytes,
-        };
-
-        // let data = Json::deserialize::<ExecuteMsg>(&payload.as_slice()).map(Some);
-
-        // let encoded_evm_message = Json::serialize(&msg).unwrap();
-
-        let evm_message = ExecuteMsg::ReceiveMessageEvm {
-            source_chain: String::from("polygon"),
-            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
-            payload: msg,
-        };
-
-
-        let unauth_env = mock_info("anyone", &coins(0, "token"));
-        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
-        assert!(res_store_file.is_ok());
-        
-        // Retrieve list of file given a user
-
-
-        // Check the file has been encrypted
-        // TODO :: remove this verification, check directly by requesting the user key
-        // read the storage content
-        let expected_key = create_key_from_file_state(&FileState {
-            owner: owner.clone(),
-            payload: payload.clone(),
-        });
-    
-        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &expected_key);
-
-        let store_data: FileState = match loaded_payload {
-            Ok(Some(file_state)) => file_state,
-            Ok(None) => panic!("File not found from the given key."),
-            Err(error) => panic!("Error when loading file from storage: {:?}", error),
-        };
-
-        assert_eq!(store_data.owner, owner);
-        assert_eq!(store_data.payload, payload);
-
-    }
-
 
 
     #[test]
