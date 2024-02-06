@@ -23,11 +23,12 @@ test("Initialize a contract", async () => {
 
   SecretNetworkIntegration.fillUpFromFaucet(client, 100_000_000);
 
-  const contract = SecretNetworkIntegration.initializeContract({
+  const contract = await SecretNetworkIntegration.initializeContract({
     client: client,
     contractPath: path.resolve("../contract/contract.wasm"),
   });
 
-  expect(client).toBeDefined();
-  expect(client).toBeInstanceOf(SecretNetworkClient);
+  console.log(`Initialized contract with: ${contract}`);
+
+  expect(contract).toBeDefined();
 });

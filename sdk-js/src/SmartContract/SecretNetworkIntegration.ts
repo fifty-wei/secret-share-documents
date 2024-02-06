@@ -108,11 +108,15 @@ async function initializeContract({
     },
   );
 
+  console.log(contract);
+
   if (contract.code !== 0) {
     throw new Error(
       `Failed to instantiate the contract with the following error ${contract.rawLog}`,
     );
   }
+
+  console.log(contract);
 
   const contractAddress = contract.arrayLog!.find(
     (log) => log.type === "message" && log.key === "contract_address",
