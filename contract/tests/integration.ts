@@ -294,11 +294,13 @@ async function test_gas_limits() {
   //   contractHash,
   //   contractAddress
   // );
+
   // await runTestFunction(
   //   test_increment_stress,
   //   client,
   //   contractHash,
   //   contractAddress
   // );
+
   await runTestFunction(test_gas_limits, client, contractHash, contractAddress);
 })();
