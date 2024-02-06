@@ -1,4 +1,5 @@
 import { Wallet, SecretNetworkClient } from "secretjs";
+import fs from "fs";
 
 interface ClientProps {
   endpoint: string;
@@ -28,7 +29,7 @@ async function getScrtBalance(client: SecretNetworkClient): Promise<string> {
 }
 
 async function getFromFaucet(address: string) {
-  return await fetch(`http://localhost:5000/faucet?address=${address}`);
+  return fetch(`http://localhost:5000/faucet?address=${address}`);
 }
 
 async function fillUpFromFaucet(
@@ -51,7 +52,78 @@ interface ContractProps {
   contractPath: string;
 }
 
-function initializeContract({ client, contractPath }: ContractProps) {}
+interface Contract {
+  hash: string;
+  address: string;
+  codeId: number;
+}
+
+async function initializeContract({
+  client,
+  contractPath,
+}: ContractProps): Promise<Contract> {
+  const wasmCode = fs.readFileSync(contractPath);
+
+  const uploadReceipt = await client.tx.compute.storeCode(
+    {
+      wasm_byte_code: wasmCode,
+      sender: client.address,
+      source: "",
+      builder: "",
+    },
+    {
+      gasLimit: 5000000,
+    },
+  );
+
+  if (uploadReceipt.code !== 0) {
+    console.log(
+      `Failed to get code id: ${JSON.stringify(uploadReceipt.rawLog)}`,
+    );
+    throw new Error(`Failed to upload contract`);
+  }
+
+  const codeIdKv = uploadReceipt.jsonLog![0].events[0].attributes.find(
+    (a: any) => {
+      return a.key === "code_id";
+    },
+  );
+
+  const codeId = Number(codeIdKv!.value);
+
+  const { code_hash } = await client.query.compute.codeHashByCodeId({
+    code_id: String(codeId),
+  });
+
+  const contract = await client.tx.compute.instantiateContract(
+    {
+      sender: client.address,
+      code_id: codeId,
+      code_hash: code_hash,
+      init_msg: {},
+      label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
+    },
+    {
+      gasLimit: 1000000,
+    },
+  );
+
+  if (contract.code !== 0) {
+    throw new Error(
+      `Failed to instantiate the contract with the following error ${contract.rawLog}`,
+    );
+  }
+
+  const contractAddress = contract.arrayLog!.find(
+    (log) => log.type === "message" && log.key === "contract_address",
+  )!.value;
+
+  return {
+    hash: code_hash,
+    address: contractAddress,
+    codeId: codeId,
+  };
+}
 
 const SecretNetworkIntegration = {
   initializeClient: initializeClient,
