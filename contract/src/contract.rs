@@ -340,7 +340,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             // hex::encode(&bytes_key)
             let key = match hex::decode(&file_id) {
                 Ok(key) => key,
-                _ => panic!("key error")
+                _ => return Err(StdError::NotFound { kind: String::from("Invalid key.") })
             };
             let u8_key: [u8; 32] = key.try_into().unwrap();
 
@@ -400,14 +400,13 @@ fn query_file_content(deps: Deps, key: String) -> StdResult<FilePayloadResponse>
 
 #[cfg(test)]
 mod tests {
+    
     use super::*;
 
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
-    use cosmwasm_std::{coins, from_binary, QueryResponse};
+    use cosmwasm_std::{coins, from_binary};
     use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
     use secret_toolkit::serialization::Serde;
-
-    use crate::msg::ExecuteMsgAction::StoreNewFile;
 
     use cosmwasm_std::Api;
 
@@ -533,8 +532,28 @@ mod tests {
 
         // Check that the contract generate a public key
         let key_response = _query_contract_pubic_key(deps.as_ref());
-        assert_eq!(33, key_response.public_key.len());        
+        assert_eq!(33, key_response.public_key.len()); // We have an additional 1 byte prefix for the X-coordinate
     }
+
+
+    #[test]
+    fn keys_initialization() {
+        // Initialize the smart contract
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+        
+        let key_response = _query_contract_pubic_key(deps.as_ref());
+        let public_key = key_response.public_key; 
+
+        // Verify that the public key is the same as the one we store
+        let contract_keys = CONTRACT_KEYS.load(deps.as_mut().storage);
+        let storage_public_key = match contract_keys {
+            Ok(keys) => keys.public_key,
+            Err(error) => panic!("Error when loading key from storage: {:?}", error),
+        };
+        assert!(public_key == storage_public_key);
+    }
+
 
     #[test]
     fn test_evm_store_new_file() {
@@ -610,6 +629,26 @@ mod tests {
         // Verify that the store data is the same as the input one
         assert_eq!(file_content.payload, payload);
     }
+
+    #[test]
+    fn test_retrieve_file_from_invalid_key() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        
+        // Query with the user the file
+        let query_msg = QueryMsg::WithPermit { 
+            permit: user_permit, 
+            query: QueryWithPermit::GetFileContent { file_id: String::from("invalid_key") } 
+        };
+
+        let response = query(deps.as_ref(), mock_env(), query_msg);
+        assert!(response.is_err());
+    }
+
+
+
 
 
     #[test]
@@ -692,32 +731,6 @@ mod tests {
     }
 
     // TODO :: ~/Project/examples/EVM-encrypt-decrypt/secret_network
-
-    #[test]
-    fn keys_initialization() {
-        let mut deps = mock_dependencies();
-
-        // Instanciate our Secret Contract
-        let msg = InstantiateMsg {};
-        let info = mock_info("creator", &coins(0, ""));
-        let response = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(0, response.messages.len());
-
-        // Get the generated public key
-        let msg = QueryMsg::GetContractKey {};
-        let response = query(deps.as_ref(), mock_env(), msg).unwrap();
-        let public_key_response: ContractKeyResponse = from_binary(&response).unwrap();
-        let public_key = public_key_response.public_key;
-        assert!(public_key.len() == 33); // We have an additional 1 byte prefix for the X-coordinate
-
-        // Verify that the public key is the same as the one we store
-        let contract_keys = CONTRACT_KEYS.load(deps.as_mut().storage);
-        let storage_public_key = match contract_keys {
-            Ok(keys) => keys.public_key,
-            Err(error) => panic!("Error when loading key from storage: {:?}", error),
-        };
-        assert!(public_key == storage_public_key);
-    }
 
     
 }
