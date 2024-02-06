@@ -10,7 +10,6 @@ const algorithm = "aes-256-gcm";
 
 function generate() {
   const key = crypto.randomBytes(32);
-  console.log("Symmetric key (hex):", key.toString("hex"));
   return key;
 }
 
