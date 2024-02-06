@@ -1,4 +1,5 @@
 import { expect, test } from "@jest/globals";
+import path from "node:path";
 import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 import { SecretNetworkClient } from "secretjs";
 
@@ -24,7 +25,7 @@ test("Initialize a contract", async () => {
 
   const contract = SecretNetworkIntegration.initializeContract({
     client: client,
-    contractPath: "../../contract/contract.wasm",
+    contractPath: path.resolve("../contract/contract.wasm"),
   });
 
   expect(client).toBeDefined();
