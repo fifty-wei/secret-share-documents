@@ -3,10 +3,10 @@ import * as crypto from "crypto";
 interface EncryptedData {
   initialVector: string;
   data: string;
+  authTag: string;
 }
 
-const algorithm = "aes-256-cbc"; // Encryption Algorithm
-const initialVector = crypto.randomBytes(16); // Initialisation Vector
+const algorithm = "aes-256-gcm";
 
 // Generate symmetric key (256 bits for AES)
 function generate() {
@@ -15,31 +15,32 @@ function generate() {
   return key;
 }
 
-function decrypt(encryptedData: EncryptedData, key: string): string {
-  let initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
-  let encryptedText = Buffer.from(encryptedData.data, "hex");
-  let decipher = crypto.createDecipheriv(
-    algorithm,
-    Buffer.from(key),
-    initialVectorBuffer,
-  );
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-}
-
-function encrypt(text: string, key: string): EncryptedData {
-  let cipher = crypto.createCipheriv(
-    algorithm,
-    Buffer.from(key),
-    initialVector,
-  );
+function encrypt(text: string, publicKey: Buffer): EncryptedData {
+  const initialVector = crypto.randomBytes(16); // Move IV generation inside encrypt to ensure uniqueness per encryption
+  let cipher = crypto.createCipheriv(algorithm, publicKey, initialVector);
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
+  const authTag = cipher.getAuthTag(); // Get authentication tag after finishing encryption
   return {
     initialVector: initialVector.toString("hex"),
     data: encrypted.toString("hex"),
+    authTag: authTag.toString("hex"), // Return the authTag as part of the encrypted data
   };
+}
+
+function decrypt(encryptedData: EncryptedData, publicKey: Buffer): string {
+  const initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
+  const encryptedText = Buffer.from(encryptedData.data, "hex");
+  const authTag = Buffer.from(encryptedData.authTag, "hex"); // Extract the authTag
+  let decipher = crypto.createDecipheriv(
+    algorithm,
+    publicKey,
+    initialVectorBuffer,
+  );
+  decipher.setAuthTag(authTag); // Set the authentication tag before decryption
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
 }
 
 const SymmetricKey = {
