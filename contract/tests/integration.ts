@@ -8,7 +8,6 @@ import assert from "assert";
 import { webcrypto } from "node:crypto";
 // globalThis.crypto = webcrypto
 
-import { runGetPublicKey } from "./get-public-key";
 import { runTestFunction } from "./test";
 
 // TODO
@@ -278,8 +277,6 @@ async function test_gas_limits() {
 (async () => {
   const [client, contractHash, contractAddress] =
     await initializeAndUploadContract();
-
-  await runGetPublicKey();
 
   // await runTestFunction(
   //   test_count_on_intialization,
