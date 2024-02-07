@@ -11,5 +11,31 @@ test("Text is the same after decryption", async () => {
   const publicKey = SymmetricKey.generate();
   const encryptedData = SymmetricKey.encrypt(text, publicKey);
   const decryptedText = SymmetricKey.decrypt(encryptedData, publicKey);
-  expect(decryptedText).toBe(text);
+  expect(decryptedText.toString()).toBe(text);
+});
+
+
+test("Image is the same after decryption", async () => {
+  const imageUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
+  const response = await fetch(imageUrl);
+  const data = await response.arrayBuffer();
+  // Need to be converted to Buffer to be encrypted.
+  const bufferData = Buffer.from(data);
+  const publicKey = SymmetricKey.generate();
+  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
+  const decryptedImage = SymmetricKey.decrypt(encryptedData, publicKey);
+  expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
+});
+
+
+test("PDF file is the same after decryption", async () => {
+  const imageUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+  const response = await fetch(imageUrl);
+  const data = await response.arrayBuffer();
+  // Need to be converted to Buffer to be encrypted.
+  const bufferData = Buffer.from(data);
+  const publicKey = SymmetricKey.generate();
+  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
+  const decryptedImage = SymmetricKey.decrypt(encryptedData, publicKey);
+  expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
 });
