@@ -5,35 +5,56 @@
     {
       "type": "object",
       "required": [
-        "increment"
+        "receive_message_evm"
       ],
       "properties": {
-        "increment": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "reset"
-      ],
-      "properties": {
-        "reset": {
+        "receive_message_evm": {
           "type": "object",
           "required": [
-            "count"
+            "payload",
+            "source_address",
+            "source_chain"
           ],
           "properties": {
-            "count": {
-              "type": "integer",
-              "format": "int32"
+            "payload": {
+              "$ref": "#/definitions/EncryptedExecuteMsg"
+            },
+            "source_address": {
+              "type": "string"
+            },
+            "source_chain": {
+              "type": "string"
             }
           }
         }
       },
       "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "EncryptedExecuteMsg": {
+      "type": "object",
+      "required": [
+        "payload",
+        "public_key"
+      ],
+      "properties": {
+        "payload": {
+          "$ref": "#/definitions/Binary"
+        },
+        "public_key": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        }
+      }
+    }
+  }
 }

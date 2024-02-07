@@ -15,4 +15,14 @@ pub enum ContractError {
     CustomError { val: String },
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+
+    #[error("The provided public key is invalid: {val:?}")]
+    InvalidPublicKey { val: String },
+
+    #[error("The symmetric encryption has failed for some reason.")]
+    EncryptionError,
+
+    #[error("The provided execute message encrypted is unknown.")]
+    UnknownExecutePermitMsg,
+
 }
