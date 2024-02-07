@@ -9,13 +9,15 @@ test("Generate symmetric key is not empty", async () => {
 test("Text is the same after decryption", async () => {
   const text = "fakeText";
   const publicKey = SymmetricKey.generate();
-  const encryptedData = SymmetricKey.encrypt(text, publicKey);
+  // Need to be converted to Buffer to be encrypted.
+  const bufferData = Buffer.from(text);
+  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
   const decryptedText = SymmetricKey.decrypt(encryptedData, publicKey);
   expect(decryptedText.toString()).toBe(text);
 });
 
 
-test("Image is the same after decryption", async () => {
+test("Image file is the same after decryption", async () => {
   const imageUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
   const response = await fetch(imageUrl);
   const data = await response.arrayBuffer();
