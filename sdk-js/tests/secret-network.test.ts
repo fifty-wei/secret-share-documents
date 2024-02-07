@@ -1,34 +1,29 @@
 import { expect, test } from "@jest/globals";
 import path from "node:path";
-import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
+import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
 import { SecretNetworkClient } from "secretjs";
 
-test("Initialize a client", async () => {
-  const client = SecretNetworkIntegration.initializeClient({
-    endpoint: "http://localhost:1317",
-    chainId: "secretdev-1",
-  });
+const secretNetwork = new SecretNetworkIntergration({
+  endpoint: "http://localhost:1317",
+  chainId: "secretdev-1",
+  faucetEndpoint: 'http://localhost:5000'
+});
 
-  expect(client).toBeDefined();
-  expect(client).toBeInstanceOf(SecretNetworkClient);
+test("Initialize a client", async () => {
+  expect(secretNetwork.getClient()).toBeDefined();
+  expect(secretNetwork.getClient()).toBeInstanceOf(SecretNetworkClient);
 });
 
 test("Initialize a contract", async () => {
-  const client = SecretNetworkIntegration.initializeClient({
-    endpoint: "http://localhost:1317",
-    chainId: "secretdev-1",
-  });
+  console.log(`Initialized client with wallet address: ${secretNetwork.getClient().address}`);
 
-  console.log(`Initialized client with wallet address: ${client.address}`);
+  await secretNetwork.fillUpFromFaucet(100_000_000);
 
-  SecretNetworkIntegration.fillUpFromFaucet(client, 100_000_000);
+  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
+  const contract = await secretNetwork.initializeContract(contractPath);
 
-  const contract = await SecretNetworkIntegration.initializeContract({
-    client: client,
-    contractPath: path.resolve("../contract/contract.wasm"),
-  });
-
-  console.log(`Initialized contract with: ${contract}`);
+  console.log(`Initialized contract with address: ${contract.address}`);
+  console.log(`Initialized contract with hash: ${contract.hash}`);
 
   expect(contract).toBeDefined();
-});
+}, 100_000_000);

@@ -266,8 +266,7 @@ async function test_increment_stress(
   );
   assert(
     afterStressCounter - onStartCounter === stressLoad,
-    `After running stress test the counter expected to be ${onStartCounter + 10
-    } instead of ${afterStressCounter}`,
+    `After running stress test the counter expected to be ${onStartCounter + 10} instead of ${afterStressCounter}`,
   );
 }
 
