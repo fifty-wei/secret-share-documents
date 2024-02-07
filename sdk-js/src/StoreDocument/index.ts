@@ -2,10 +2,7 @@ import { SecretNetworkClient } from "secretjs";
 import ShareDocumentSmartContract from "../SmartContract/ShareDocumentSmartContract";
 import SymmetricKey from "./SymmetricKey";
 import { Contract } from "../SmartContract/SecretNetworkIntegration";
-
-interface IStorage {
-  config: {}
-}
+import IStorage from "./IStorage";
 
 class StoreDocument {
 
