@@ -9,6 +9,8 @@ import { webcrypto } from "node:crypto";
 // globalThis.crypto = webcrypto
 
 import { runTestFunction } from "./test";
+import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
+import { Contract } from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
@@ -264,8 +266,7 @@ async function test_increment_stress(
   );
   assert(
     afterStressCounter - onStartCounter === stressLoad,
-    `After running stress test the counter expected to be ${
-      onStartCounter + 10
+    `After running stress test the counter expected to be ${onStartCounter + 10
     } instead of ${afterStressCounter}`,
   );
 }
@@ -277,6 +278,15 @@ async function test_gas_limits() {
 (async () => {
   const [client, contractHash, contractAddress] =
     await initializeAndUploadContract();
+
+  const contract = {
+    address: contractAddress,
+    hash: contractHash,
+  }
+
+  const share = new ShareDocumentSmartContract({ client: client, contract: contract });
+  const publickKey = share.getPublicKey();
+  console.log({ publickKey });
 
   // await runTestFunction(
   //   test_count_on_intialization,

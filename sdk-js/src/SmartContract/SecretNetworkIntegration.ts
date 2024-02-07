@@ -52,10 +52,9 @@ interface ContractProps {
   contractPath: string;
 }
 
-interface Contract {
+export interface Contract {
   hash: string;
   address: string;
-  codeId: number;
 }
 
 async function initializeContract({
