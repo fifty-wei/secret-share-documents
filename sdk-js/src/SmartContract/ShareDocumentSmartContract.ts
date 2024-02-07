@@ -1,11 +1,11 @@
 import { SecretNetworkClient } from "secretjs";
-import { Contract } from "./SecretNetworkIntegration";
+import ISmartContract from "./ISmartContract";
 
 export type Address = `0x${string}`;
 
 interface Props {
   client: SecretNetworkClient,
-  contract: Contract
+  contract: ISmartContract
 }
 
 type PublicKey = {
@@ -15,7 +15,7 @@ type PublicKey = {
 class ShareDocumentSmartContract {
 
   private client: SecretNetworkClient;
-  private contract: Contract;
+  private contract: ISmartContract;
 
   constructor({
     client,
