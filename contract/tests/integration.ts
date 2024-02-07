@@ -10,6 +10,7 @@ import { webcrypto } from "node:crypto";
 import { runTestFunction } from "./test";
 import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
+import SymmetricKey from "../../sdk-js/src/StoreDocument/SymmetricKey";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
@@ -133,6 +134,8 @@ async function test_gas_limits() {
 
 (async () => {
 
+  const fileToStore = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+
   const secretNetwork = new SecretNetworkIntergration({
     endpoint: "http://localhost:1317",
     chainId: "secretdev-1",
@@ -150,10 +153,25 @@ async function test_gas_limits() {
   console.log({ contract });
 
   const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
-  const publickKey = await shareDocument.getPublicKey();
+  const shareDocumentPublickKey = await shareDocument.getPublicKey();
 
   console.log('[INFO] Get publicKey from Smart contract:');
-  console.log({ publickKey });
+  console.log({ shareDocumentPublickKey });
+
+  const localPublicKey = SymmetricKey.generate();
+
+  console.log('[INFO] Get local symmetric key:');
+  console.log({ localPublicKey });
+
+  const res = await fetch(fileToStore);
+
+  console.log('[INFO] We have fetched the file to store');
+
+  const data = await res.arrayBuffer();
+  const bufferData = Buffer.from(data);
+  const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+
+  console.log('[INFO] We have encrypted the data');
 
   await runTestFunction(test_gas_limits, secretNetwork.getClient(), contract.hash, contract.address);
 })();
