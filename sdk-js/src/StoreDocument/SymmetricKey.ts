@@ -1,10 +1,5 @@
 import * as crypto from "crypto";
-
-interface EncryptedData {
-  initialVector: string;
-  data: Buffer;
-  authTag: string;
-}
+import IEncryptedData from "./IEncryptedData";
 
 const algorithm = "aes-256-gcm";
 
@@ -13,12 +8,13 @@ function generate() {
   return key;
 }
 
-function encrypt(data: Buffer, publicKey: Buffer): EncryptedData {
+function encrypt(data: Buffer, publicKey: Buffer): IEncryptedData {
   const initialVector = crypto.randomBytes(16);
   let cipher = crypto.createCipheriv(algorithm, publicKey, initialVector);
   let encrypted = cipher.update(data);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   const authTag = cipher.getAuthTag();
+
   return {
     initialVector: initialVector.toString("hex"),
     data: encrypted,
@@ -26,7 +22,7 @@ function encrypt(data: Buffer, publicKey: Buffer): EncryptedData {
   };
 }
 
-function decrypt(encryptedData: EncryptedData, publicKey: Buffer): any {
+function decrypt(encryptedData: IEncryptedData, publicKey: Buffer): Buffer {
   const initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
   const encryptedBuffer = Buffer.from(encryptedData.data);
   const authTag = Buffer.from(encryptedData.authTag, "hex");
@@ -38,6 +34,7 @@ function decrypt(encryptedData: EncryptedData, publicKey: Buffer): any {
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encryptedBuffer);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
+
   return decrypted;
 }
 

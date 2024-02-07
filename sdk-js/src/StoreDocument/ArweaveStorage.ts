@@ -1,4 +1,5 @@
 import IStorage from "./IStorage";
+import IEncryptedData from "./IEncryptedData";
 import Arweave from 'arweave';
 
 class ArweaveStorage implements IStorage {
@@ -8,12 +9,30 @@ class ArweaveStorage implements IStorage {
 
   constructor({ key, host, port, protocol }) {
     // this.key = JSON.parse(fs.readFileSync("walletFile.txt").toString());
-    this.key = key;
     this.arweave = Arweave.init({
       host: host,
       port: port,
       protocol: protocol
     });
+    this.key = key ? key : this.arweave.wallets.generate();
+  }
+
+  async storeEncryptedData(encryptedData: IEncryptedData): Promise<{ status: number, data: any }> {
+    const transaction = await this.arweave.createTransaction({
+      data: JSON.stringify(encryptedData)
+    }, this.key);
+
+    // Sign the transaction with the key before posting.
+    await this.arweave.transactions.sign(transaction, this.key);
+
+    // Post the transaction.
+    const { status, data } = await this.arweave.transactions.post(transaction);
+
+    if (status !== 200) {
+      throw new Error(`[ERROR] Failed posting transaction: ${data.error}`);
+    }
+
+    return data;
   }
 
   async uploadFile(url: string): Promise<string> {

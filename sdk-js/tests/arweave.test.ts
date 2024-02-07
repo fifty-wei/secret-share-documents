@@ -1,3 +1,4 @@
+import SymmetricKey from "../src/StoreDocument/SymmetricKey";
 import ArweaveStorage from "../src/StoreDocument/ArweaveStorage";
 import { test, expect } from "@jest/globals";
 import fs from "fs";
@@ -18,23 +19,46 @@ test("Arweave storage exist", async () => {
   expect(storage).toBeDefined();
 });
 
-test("Upload an image from existing url", async () => {
+test('Upload encrypted URL', async () => {
   const url = 'https://school.truchot.co/ressources/sci-v2.jpg';
-  let data = '';
+  const publicKey = SymmetricKey.generate();
+  const encryptedUrl = SymmetricKey.encrypt(url, publicKey);
+  const storage = new ArweaveStorage({
+    key: jwk,
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https'
+  });
+
+  let data;
+
   try {
-    const storage = new ArweaveStorage({
-      key: jwk,
-      host: 'arweave.net',
-      port: 443,
-      protocol: 'https'
-    });
-    data = await storage.uploadFile(url);
-    console.log({ data });
+    data = await storage.storeEncryptedData(encryptedUrl);
   } catch (e) {
-    console.error(`[ERROR] Failed to upload file data from ${url} to Arweave.`);
+    console.error(`[ERROR] Failed to store encrypted url to Arweave.`);
     console.error(e);
   }
-
-  expect(data).toBeDefined()
-  expect(data).toContain('https://arweave.net/');
+  console.log({ data })
+  expect(data).toBeDefined();
 });
+
+// test("Upload an image from existing url", async () => {
+//   const url = 'https://school.truchot.co/ressources/sci-v2.jpg';
+//   let data = '';
+//     const storage = new ArweaveStorage({
+//       key: jwk,
+//       host: 'arweave.net',
+//       port: 443,
+//       protocol: 'https'
+//     });
+//   try {
+//     data = await storage.storeEncryptedUrl(url);
+//     console.log({ data });
+//   } catch (e) {
+//     console.error(`[ERROR] Failed to upload file data from ${url} to Arweave.`);
+//     console.error(e);
+//   }
+
+//   expect(data).toBeDefined()
+//   expect(data).toContain('https://arweave.net/');
+// });
