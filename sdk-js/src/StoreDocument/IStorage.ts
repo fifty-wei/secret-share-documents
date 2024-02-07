@@ -1,6 +1,6 @@
 import IEncryptedData from "./IEncryptedData";
+import IUploadOptions from "./IUploadOptions";
 
 export default interface IStorage {
-  uploadFile(url: string): Promise<string>;
-  storeEncryptedData(data: IEncryptedData): Promise<{ status: number, data: any }>;
+  upload(data: IEncryptedData, options: IUploadOptions): Promise<string>;
 }

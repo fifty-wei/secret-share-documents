@@ -1,6 +1,7 @@
 import { SecretNetworkClient } from "secretjs";
 import assert from "assert";
 import path from "path";
+import fs from "fs";
 
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
 
@@ -11,6 +12,9 @@ import { runTestFunction } from "./test";
 import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
 import SymmetricKey from "../../sdk-js/src/StoreDocument/SymmetricKey";
+import ArweaveStorage from "../../sdk-js/src/StoreDocument/ArweaveStorage";
+import StoreDocument from "../../sdk-js/src/StoreDocument";
+import arweaveWallet from "../../sdk-js/wallet.json";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
@@ -146,32 +150,48 @@ async function test_gas_limits() {
 
   await secretNetwork.fillUpFromFaucet(100_000_000);
 
-  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
+  const contractPath = path.resolve(__dirname, "../contract.wasm");
+  console.log({ contractPath });
   const contract = await secretNetwork.initializeContract(contractPath);
 
   console.log('[INFO] Initialized contract with:');
   console.log({ contract });
 
-  const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
-  const shareDocumentPublickKey = await shareDocument.getPublicKey();
+  const storage = new ArweaveStorage({
+    key: arweaveWallet,
+    host: 'arweave.net',
+    port: 443,
+    protocol: 'https'
+  });
 
-  console.log('[INFO] Get publicKey from Smart contract:');
-  console.log({ shareDocumentPublickKey });
+  const storeDocument = new StoreDocument({
+    client: secretNetwork.getClient(),
+    contract: contract,
+    storage: storage
+  });
 
-  const localPublicKey = SymmetricKey.generate();
+  const url = await storeDocument.store(fileToStore);
 
-  console.log('[INFO] Get local symmetric key:');
-  console.log({ localPublicKey });
+  // const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
+  // const shareDocumentPublickKey = await shareDocument.getPublicKey();
 
-  const res = await fetch(fileToStore);
+  // console.log('[INFO] Get publicKey from Smart contract:');
+  // console.log({ shareDocumentPublickKey });
 
-  console.log('[INFO] We have fetched the file to store');
+  // const localPublicKey = SymmetricKey.generate();
 
-  const data = await res.arrayBuffer();
-  const bufferData = Buffer.from(data);
-  const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+  // console.log('[INFO] Get local symmetric key:');
+  // console.log({ localPublicKey });
 
-  console.log('[INFO] We have encrypted the data');
+  // const res = await fetch(fileToStore);
+
+  // console.log('[INFO] We have fetched the file to store');
+
+  // const data = await res.arrayBuffer();
+  // const bufferData = Buffer.from(data);
+  // const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+
+  // console.log('[INFO] We have encrypted the data');
 
   await runTestFunction(test_gas_limits, secretNetwork.getClient(), contract.hash, contract.address);
 })();

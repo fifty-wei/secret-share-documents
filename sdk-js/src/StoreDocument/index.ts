@@ -1,13 +1,14 @@
 import { SecretNetworkClient } from "secretjs";
 import ShareDocumentSmartContract from "../SmartContract/ShareDocumentSmartContract";
 import SymmetricKey from "./SymmetricKey";
-import { Contract } from "../SmartContract/SecretNetworkIntegration";
+import ISmartContract from "../SmartContract/ISmartContract";
 import IStorage from "./IStorage";
+import IUploadOptions from "./IUploadOptions";
 
 class StoreDocument {
 
   client: SecretNetworkClient;
-  contract: Contract;
+  contract: ISmartContract;
   storage: IStorage;
 
   constructor({
@@ -20,7 +21,8 @@ class StoreDocument {
     this.storage = storage;
   }
 
-  store(url) {
+  // TODO: Add the type of the return value.
+  async store(fileUrl: string): Promise<any> {
     // Get the public key of the smart contract deployed on Secret Network
     const shareDocument = new ShareDocumentSmartContract({
       client: this.client,
@@ -31,11 +33,31 @@ class StoreDocument {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKey.generate();
 
+    // Fetch the document and prepare upload options.
+    const response = await fetch(fileUrl);
+    let uploadOptions: IUploadOptions = {
+      contentType: ''
+    };
+
+    if (response.headers.get('content-type')) {
+      uploadOptions.contentType = response.headers.get('content-type') as string;
+    }
+
+    const data = await response.arrayBuffer();
+    const bufferData = Buffer.from(data);
+
+    // Encrypt the document with the symmetric key.
+    const encryptedData = SymmetricKey.encrypt(bufferData, localSymmetricKey);
+
     // Send the encrypted document to Arweave or IPFS and retrieve the access link.
-    // this.storage.upload();
+    const storageLink = this.storage.upload(encryptedData, uploadOptions);
 
     // Create a JSON file that bundles the information to be stored on Secret Network,
     // including the Arweave link and the symmetric key (generated locally) used to encrypt the data.
+    const payloadJson = {
+      url: storageLink,
+      publicKey: localSymmetricKey
+    }
 
     // Use ECDH method, to generate an asymmetric key on Secret Network.
 
