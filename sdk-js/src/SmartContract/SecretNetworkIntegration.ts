@@ -1,5 +1,6 @@
-import { Wallet, SecretNetworkClient } from "secretjs";
+// import fetch from "node-fetch";
 import fs from "fs";
+import { Wallet, SecretNetworkClient } from "secretjs";
 import ISmartContract from "./ISmartContract";
 
 
@@ -105,12 +106,10 @@ class SecretNetworkIntergration {
     );
 
     const code_id = Number(codeIdKv!.value);
-    console.log("Contract codeId: ", code_id);
 
     const { code_hash } = await this.client.query.compute.codeHashByCodeId({
       code_id: String(code_id),
     });
-    console.log(`Contract hash: ${code_hash}`);
 
     const contract = await this.client.tx.compute.instantiateContract(
       {
@@ -134,8 +133,6 @@ class SecretNetworkIntergration {
     const contract_address = contract.arrayLog!.find(
       (log) => log.type === "message" && log.key === "contract_address",
     )!.value;
-
-    console.log(`Contract address: ${contract_address}`);
 
     return {
       address: contract_address,
