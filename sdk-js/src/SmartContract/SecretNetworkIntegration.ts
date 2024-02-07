@@ -11,7 +11,7 @@ interface Props {
   faucetEndpoint: string;
 }
 
-class SecretNetworkIntergration {
+class SecretNetworkIntegration {
 
   wallet: Wallet;
   client: SecretNetworkClient;
@@ -53,29 +53,6 @@ class SecretNetworkIntergration {
     return response.balance!.amount!;
   }
 
-  async storeCode(wasmCode: Buffer) {
-    const uploadReceipt = await this.client.tx.compute.storeCode(
-      {
-        wasm_byte_code: wasmCode,
-        sender: this.client.address,
-        source: "",
-        builder: "",
-      },
-      {
-        gasLimit: 5000000,
-      },
-    );
-
-    if (uploadReceipt.code !== 0) {
-      console.log(
-        `Failed to get code id: ${JSON.stringify(uploadReceipt.rawLog)}`,
-      );
-      throw new Error(`Failed to upload contract`);
-    }
-
-    return uploadReceipt;
-  }
-
   async initializeContract(contractPath: string): Promise<ISmartContract> {
     const wasmCode = fs.readFileSync(contractPath);
     const uploadReceipt = await this.client.tx.compute.storeCode(
@@ -89,8 +66,6 @@ class SecretNetworkIntergration {
         gasLimit: 5_000_000,
       },
     );
-
-    console.log({ uploadReceipt })
 
     if (uploadReceipt.code !== 0) {
       console.log(
@@ -145,4 +120,4 @@ class SecretNetworkIntergration {
   }
 }
 
-export default SecretNetworkIntergration;
+export default SecretNetworkIntegration;
