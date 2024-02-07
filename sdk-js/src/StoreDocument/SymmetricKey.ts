@@ -13,7 +13,7 @@ function generate() {
   return key;
 }
 
-function encrypt(data: any, publicKey: Buffer): EncryptedData {
+function encrypt(data: Buffer, publicKey: Buffer): EncryptedData {
   const initialVector = crypto.randomBytes(16);
   let cipher = crypto.createCipheriv(algorithm, publicKey, initialVector);
   let encrypted = cipher.update(data);
