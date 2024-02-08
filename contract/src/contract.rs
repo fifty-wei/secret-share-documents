@@ -18,7 +18,7 @@ use crate::error::ContractError;
 use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
-    may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
+    load, may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -147,6 +147,37 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
             // let u8_key: [u8; 32] = key.as_bytes().try_into().unwrap();
             // let whitelisted = FILE_PERMISSIONS.get(deps.storage, &(u8_key, account));
             // TODO 
+
+            // Decode the file key 
+            let extracted_key = match hex::decode(file_id) {
+                Ok(k) => k,
+                _ => panic!("Invalid key"),
+            };
+            let extracted_key: [u8; 32] = extracted_key.try_into().unwrap();
+        
+            // Check the file exist for the given key
+            let files_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES);
+            let loaded_file: Option<FileState> = may_load(&files_store, &extracted_key)?;
+
+            let file_state = match loaded_file {
+                Some(file_state) => file_state,
+                _ => panic!("error")
+            };
+
+            if file_state.owner == account {
+                let _ = update_file_access(
+                    deps,
+                    extracted_key, 
+                    account,
+                    add_viewing, 
+                    delete_viewing, 
+                    change_owner
+                );
+
+            } else {
+                panic!("error");
+            }
+
         }
     };
 
@@ -283,6 +314,93 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
     Ok(hex::encode(&key))
 }
 
+
+
+pub fn update_file_access(
+    deps: DepsMut,
+    file_key: [u8; 32], 
+    account: Addr, 
+    add_viewing: Vec<Addr>, 
+    delete_viewing: Vec<Addr>, 
+    change_owner: Addr) {
+
+    // Add all viewing access
+    for add in &add_viewing {
+
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, account.clone()));
+        if already_added.is_none() || already_added.is_some_and(|x| !x) {
+            // Add permission
+            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, add.clone()), &true);
+
+            // Add the file in the list of user view
+            let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, account.as_bytes());
+
+            let mut user_info = match loaded_payload {
+                Ok(Some(user_info)) => user_info,
+                _ => UserInfo {
+                    files: Vec::new()
+                }
+            };
+
+            user_info.files.push(file_key);
+
+            // Save the updated information
+            let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let _saved_result = save(&mut users_store, account.as_bytes(), &user_info);
+        }
+
+    };
+
+    for delete in &delete_viewing {
+
+        // Check if the user has a viewing right
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, account.clone()));
+        if already_added.is_some() {
+            // Remove permission
+            let _delete = FILE_PERMISSIONS.insert(deps.storage, &(file_key, delete.clone()), &false);
+
+            // Remove the file from the user list
+            let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let loaded_payload: StdResult<Option<UserInfo>> = load(&users_store, account.as_bytes());
+
+            let mut user_info = match loaded_payload {
+                Ok(Some(user_info)) => user_info,
+                _ => UserInfo {
+                    files: Vec::new()
+                }
+            };
+
+            let index = user_info.files.iter().position(|x| *x == file_key).unwrap();
+            user_info.files.remove(index);
+
+            // Save the modification
+            let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let _saved_result = save(&mut users_store, account.as_bytes(), &user_info);
+        }
+
+    };
+
+    // Check if we need to change the owner
+    let mut files_store = PrefixedStorage::new(deps.storage, PREFIX_FILES);
+    let loaded_file: StdResult<Option<FileState>> = load(&files_store, &file_key);
+
+    let mut file_state = match loaded_file {
+        Ok(Some(file_state)) => file_state,
+        _ => panic!("error")
+    };
+
+    // Update the owner
+    if file_state.owner != change_owner {
+        file_state.owner = change_owner;
+
+        let _saved = save(&mut files_store, &file_key, &file_state);
+    }
+
+
+}
+
+
 /// Read the data from the storage
 pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
     // TODO :: Future version :: Need to verify the user
@@ -403,7 +521,7 @@ mod tests {
     
     use super::*;
 
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info, MockApi};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use cosmwasm_std::{coins, from_binary};
     use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
     use secret_toolkit::serialization::Serde;
@@ -413,9 +531,6 @@ mod tests {
     use crate::state::may_load;
     use crate::state::PREFIX_FILES;
     use cosmwasm_storage::ReadonlyPrefixedStorage;
-
-    use rstest::fixture;
-    use rstest::*;
 
     // Some references
     // https://github.com/desmos-labs/desmos-contracts/blob/master/contracts/poap/src/contract_tests.rs
