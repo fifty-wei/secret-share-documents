@@ -26,6 +26,22 @@ class ArweaveStorage implements IStorage {
     this.key = key ? key : this.arweave.wallets.generate();
   }
 
+  async fillUpWallet(amount: Number) {
+    const address = await this.arweave.wallets.jwkToAddress(this.key);
+    const transaction = await this.arweave.createTransaction({
+      target: address,
+      quantity: this.arweave.ar.arToWinston(amount.toString())
+    });
+    transaction.addTag('Content-Type', 'text/plain');
+    await this.arweave.transactions.sign(transaction, this.key);
+    await this.arweave.transactions.post(transaction);
+  }
+
+  async getBalance() {
+    const address = await this.arweave.wallets.jwkToAddress(this.key);
+    return await this.arweave.wallets.getBalance(address);
+  }
+
   unserializeFromBinary(data: ArrayBuffer): IEncryptedData {
     const decoder = new TextDecoder();
 

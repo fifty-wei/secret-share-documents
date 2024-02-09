@@ -33,6 +33,11 @@ test("Arweave storage exist", async () => {
 });
 
 test('Upload encrypted image', async () => {
+
+  await storage.fillUpWallet(100_000_000);
+  const balance = await storage.getBalance()
+  console.log({ balance });
+
   const fileUrl = 'https://school.truchot.co/ressources/sci-v2.jpg';
 
   // Fetch the document and prepare upload options.
