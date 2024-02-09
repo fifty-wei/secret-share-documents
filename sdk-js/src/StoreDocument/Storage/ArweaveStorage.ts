@@ -5,41 +5,23 @@ import Arweave from 'arweave';
 import { JWKInterface } from "arweave/node/lib/wallet";
 
 interface Props {
+  client: Arweave;
   key: JWKInterface;
-  host?: string;
-  port?: number;
-  protocol?: string;
 }
 
 class ArweaveStorage implements IStorage {
 
-  arweave: Arweave;
+  client: Arweave;
   key: any;
 
-  constructor({ key, host, port, protocol }: Props) {
-    // this.key = JSON.parse(fs.readFileSync("walletFile.txt").toString());
-    this.arweave = Arweave.init({
-      host: host,
-      port: port,
-      protocol: protocol
-    });
-    this.key = key ? key : this.arweave.wallets.generate();
-  }
-
-  async fillUpWallet(amount: Number) {
-    const address = await this.arweave.wallets.jwkToAddress(this.key);
-    const transaction = await this.arweave.createTransaction({
-      target: address,
-      quantity: this.arweave.ar.arToWinston(amount.toString())
-    });
-    transaction.addTag('Content-Type', 'text/plain');
-    await this.arweave.transactions.sign(transaction, this.key);
-    await this.arweave.transactions.post(transaction);
+  constructor({ client, key }: Props) {
+    this.key = key;
+    this.client = client
   }
 
   async getBalance() {
-    const address = await this.arweave.wallets.jwkToAddress(this.key);
-    return await this.arweave.wallets.getBalance(address);
+    const address = await this.client.wallets.jwkToAddress(this.key);
+    return await this.client.wallets.getBalance(address);
   }
 
   unserializeFromBinary(data: ArrayBuffer): IEncryptedData {
@@ -81,7 +63,7 @@ class ArweaveStorage implements IStorage {
 
   async upload(encryptedData: IEncryptedData, options: IUploadOptions): Promise<any> {
     // Create a data transaction.
-    const transaction = await this.arweave.createTransaction({
+    const transaction = await this.client.createTransaction({
       data: this.serializeToBinary(encryptedData)
       // data: 'toto'
     });
@@ -92,7 +74,7 @@ class ArweaveStorage implements IStorage {
     }
 
     // Sign the transaction with your key before posting.
-    await this.arweave.transactions.sign(transaction, this.key);
+    await this.client.transactions.sign(transaction, this.key);
 
     // const { status, statusText, data } = await this.arweave.transactions.post(transaction);
 
@@ -103,7 +85,7 @@ class ArweaveStorage implements IStorage {
     // return data;
 
     // Create an uploader that will seed your data to the network.
-    let uploader = await this.arweave.transactions.getUploader(transaction);
+    let uploader = await this.client.transactions.getUploader(transaction);
 
     // Run the uploader until it completes the upload.
     while (!uploader.isComplete) {

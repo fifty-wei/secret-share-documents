@@ -1,42 +1,47 @@
-import SymmetricKey from "../src/StoreDocument/SymmetricKey";
-import ArweaveStorage from "../src/StoreDocument/ArweaveStorage";
+import SymmetricKeyEncryption from "../src/StoreDocument/Encryption/SymmetricKeyEncryption";
+import ArweaveStorage from "../src/StoreDocument/Storage/ArweaveStorage";
 import { test, expect, beforeAll, afterAll } from "@jest/globals";
 import fs from "fs";
-import IUploadOptions from "../src/StoreDocument/IUploadOptions";
+import IUploadOptions from "../src/StoreDocument/Storage/IUploadOptions";
 import ArLocal from 'arlocal';
+import Arweave from 'arweave'
 
 // Arweave local.
 const port = 1984;
 const arLocal = new ArLocal(port);
 
-beforeAll(async () => {
-  // Start is a Promise, we need to start it inside an async function.
-  await arLocal.start();
-});
-
-const localSymmetricKey = SymmetricKey.generate();
-const jwk = JSON.parse(fs.readFileSync("wallet.json").toString());
-const storage = new ArweaveStorage({
-  key: jwk,
+const arweave = Arweave.init({
   host: 'localhost',
   port: port,
   protocol: 'http'
 });
 
-test("Arweave wallet exist", async () => {
-  expect(jwk).toBeDefined();
+const jwk = JSON.parse(fs.readFileSync("wallet.json").toString());
+const storage = new ArweaveStorage({
+  client: arweave,
+  key: jwk
 });
 
-test("Arweave storage exist", async () => {
-  console.log('[INFO] Arweave storage:', { storage });
-  expect(storage).toBeDefined();
+beforeAll(async () => {
+  // Start is a Promise, we need to start it inside an async function.
+  await arLocal.start();
+
+  // Generate wallet
+  const wallet = arweave.wallets.jwkToAddress(jwk);
+
+  // Airdrop amount of tokens (in winston) to wallet
+  const amountInWinston = arweave.ar.arToWinston('100');
+  const toto = await arweave.api.get(`mint/${wallet}/${amountInWinston}`);
+
+
+  console.log('[INFO] After airdrop tokens:');
+  console.log({ toto });
+
 });
 
 test('Upload encrypted image', async () => {
-
-  await storage.fillUpWallet(100_000_000);
-  const balance = await storage.getBalance()
-  console.log({ balance });
+  const balance = Number(await storage.getBalance());
+  console.log('[INFO] Get balance before sending data:', { balance });
 
   const fileUrl = 'https://school.truchot.co/ressources/sci-v2.jpg';
 
@@ -54,17 +59,25 @@ test('Upload encrypted image', async () => {
   const bufferData = Buffer.from(data);
 
   // Encrypt the document with the symmetric key.
-  const encryptedData = SymmetricKey.encrypt(bufferData, localSymmetricKey);
+  const localSymmetricKey = SymmetricKeyEncryption.generate();
+  const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, localSymmetricKey);
 
   let res;
 
   try {
     res = await storage.upload(encryptedData, uploadOptions);
-  } catch (error) {
+    const tata = await arweave.api.get('mine');
+    console.log({ tata });
+  } catch (e) {
     console.error(`[ERROR] Failed to store encrypted data to Arweave.`);
-    console.error({ error });
+    console.error(e.error);
   }
   console.log({ res })
+
+  const newBalance = Number(await storage.getBalance())
+  console.log('[INFO] Get balance after sending data:', { newBalance });
+  console.log();
+  expect(balance).toBeGreaterThan(newBalance);
   expect(res).toBeDefined();
 });
 
