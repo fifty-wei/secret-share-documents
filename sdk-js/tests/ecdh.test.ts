@@ -8,6 +8,7 @@ const contract = {
 };
 
 const wallet = new Wallet();
+console.log('[INFO] Wallet:', { wallet });
 
 const ECDH = new ECDHEncryption({
   endpoint: "https://lcd.pulsar-3.secretsaturn.net",
@@ -17,7 +18,17 @@ const ECDH = new ECDHEncryption({
 });
 
 test("Generate ECDH key with Secret Network", async () => {
+  console.log('[INFO] Generate ECDH key with Secret Network');
+
   const txResponse = await ECDH.generate();
+  console.log('[INFO] Response from Secret Network:');
   console.log({ txResponse })
-  // expect($key).toBeDefined();
+});
+
+test("Get ECDH Public Key from Secret Network", async () => {
+  console.log('[INFO] Wallet:', { wallet });
+  console.log();
+  const txResponse = await ECDH.generate();
+  const publicKey = await ECDH.getPublicKey();
+  console.log('[INFO] ECDH Public Key Secret Network:', { publicKey });
 });

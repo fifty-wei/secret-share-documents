@@ -57,18 +57,27 @@ class StoreDocument {
     const storageLink = await this.storage.upload(encryptedData, uploadOptions);
 
     // Create a JSON file that bundles the information to be stored on Secret Network,
-    // including the Arweave link and the symmetric key (generated locally) used to encrypt the data.
+    // including the storage link and the symmetric key (generated locally) used to encrypt the data.
     const payloadJson = {
       url: storageLink,
       publicKey: localSymmetricKey
     }
 
     // Use ECDH method, to generate an asymmetric key on Secret Network.
-    const ECDH = new ECDHEncryption({ wallet: this.wallet });
+    const ECDH = new ECDHEncryption({
+      client: this.client,
+      wallet: this.wallet,
+      contract: this.contract
+    });
     const txResponse = await ECDH.generate();
+    console.log('[INFO] ECDH.generate() response: [txResponse]')
     console.log({ txResponse })
 
     // Build new JSON with the payload (binary) + the ECDH public key.
+    // const encyptedPayload = {
+    //   data: payloadJson,
+    //   publicKey: ECDH.getPublicKey()
+    // }
     // The payload includes the action to be performed as specified in the JSON.
 
     // Encrypt the JSON with the public ECDH key multiply by the public key of the Secret Network's smart contract.

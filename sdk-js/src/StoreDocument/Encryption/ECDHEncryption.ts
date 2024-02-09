@@ -3,9 +3,12 @@ import ISmartContract from "../../SmartContract/ISmartContract";
 
 interface Props {
   wallet: Wallet;
-  chainId: string;
-  endpoint: string;
+  client: SecretNetworkClient,
   contract: ISmartContract;
+}
+
+interface PublicKey {
+  public_key: Uint16Array;
 }
 
 class ECDHEncryption {
@@ -14,13 +17,8 @@ class ECDHEncryption {
   contract: ISmartContract;
   wallet: Wallet;
 
-  constructor({ wallet, chainId, endpoint, contract }: Props) {
-    this.client = new SecretNetworkClient({
-      chainId: chainId,
-      url: endpoint,
-      wallet: wallet,
-      walletAddress: wallet.address,
-    });
+  constructor({ client, wallet, contract }: Props) {
+    this.client = client;
     this.contract = contract;
     this.wallet = wallet;
   }
@@ -40,14 +38,22 @@ class ECDHEncryption {
     );
   }
 
-  async getKeys() {
-    return await this.client.query.compute.queryContract({
+  async getPublicKey(): Promise<Uint16Array> {
+    const res = await this.client.query.compute.queryContract({
       contract_address: this.contract.address,
       query: {
         get_keys: {},
       },
       code_hash: this.contract.hash,
-    });
+    }) as PublicKey;
+
+    if ('err"' in res) {
+      throw new Error(
+        `Query failed with the following err: ${JSON.stringify(res)}`
+      );
+    }
+
+    return res.public_key;
   }
 }
 
