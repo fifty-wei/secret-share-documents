@@ -26,6 +26,32 @@ class ArweaveStorage implements IStorage {
     this.key = key ? key : this.arweave.wallets.generate();
   }
 
+  unserializeFromBinary(data: ArrayBuffer): IEncryptedData {
+    const decoder = new TextDecoder();
+
+    // Get the length of the initial vector from the start of the ArrayBuffer.
+    const ivLength = data[0];
+    // Get the length of the auth tag from the end of the ArrayBuffer.
+    const authTagLength = data[data.byteLength - 1];
+
+    // Calculate the start and end of each part of the ArrayBuffer.
+    const initialVectorStart = 1;
+    const initialVectorEnd = initialVectorStart + ivLength;
+    const dataStart = initialVectorEnd;
+    const dataEnd = data.byteLength - 1 - authTagLength;
+
+    // Extract the initial vector, encrypted data and auth tag.
+    const initialVector = decoder.decode(data.slice(initialVectorStart, initialVectorEnd));
+    const encryptedData = Buffer.from(data.slice(dataStart, dataEnd));
+    const authTag = decoder.decode(data.slice(dataEnd));
+
+    return {
+      initialVector: initialVector,
+      data: encryptedData,
+      authTag: authTag
+    };
+  }
+
   serializeToBinary(encryptedData: IEncryptedData): ArrayBuffer {
     const encoder = new TextEncoder();
     const initialVectorBuffer = encoder.encode(encryptedData.initialVector);
@@ -40,8 +66,8 @@ class ArweaveStorage implements IStorage {
   async upload(encryptedData: IEncryptedData, options: IUploadOptions): Promise<any> {
     // Create a data transaction.
     const transaction = await this.arweave.createTransaction({
-      // data: this.serializeToBinary(encryptedData)
-      data: 'toto'
+      data: this.serializeToBinary(encryptedData)
+      // data: 'toto'
     });
 
     if (!!options.contentType) {
@@ -52,27 +78,30 @@ class ArweaveStorage implements IStorage {
     // Sign the transaction with your key before posting.
     await this.arweave.transactions.sign(transaction, this.key);
 
-    const { status, statusText, data } = await this.arweave.transactions.post(transaction);
+    // const { status, statusText, data } = await this.arweave.transactions.post(transaction);
 
-    if (status !== 200) {
-      throw new Error(statusText);
-    }
-
-    return data;
-
-    // // Create an uploader that will seed your data to the network.
-    // let uploader = await this.arweave.transactions.getUploader(transaction);
-
-    // // Run the uploader until it completes the upload.
-    // while (!uploader.isComplete) {
-    //   await uploader.uploadChunk();
-    //   console.log(`${uploader.pctComplete}%`)
+    // if (status !== 200) {
+    //   throw new Error(statusText);
     // }
 
-    // // @see Documentation about transactions link: https://cookbook.arweave.dev/guides/http-api.html
-    // // Get raw transaction data : https://arweave.net/raw/TX_ID
-    // // Get cached TX data
-    // return `https://arweave.net/${transaction.id}`;
+    // return data;
+
+    // Create an uploader that will seed your data to the network.
+    let uploader = await this.arweave.transactions.getUploader(transaction);
+
+    // Run the uploader until it completes the upload.
+    while (!uploader.isComplete) {
+      await uploader.uploadChunk();
+      console.log(`${uploader.pctComplete}%`)
+    }
+
+    console.log({ uploader });
+
+    // @see Documentation about transactions link: https://cookbook.arweave.dev/guides/http-api.html
+    // Get raw transaction data : https://arweave.net/raw/TX_ID
+
+    // Get cached TX data
+    return `https://arweave.net/${transaction.id}`;
 
   }
 

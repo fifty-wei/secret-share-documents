@@ -56,7 +56,7 @@ test('Upload encrypted image', async () => {
   try {
     res = await storage.upload(encryptedData, uploadOptions);
   } catch (error) {
-    console.error(`[ERROR] Failed to store encrypted url to Arweave.`);
+    console.error(`[ERROR] Failed to store encrypted data to Arweave.`);
     console.error({ error });
   }
   console.log({ res })

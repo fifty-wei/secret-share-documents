@@ -9,9 +9,7 @@ import { webcrypto } from "node:crypto";
 // globalThis.crypto = webcrypto
 
 import { runTestFunction } from "./test";
-import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
-import SymmetricKey from "../../sdk-js/src/StoreDocument/SymmetricKey";
 import ArweaveStorage from "../../sdk-js/src/StoreDocument/ArweaveStorage";
 import StoreDocument from "../../sdk-js/src/StoreDocument";
 import arweaveWallet from "../../sdk-js/wallet.json";
@@ -151,26 +149,25 @@ async function test_gas_limits() {
   await secretNetwork.fillUpFromFaucet(100_000_000);
 
   const contractPath = path.resolve(__dirname, "../contract.wasm");
-  console.log({ contractPath });
   const contract = await secretNetwork.initializeContract(contractPath);
 
   console.log('[INFO] Initialized contract with:');
   console.log({ contract });
 
-  const storage = new ArweaveStorage({
-    key: arweaveWallet,
-    host: 'arweave.net',
-    port: 443,
-    protocol: 'https'
-  });
+  // const storage = new ArweaveStorage({
+  //   key: arweaveWallet,
+  //   host: 'arweave.net',
+  //   port: 443,
+  //   protocol: 'https'
+  // });
 
-  const storeDocument = new StoreDocument({
-    client: secretNetwork.getClient(),
-    contract: contract,
-    storage: storage
-  });
+  // const storeDocument = new StoreDocument({
+  //   client: secretNetwork.getClient(),
+  //   contract: contract,
+  //   storage: storage
+  // });
 
-  const url = await storeDocument.store(fileToStore);
+  // const url = await storeDocument.store(fileToStore);
 
   // const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
   // const shareDocumentPublickKey = await shareDocument.getPublicKey();
