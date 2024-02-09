@@ -1,5 +1,5 @@
 import IStorage from "./IStorage";
-import IEncryptedData from "./IEncryptedData";
+import IEncryptedData from "../Encryption/IEncryptedData";
 import IUploadOptions from "./IUploadOptions";
 import Arweave from 'arweave';
 import { JWKInterface } from "arweave/node/lib/wallet";

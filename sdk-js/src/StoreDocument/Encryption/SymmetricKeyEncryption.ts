@@ -38,10 +38,10 @@ function decrypt(encryptedData: IEncryptedData, publicKey: Buffer): Buffer {
   return decrypted;
 }
 
-const SymmetricKey = {
+const SymmetricKeyEncryption = {
   generate: generate,
   encrypt: encrypt,
   decrypt: decrypt,
 };
 
-export default SymmetricKey;
+export default SymmetricKeyEncryption;

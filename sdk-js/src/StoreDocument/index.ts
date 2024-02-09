@@ -1,24 +1,28 @@
-import { SecretNetworkClient } from "secretjs";
+import { SecretNetworkClient, Wallet } from "secretjs";
 import ShareDocumentSmartContract from "../SmartContract/ShareDocumentSmartContract";
-import SymmetricKey from "./SymmetricKey";
+import SymmetricKeyEncryption from "./Encryption/SymmetricKeyEncryption";
 import ISmartContract from "../SmartContract/ISmartContract";
-import IStorage from "./IStorage";
-import IUploadOptions from "./IUploadOptions";
+import IStorage from "./Storage/IStorage";
+import IUploadOptions from "./Storage/IUploadOptions";
+import ECDHEncryption from "./Encryption/ECDHEncryption";
 
 class StoreDocument {
 
   client: SecretNetworkClient;
   contract: ISmartContract;
   storage: IStorage;
+  wallet: Wallet;
 
   constructor({
     client,
     contract,
-    storage
+    storage,
+    wallet,
   }) {
     this.client = client;
     this.contract = contract;
     this.storage = storage;
+    this.wallet = wallet;
   }
 
   // TODO: Add the type of the return value.
@@ -31,7 +35,7 @@ class StoreDocument {
     const shareDocumentPublicKey = shareDocument.getPublicKey();
 
     // Locally generate a symmetric key to encrypt the uploaded data.
-    const localSymmetricKey = SymmetricKey.generate();
+    const localSymmetricKey = SymmetricKeyEncryption.generate();
 
     // Fetch the document and prepare upload options.
     const response = await fetch(fileUrl);
@@ -47,10 +51,10 @@ class StoreDocument {
     const bufferData = Buffer.from(data);
 
     // Encrypt the document with the symmetric key.
-    const encryptedData = SymmetricKey.encrypt(bufferData, localSymmetricKey);
+    const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, localSymmetricKey);
 
     // Send the encrypted document to Arweave or IPFS and retrieve the access link.
-    const storageLink = this.storage.upload(encryptedData, uploadOptions);
+    const storageLink = await this.storage.upload(encryptedData, uploadOptions);
 
     // Create a JSON file that bundles the information to be stored on Secret Network,
     // including the Arweave link and the symmetric key (generated locally) used to encrypt the data.
@@ -60,6 +64,9 @@ class StoreDocument {
     }
 
     // Use ECDH method, to generate an asymmetric key on Secret Network.
+    const ECDH = new ECDHEncryption({ wallet: this.wallet });
+    const txResponse = await ECDH.generate();
+    console.log({ txResponse })
 
     // Build new JSON with the payload (binary) + the ECDH public key.
     // The payload includes the action to be performed as specified in the JSON.

@@ -3,9 +3,8 @@ import fs from "fs";
 import { Wallet, SecretNetworkClient } from "secretjs";
 import ISmartContract from "./ISmartContract";
 
-
 interface Props {
-  wallet?: Wallet;
+  wallet: Wallet;
   endpoint: string;
   chainId: string;
   faucetEndpoint: string;
@@ -18,7 +17,7 @@ class SecretNetworkIntegration {
   faucetEndpoint: string;
 
   constructor({ wallet, endpoint, chainId, faucetEndpoint }: Props) {
-    this.wallet = wallet ? wallet : new Wallet();
+    this.wallet = wallet;
     this.faucetEndpoint = faucetEndpoint;
     this.client = new SecretNetworkClient({
       url: endpoint,
