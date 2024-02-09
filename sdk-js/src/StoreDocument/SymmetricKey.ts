@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 
 interface EncryptedData {
   initialVector: string;
-  data: string;
+  data: Buffer;
   authTag: string;
 }
 
@@ -10,26 +10,25 @@ const algorithm = "aes-256-gcm";
 
 function generate() {
   const key = crypto.randomBytes(32);
-  console.log("Symmetric key (hex):", key.toString("hex"));
   return key;
 }
 
-function encrypt(text: string, publicKey: Buffer): EncryptedData {
+function encrypt(data: Buffer, publicKey: Buffer): EncryptedData {
   const initialVector = crypto.randomBytes(16);
   let cipher = crypto.createCipheriv(algorithm, publicKey, initialVector);
-  let encrypted = cipher.update(text);
+  let encrypted = cipher.update(data);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   const authTag = cipher.getAuthTag();
   return {
     initialVector: initialVector.toString("hex"),
-    data: encrypted.toString("hex"),
+    data: encrypted,
     authTag: authTag.toString("hex"),
   };
 }
 
-function decrypt(encryptedData: EncryptedData, publicKey: Buffer): string {
+function decrypt(encryptedData: EncryptedData, publicKey: Buffer): any {
   const initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
-  const encryptedText = Buffer.from(encryptedData.data, "hex");
+  const encryptedBuffer = Buffer.from(encryptedData.data);
   const authTag = Buffer.from(encryptedData.authTag, "hex");
   let decipher = crypto.createDecipheriv(
     algorithm,
@@ -37,9 +36,9 @@ function decrypt(encryptedData: EncryptedData, publicKey: Buffer): string {
     initialVectorBuffer,
   );
   decipher.setAuthTag(authTag);
-  let decrypted = decipher.update(encryptedText);
+  let decrypted = decipher.update(encryptedBuffer);
   decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+  return decrypted;
 }
 
 const SymmetricKey = {

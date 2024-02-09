@@ -1,7 +1,6 @@
-import axios from "axios";
-import { Wallet, SecretNetworkClient, fromUtf8 } from "secretjs";
-import fs from "fs";
+import { SecretNetworkClient } from "secretjs";
 import assert from "assert";
+import path from "path";
 
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
 
@@ -10,152 +9,11 @@ import { webcrypto } from "node:crypto";
 
 import { runTestFunction } from "./test";
 import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
-import { Contract } from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
+import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
+import SymmetricKey from "../../sdk-js/src/StoreDocument/SymmetricKey";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
-
-// Returns a client with which we can interact with secret network
-const initializeClient = async (endpoint: string, chainId: string) => {
-  const wallet = new Wallet(); // Use default constructor of wallet to generate random mnemonic.
-  const accAddress = wallet.address;
-
-  // To create a signer secret.js client, also pass in a wallet
-  const client = await new SecretNetworkClient({
-    //url: "http://localhost:1317",
-    url: endpoint,
-    chainId: chainId,
-    wallet: wallet,
-    walletAddress: accAddress,
-  });
-
-  console.log(`Initialized client with wallet address: ${accAddress}`);
-  return client;
-};
-
-// Stores and instantiaties a new contract in our network
-const initializeContract = async (
-  client: SecretNetworkClient,
-  contractPath: string,
-) => {
-  const wasmCode = fs.readFileSync(contractPath);
-  console.log("Uploading contract");
-
-  const uploadReceipt = await client.tx.compute.storeCode(
-    {
-      wasm_byte_code: wasmCode,
-      sender: client.address,
-      source: "",
-      builder: "",
-    },
-    {
-      gasLimit: 5000000,
-    },
-  );
-
-  if (uploadReceipt.code !== 0) {
-    console.log(
-      `Failed to get code id: ${JSON.stringify(uploadReceipt.rawLog)}`,
-    );
-    throw new Error(`Failed to upload contract`);
-  }
-
-  const codeIdKv = uploadReceipt.jsonLog![0].events[0].attributes.find(
-    (a: any) => {
-      return a.key === "code_id";
-    },
-  );
-
-  const code_id = Number(codeIdKv!.value);
-  console.log("Contract codeId: ", code_id);
-
-  const { code_hash } = await client.query.compute.codeHashByCodeId({
-    code_id: String(code_id),
-  });
-  console.log(`Contract hash: ${code_hash}`);
-
-  const contract = await client.tx.compute.instantiateContract(
-    {
-      sender: client.address,
-      code_id,
-      code_hash,
-      init_msg: {},
-      label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
-    },
-    {
-      gasLimit: 1000000,
-    },
-  );
-
-  if (contract.code !== 0) {
-    throw new Error(
-      `Failed to instantiate the contract with the following error ${contract.rawLog}`,
-    );
-  }
-
-  const contract_address = contract.arrayLog!.find(
-    (log) => log.type === "message" && log.key === "contract_address",
-  )!.value;
-
-  console.log(`Contract address: ${contract_address}`);
-
-  var contractInfo: [string, string] = [code_hash!, contract_address!];
-  return contractInfo;
-};
-
-const getFromFaucet = async (address: string) => {
-  await axios.get(`http://localhost:5000/faucet?address=${address}`);
-};
-
-async function getScrtBalance(userCli: SecretNetworkClient): Promise<string> {
-  const response = await userCli.query.bank.balance({
-    address: userCli.address,
-    denom: "uscrt",
-  });
-
-  return response.balance!.amount!;
-}
-
-async function fillUpFromFaucet(
-  client: SecretNetworkClient,
-  targetBalance: Number,
-) {
-  let balance = await getScrtBalance(client);
-  while (Number(balance) < targetBalance) {
-    try {
-      await getFromFaucet(client.address);
-    } catch (e) {
-      console.error(`failed to get tokens from faucet: ${e}`);
-    }
-    balance = await getScrtBalance(client);
-  }
-  console.error(`got tokens from faucet: ${balance}`);
-}
-
-// Initialization procedure
-async function initializeAndUploadContract() {
-  let endpoint = "http://localhost:1317";
-  let chainId = "secretdev-1";
-
-  let wasmPath = "../contract.wasm";
-
-  const client = await initializeClient(endpoint, chainId);
-
-  await fillUpFromFaucet(client, 100_000_000);
-
-  const [contractHash, contractAddress] = await initializeContract(
-    client,
-    wasmPath,
-  );
-
-  var clientInfo: [SecretNetworkClient, string, string] = [
-    client,
-    contractHash,
-    contractAddress,
-  ];
-
-  return clientInfo;
-}
 
 async function queryCount(
   client: SecretNetworkClient,
@@ -266,8 +124,7 @@ async function test_increment_stress(
   );
   assert(
     afterStressCounter - onStartCounter === stressLoad,
-    `After running stress test the counter expected to be ${onStartCounter + 10
-    } instead of ${afterStressCounter}`,
+    `After running stress test the counter expected to be ${onStartCounter + 10} instead of ${afterStressCounter}`,
   );
 }
 
@@ -276,29 +133,45 @@ async function test_gas_limits() {
 }
 
 (async () => {
-  const [client, contractHash, contractAddress] =
-    await initializeAndUploadContract();
 
-  const contract = {
-    address: contractAddress,
-    hash: contractHash,
-  }
+  const fileToStore = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
 
-  const share = new ShareDocumentSmartContract({ client: client, contract: contract });
-  const publickKey = share.getPublicKey();
-  console.log({ publickKey });
+  const secretNetwork = new SecretNetworkIntergration({
+    endpoint: "http://localhost:1317",
+    chainId: "secretdev-1",
+    faucetEndpoint: 'http://localhost:5000'
+  });
 
-  // await runTestFunction(
-  //   test_count_on_intialization,
-  //   client,
-  //   contractHash,
-  //   contractAddress
-  // );
-  // await runTestFunction(
-  //   test_increment_stress,
-  //   client,
-  //   contractHash,
-  //   contractAddress
-  // );
-  await runTestFunction(test_gas_limits, client, contractHash, contractAddress);
+  console.log(`[INFO] Initialized client with wallet address: ${secretNetwork.getClient().address}`);
+
+  await secretNetwork.fillUpFromFaucet(100_000_000);
+
+  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
+  const contract = await secretNetwork.initializeContract(contractPath);
+
+  console.log('[INFO] Initialized contract with:');
+  console.log({ contract });
+
+  const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
+  const shareDocumentPublickKey = await shareDocument.getPublicKey();
+
+  console.log('[INFO] Get publicKey from Smart contract:');
+  console.log({ shareDocumentPublickKey });
+
+  const localPublicKey = SymmetricKey.generate();
+
+  console.log('[INFO] Get local symmetric key:');
+  console.log({ localPublicKey });
+
+  const res = await fetch(fileToStore);
+
+  console.log('[INFO] We have fetched the file to store');
+
+  const data = await res.arrayBuffer();
+  const bufferData = Buffer.from(data);
+  const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+
+  console.log('[INFO] We have encrypted the data');
+
+  await runTestFunction(test_gas_limits, secretNetwork.getClient(), contract.hash, contract.address);
 })();

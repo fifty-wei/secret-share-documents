@@ -1,138 +1,123 @@
-import { Wallet, SecretNetworkClient } from "secretjs";
+// import fetch from "node-fetch";
 import fs from "fs";
+import { Wallet, SecretNetworkClient } from "secretjs";
+import ISmartContract from "./ISmartContract";
 
-interface ClientProps {
+
+interface Props {
+  wallet?: Wallet;
   endpoint: string;
   chainId: string;
+  faucetEndpoint: string;
 }
 
-function initializeClient({ endpoint, chainId }: ClientProps) {
-  // Use default constructor of wallet to generate random mnemonic.
-  const wallet = new Wallet();
+class SecretNetworkIntegration {
 
-  // To create a signer secret.js client, also pass in a wallet
-  return new SecretNetworkClient({
-    url: endpoint,
-    chainId: chainId,
-    wallet: wallet,
-    walletAddress: wallet.address,
-  });
-}
-
-async function getScrtBalance(client: SecretNetworkClient): Promise<string> {
-  const response = await client.query.bank.balance({
-    address: client.address,
-    denom: "uscrt",
-  });
-
-  return response.balance!.amount!;
-}
-
-async function getFromFaucet(address: string) {
-  return fetch(`http://localhost:5000/faucet?address=${address}`);
-}
-
-async function fillUpFromFaucet(
-  client: SecretNetworkClient,
-  targetBalance: number,
-) {
-  let balance = await getScrtBalance(client);
-  while (Number(balance) < targetBalance) {
-    try {
-      await getFromFaucet(client.address);
-    } catch (e) {
-      console.error(`[ERROR] — Failed to get tokens from faucet: ${e}`);
-    }
-    balance = await getScrtBalance(client);
-  }
-}
-
-interface ContractProps {
+  wallet: Wallet;
   client: SecretNetworkClient;
-  contractPath: string;
-}
+  faucetEndpoint: string;
 
-export interface Contract {
-  hash: string;
-  address: string;
-}
-
-async function initializeContract({
-  client,
-  contractPath,
-}: ContractProps): Promise<Contract> {
-  const wasmCode = fs.readFileSync(contractPath);
-
-  const uploadReceipt = await client.tx.compute.storeCode(
-    {
-      wasm_byte_code: wasmCode,
-      sender: client.address,
-      source: "",
-      builder: "",
-    },
-    {
-      gasLimit: 5000000,
-    },
-  );
-
-  if (uploadReceipt.code !== 0) {
-    console.log(
-      `Failed to get code id: ${JSON.stringify(uploadReceipt.rawLog)}`,
-    );
-    throw new Error(`Failed to upload contract`);
+  constructor({ wallet, endpoint, chainId, faucetEndpoint }: Props) {
+    this.wallet = wallet ? wallet : new Wallet();
+    this.faucetEndpoint = faucetEndpoint;
+    this.client = new SecretNetworkClient({
+      url: endpoint,
+      chainId: chainId,
+      wallet: this.wallet,
+      walletAddress: this.wallet.address,
+    })
   }
 
-  const codeIdKv = uploadReceipt.jsonLog![0].events[0].attributes.find(
-    (a: any) => {
-      return a.key === "code_id";
-    },
-  );
-
-  const codeId = Number(codeIdKv!.value);
-
-  const { code_hash } = await client.query.compute.codeHashByCodeId({
-    code_id: String(codeId),
-  });
-
-  const contract = await client.tx.compute.instantiateContract(
-    {
-      sender: client.address,
-      code_id: codeId,
-      code_hash: code_hash,
-      init_msg: {},
-      label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
-    },
-    {
-      gasLimit: 1000000,
-    },
-  );
-
-  console.log(contract);
-
-  if (contract.code !== 0) {
-    throw new Error(
-      `Failed to instantiate the contract with the following error ${contract.rawLog}`,
-    );
+  async getFromFaucet() {
+    return fetch(`${this.faucetEndpoint}/faucet?address=${this.client.address}`);
   }
 
-  console.log(contract);
+  async fillUpFromFaucet(targetBalance: number) {
+    let balance = await this.getScrtBalance();
+    while (Number(balance) < targetBalance) {
+      try {
+        await this.getFromFaucet();
+      } catch (e) {
+        console.error(`[ERROR] — Failed to get tokens from faucet: ${e}`);
+      }
+      balance = await this.getScrtBalance();
+    }
+  }
 
-  const contractAddress = contract.arrayLog!.find(
-    (log) => log.type === "message" && log.key === "contract_address",
-  )!.value;
+  async getScrtBalance(): Promise<string> {
+    const response = await this.client.query.bank.balance({
+      address: this.client.address,
+      denom: "uscrt",
+    });
 
-  return {
-    hash: code_hash,
-    address: contractAddress,
-    codeId: codeId,
+    return response.balance!.amount!;
+  }
+
+  async initializeContract(contractPath: string): Promise<ISmartContract> {
+    const wasmCode = fs.readFileSync(contractPath);
+    const uploadReceipt = await this.client.tx.compute.storeCode(
+      {
+        wasm_byte_code: wasmCode,
+        sender: this.client.address,
+        source: "",
+        builder: "",
+      },
+      {
+        gasLimit: 5_000_000,
+      },
+    );
+
+    if (uploadReceipt.code !== 0) {
+      console.log(
+        `Failed to get code id: ${JSON.stringify(uploadReceipt.rawLog)}`,
+      );
+      throw new Error(`Failed to upload contract`);
+    }
+
+    const codeIdKv = uploadReceipt.jsonLog![0].events[0].attributes.find(
+      (a: any) => {
+        return a.key === "code_id";
+      },
+    );
+
+    const code_id = Number(codeIdKv!.value);
+
+    const { code_hash } = await this.client.query.compute.codeHashByCodeId({
+      code_id: String(code_id),
+    });
+
+    const contract = await this.client.tx.compute.instantiateContract(
+      {
+        sender: this.client.address,
+        code_id: code_id,
+        code_hash: code_hash,
+        init_msg: {},
+        label: "secret-counter-" + Math.ceil(Math.random() * 10000), // The label should be unique for every contract, add random string in order to maintain uniqueness
+      },
+      {
+        gasLimit: 1_000_000,
+      },
+    );
+
+    if (contract.code !== 0) {
+      throw new Error(
+        `Failed to instantiate the contract with the following error ${contract.rawLog}`,
+      );
+    }
+
+    const contract_address = contract.arrayLog!.find(
+      (log) => log.type === "message" && log.key === "contract_address",
+    )!.value;
+
+    return {
+      address: contract_address,
+      hash: code_hash,
+    };
   };
-}
 
-const SecretNetworkIntegration = {
-  initializeClient: initializeClient,
-  fillUpFromFaucet: fillUpFromFaucet,
-  getScrtBalance: getScrtBalance,
-  initializeContract: initializeContract,
-};
+  getClient(): SecretNetworkClient {
+    return this.client;
+  }
+}
 
 export default SecretNetworkIntegration;
