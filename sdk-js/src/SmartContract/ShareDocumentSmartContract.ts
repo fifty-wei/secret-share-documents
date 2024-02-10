@@ -60,7 +60,7 @@ class ShareDocumentSmartContract {
         contract_address: this.contract.address,
         code_hash: this.contract.hash,
         msg: {
-          receive_message_evm: { payload: message },
+          receive_message_evm: message,
         },
       },
       {

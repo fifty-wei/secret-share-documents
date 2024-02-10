@@ -1,25 +1,23 @@
-import path from "node:path";
 import { expect, test } from "@jest/globals";
 import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
-import { SecretNetworkClient, Wallet } from "secretjs";
-
-const wallet = new Wallet();
-const secretNetwork = new SecretNetworkIntergration({
-  endpoint: "http://localhost:1317",
-  chainId: "secretdev-1",
-  faucetEndpoint: "http://localhost:5000",
-  wallet: wallet,
-});
+import { Wallet } from "secretjs";
+import { Environment, getConfig } from "../config";
 
 test("Get public key", async () => {
-  await secretNetwork.fillUpFromFaucet(100_000_000);
-  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
-  const contract = await secretNetwork.initializeContract(contractPath);
+  const config = await getConfig(Environment.LOCAL);
+
+  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+  const secretNetwork = new SecretNetworkIntergration({
+    endpoint: config.chains.secretNetwork.endpoint,
+    chainId: config.chains.secretNetwork.chainId,
+    faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
+    wallet: wallet,
+  });
 
   const shareDocument = new ShareDocumentSmartContract({
     client: secretNetwork.getClient(),
-    contract: contract,
+    contract: config.contracts.ShareDocument,
     wallet: wallet,
   });
 
@@ -30,13 +28,19 @@ test("Get public key", async () => {
 }, 1_000_000);
 
 test("Get permit", async () => {
-  await secretNetwork.fillUpFromFaucet(100_000_000);
-  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
-  const contract = await secretNetwork.initializeContract(contractPath);
+  const config = await getConfig(Environment.LOCAL);
+
+  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+  const secretNetwork = new SecretNetworkIntergration({
+    endpoint: config.chains.secretNetwork.endpoint,
+    chainId: config.chains.secretNetwork.chainId,
+    faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
+    wallet: wallet,
+  });
 
   const shareDocument = new ShareDocumentSmartContract({
     client: secretNetwork.getClient(),
-    contract: contract,
+    contract: config.contracts.ShareDocument,
     wallet: wallet,
   });
 

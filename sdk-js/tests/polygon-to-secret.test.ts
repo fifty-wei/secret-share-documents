@@ -8,9 +8,8 @@ import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import { Environment, getConfig } from "../config";
 
-const config = getConfig(Environment.TESTNET);
-
 test("Send message from Polygon to Secret Network", async () => {
+  const config = await getConfig(Environment.TESTNET);
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
   const secretNetwork = new SecretNetworkIntergration({
     endpoint: config.chains.secretNetwork.endpoint,

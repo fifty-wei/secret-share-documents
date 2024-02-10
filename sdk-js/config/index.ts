@@ -1,6 +1,9 @@
+import path from "node:path";
+import { Wallet } from "secretjs";
 import PolygonToSecretAbi from "../src/abis/PolygonToSecret.json";
 import IPolygonSmartContract from "../src/SmartContract/IPolygonSmartContract";
 import ISecretNetworkSmartContract from "../src/SmartContract/ISecretNetworkSmartContract";
+import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 
 export enum Environment {
   MAINNET = "main",
@@ -60,6 +63,28 @@ const config = {
   },
 };
 
-export function getConfig(networkId: Environment): Config {
-  return config[networkId];
+export async function getConfig(env: Environment): Promise<Config> {
+  let tempConfig = config[env];
+
+  if (env === Environment.LOCAL) {
+    const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+    const secretNetwork = new SecretNetworkIntegration({
+      endpoint: tempConfig.chains.secretNetwork.endpoint,
+      chainId: tempConfig.chains.secretNetwork.chainId,
+      faucetEndpoint: tempConfig.chains.secretNetwork.faucetEndpoint,
+      wallet: wallet,
+    });
+    await secretNetwork.fillUpFromFaucet(100_000_000);
+    const contractPath = path.resolve(
+      __dirname,
+      "../../contract/contract.wasm",
+    );
+    const contract = await secretNetwork.initializeContract(contractPath);
+    tempConfig.contracts.ShareDocument = {
+      address: contract.address,
+      hash: contract.hash,
+    };
+  }
+
+  return tempConfig;
 }
