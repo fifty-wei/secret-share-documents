@@ -3,16 +3,11 @@ import ArweaveStorage from "../src/StoreDocument/Storage/ArweaveStorage";
 import { test, expect, beforeAll, afterAll } from "@jest/globals";
 import fs from "fs";
 import IUploadOptions from "../src/StoreDocument/Storage/IUploadOptions";
-import ArLocal from 'arlocal';
 import Arweave from 'arweave'
-
-// Arweave local.
-const port = 1984;
-const arLocal = new ArLocal(port);
 
 const arweave = Arweave.init({
   host: 'localhost',
-  port: port,
+  port: 1984,
   protocol: 'http'
 });
 
@@ -23,16 +18,12 @@ const storage = new ArweaveStorage({
 });
 
 beforeAll(async () => {
-  // Start is a Promise, we need to start it inside an async function.
-  await arLocal.start();
-
   // Generate wallet
   const wallet = arweave.wallets.jwkToAddress(jwk);
 
   // Airdrop amount of tokens (in winston) to wallet
   const amountInWinston = arweave.ar.arToWinston('100');
   const toto = await arweave.api.get(`mint/${wallet}/${amountInWinston}`);
-
 
   console.log('[INFO] After airdrop tokens:');
   console.log({ toto });
@@ -101,8 +92,3 @@ test('Upload encrypted image', async () => {
 //   expect(data).toBeDefined()
 //   expect(data).toContain('https://arweave.net/');
 // });
-
-afterAll(async () => {
-  // After we are done with our tests, let's close the connection.
-  await arLocal.stop();
-})

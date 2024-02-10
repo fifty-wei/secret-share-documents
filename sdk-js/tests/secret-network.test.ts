@@ -1,5 +1,5 @@
-import { expect, test } from "@jest/globals";
 import path from "node:path";
+import { expect, test } from "@jest/globals";
 import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
 import { SecretNetworkClient, Wallet } from "secretjs";
 

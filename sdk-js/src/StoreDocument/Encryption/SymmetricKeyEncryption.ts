@@ -1,16 +1,16 @@
-import * as crypto from "crypto";
+import { randomBytes, createCipheriv, createDecipheriv } from "crypto";
 import IEncryptedData from "./IEncryptedData";
 
 const algorithm = "aes-256-gcm";
 
 function generate() {
-  const key = crypto.randomBytes(32);
+  const key = randomBytes(32);
   return key;
 }
 
 function encrypt(data: Buffer, publicKey: Buffer): IEncryptedData {
-  const initialVector = crypto.randomBytes(16);
-  let cipher = crypto.createCipheriv(algorithm, publicKey, initialVector);
+  const initialVector = randomBytes(16);
+  let cipher = createCipheriv(algorithm, publicKey, initialVector);
   let encrypted = cipher.update(data);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
   const authTag = cipher.getAuthTag();
@@ -26,7 +26,7 @@ function decrypt(encryptedData: IEncryptedData, publicKey: Buffer): Buffer {
   const initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
   const encryptedBuffer = Buffer.from(encryptedData.data);
   const authTag = Buffer.from(encryptedData.authTag, "hex");
-  let decipher = crypto.createDecipheriv(
+  let decipher = createDecipheriv(
     algorithm,
     publicKey,
     initialVectorBuffer,
