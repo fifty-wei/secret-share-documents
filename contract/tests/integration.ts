@@ -1,16 +1,12 @@
-import { SecretNetworkClient } from "secretjs";
+import { SecretNetworkClient, Wallet } from "secretjs";
 import assert from "assert";
 import path from "path";
 
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
-
-import { webcrypto } from "node:crypto";
-// globalThis.crypto = webcrypto
-
 import { runTestFunction } from "./test";
-import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
-import SymmetricKey from "../../sdk-js/src/StoreDocument/SymmetricKey";
+import FakeStorage from "../../sdk-js/src/StoreDocument/Storage/FakeStorage";
+import StoreDocument from "../../sdk-js/src/StoreDocument";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
@@ -133,45 +129,76 @@ async function test_gas_limits() {
 }
 
 (async () => {
-
-  const fileToStore = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+  const fileToStore =
+    "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+  const wallet = new Wallet();
 
   const secretNetwork = new SecretNetworkIntergration({
+    wallet: wallet,
     endpoint: "http://localhost:1317",
     chainId: "secretdev-1",
-    faucetEndpoint: 'http://localhost:5000'
+    faucetEndpoint: "http://localhost:5000",
   });
 
-  console.log(`[INFO] Initialized client with wallet address: ${secretNetwork.getClient().address}`);
+  console.log(
+    `[INFO] Initialized client with wallet address: ${secretNetwork.getClient().address}`,
+  );
 
   await secretNetwork.fillUpFromFaucet(100_000_000);
 
-  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
+  const contractPath = path.resolve(__dirname, "../contract.wasm");
   const contract = await secretNetwork.initializeContract(contractPath);
 
-  console.log('[INFO] Initialized contract with:');
+  console.log("[INFO] Initialized contract with:");
   console.log({ contract });
 
-  const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
-  const shareDocumentPublickKey = await shareDocument.getPublicKey();
+  // const jwk = await arweave.wallets.generate();
+  // const storage = new ArweaveStorage({
+  //   key: jwk,
+  //   host: 'arweave.net',
+  //   port: 443,
+  //   protocol: 'https'
+  // });
 
-  console.log('[INFO] Get publicKey from Smart contract:');
-  console.log({ shareDocumentPublickKey });
+  const storage = new FakeStorage();
 
-  const localPublicKey = SymmetricKey.generate();
+  const storeDocument = new StoreDocument({
+    client: secretNetwork.getClient(),
+    contract: contract,
+    storage: storage,
+    wallet: wallet,
+  });
 
-  console.log('[INFO] Get local symmetric key:');
-  console.log({ localPublicKey });
+  const url = await storeDocument.store(fileToStore);
 
-  const res = await fetch(fileToStore);
+  console.log("[INFO] Get storage URL:");
+  console.log({ url });
 
-  console.log('[INFO] We have fetched the file to store');
+  // const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
+  // const shareDocumentPublickKey = await shareDocument.getPublicKey();
 
-  const data = await res.arrayBuffer();
-  const bufferData = Buffer.from(data);
-  const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+  // console.log('[INFO] Get publicKey from Smart contract:');
+  // console.log({ shareDocumentPublickKey });
 
-  console.log('[INFO] We have encrypted the data');
+  // const localPublicKey = SymmetricKey.generate();
 
-  await runTestFunction(test_gas_limits, secretNetwork.getClient(), contract.hash, contract.address);
+  // console.log('[INFO] Get local symmetric key:');
+  // console.log({ localPublicKey });
+
+  // const res = await fetch(fileToStore);
+
+  // console.log('[INFO] We have fetched the file to store');
+
+  // const data = await res.arrayBuffer();
+  // const bufferData = Buffer.from(data);
+  // const encryptedData = SymmetricKey.encrypt(bufferData, localPublicKey);
+
+  // console.log('[INFO] We have encrypted the data');
+
+  await runTestFunction(
+    test_gas_limits,
+    secretNetwork.getClient(),
+    contract.hash,
+    contract.address,
+  );
 })();

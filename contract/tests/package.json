@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "npx ts-node integration.ts"
+  },
   "devDependencies": {
     "@types/node": "^17.0.23",
     "secretjs": "^1.12.4",
