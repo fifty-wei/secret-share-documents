@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@cosmjs/encoding": "^0.32.2",
+    "dotenv": "^16.4.1",
     "miscreant": "^0.3.2",
     "secp256k1": "^5.0.0",
     "secretjs": "^1.12.4"

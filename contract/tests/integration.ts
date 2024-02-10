@@ -5,6 +5,7 @@ import path from "path";
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
 import { runTestFunction } from "./test";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
+import ShareDocumentSmartContract from "../../sdk-js/src/SmartContract/ShareDocumentSmartContract";
 import FakeStorage from "../../sdk-js/src/StoreDocument/Storage/FakeStorage";
 import StoreDocument from "../../sdk-js/src/StoreDocument";
 
@@ -174,11 +175,16 @@ async function test_gas_limits() {
   console.log("[INFO] Get storage URL:");
   console.log({ url });
 
-  // const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
+  const shareDocument = new ShareDocumentSmartContract({
+    client: secretNetwork.getClient(),
+    contract: contract,
+    wallet: wallet,
+  });
   // const shareDocumentPublickKey = await shareDocument.getPublicKey();
+  const shareDocumentPermit = await shareDocument.generatePermit();
 
-  // console.log('[INFO] Get publicKey from Smart contract:');
-  // console.log({ shareDocumentPublickKey });
+  console.log("[INFO] Get permit from Smart contract:");
+  console.log({ shareDocumentPermit });
 
   // const localPublicKey = SymmetricKey.generate();
 
