@@ -1,18 +1,18 @@
-import SymmetricKey from "../src/StoreDocument/SymmetricKey";
+import SymmetricKeyEncryption from "../src/StoreDocument/Encryption/SymmetricKeyEncryption";
 import { test, expect } from "@jest/globals";
 
 test("Generate symmetric key is not empty", async () => {
-  const key = SymmetricKey.generate();
+  const key = SymmetricKeyEncryption.generate();
   expect(key).toBeDefined();
 });
 
 test("Text is the same after decryption", async () => {
   const text = "fakeText";
-  const publicKey = SymmetricKey.generate();
+  const publicKey = SymmetricKeyEncryption.generate();
   // Need to be converted to Buffer to be encrypted.
   const bufferData = Buffer.from(text);
-  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
-  const decryptedText = SymmetricKey.decrypt(encryptedData, publicKey);
+  const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
+  const decryptedText = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
   expect(decryptedText.toString()).toBe(text);
 });
 
@@ -23,9 +23,9 @@ test("Image file is the same after decryption", async () => {
   const data = await response.arrayBuffer();
   // Need to be converted to Buffer to be encrypted.
   const bufferData = Buffer.from(data);
-  const publicKey = SymmetricKey.generate();
-  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
-  const decryptedImage = SymmetricKey.decrypt(encryptedData, publicKey);
+  const publicKey = SymmetricKeyEncryption.generate();
+  const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
+  const decryptedImage = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
   expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
 });
 
@@ -36,8 +36,8 @@ test("PDF file is the same after decryption", async () => {
   const data = await response.arrayBuffer();
   // Need to be converted to Buffer to be encrypted.
   const bufferData = Buffer.from(data);
-  const publicKey = SymmetricKey.generate();
-  const encryptedData = SymmetricKey.encrypt(bufferData, publicKey);
-  const decryptedImage = SymmetricKey.decrypt(encryptedData, publicKey);
+  const publicKey = SymmetricKeyEncryption.generate();
+  const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
+  const decryptedImage = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
   expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
 });

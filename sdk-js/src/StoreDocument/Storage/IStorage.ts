@@ -1,4 +1,4 @@
-import IEncryptedData from "./IEncryptedData";
+import IEncryptedData from "../Encryption/IEncryptedData";
 import IUploadOptions from "./IUploadOptions";
 
 export default interface IStorage {

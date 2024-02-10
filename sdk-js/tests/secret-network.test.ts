@@ -1,12 +1,14 @@
-import { expect, test } from "@jest/globals";
 import path from "node:path";
+import { expect, test } from "@jest/globals";
 import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
-import { SecretNetworkClient } from "secretjs";
+import { SecretNetworkClient, Wallet } from "secretjs";
 
+const wallet = new Wallet();
 const secretNetwork = new SecretNetworkIntergration({
   endpoint: "http://localhost:1317",
   chainId: "secretdev-1",
-  faucetEndpoint: 'http://localhost:5000'
+  faucetEndpoint: 'http://localhost:5000',
+  wallet: wallet,
 });
 
 test("Initialize a client", async () => {

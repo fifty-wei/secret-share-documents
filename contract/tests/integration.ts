@@ -1,18 +1,13 @@
-import { SecretNetworkClient } from "secretjs";
+import { SecretNetworkClient, Wallet } from "secretjs";
 import assert from "assert";
 import path from "path";
-import fs from "fs";
 
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
 
-import { webcrypto } from "node:crypto";
-// globalThis.crypto = webcrypto
-
 import { runTestFunction } from "./test";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
-import ArweaveStorage from "../../sdk-js/src/StoreDocument/ArweaveStorage";
+import FakeStorage from "../../sdk-js/src/StoreDocument/Storage/FakeStorage";
 import StoreDocument from "../../sdk-js/src/StoreDocument";
-import arweaveWallet from "../../sdk-js/wallet.json";
 
 // TODO
 // More info: https://docs.scrt.network/secret-network-documentation/development/tools-and-libraries/local-secret
@@ -135,39 +130,50 @@ async function test_gas_limits() {
 }
 
 (async () => {
-
-  const fileToStore = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+  const fileToStore =
+    "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+  const wallet = new Wallet();
 
   const secretNetwork = new SecretNetworkIntergration({
+    wallet: wallet,
     endpoint: "http://localhost:1317",
     chainId: "secretdev-1",
-    faucetEndpoint: 'http://localhost:5000'
+    faucetEndpoint: "http://localhost:5000",
   });
 
-  console.log(`[INFO] Initialized client with wallet address: ${secretNetwork.getClient().address}`);
+  console.log(
+    `[INFO] Initialized client with wallet address: ${secretNetwork.getClient().address}`,
+  );
 
   await secretNetwork.fillUpFromFaucet(100_000_000);
 
   const contractPath = path.resolve(__dirname, "../contract.wasm");
   const contract = await secretNetwork.initializeContract(contractPath);
 
-  console.log('[INFO] Initialized contract with:');
+  console.log("[INFO] Initialized contract with:");
   console.log({ contract });
 
+  // const jwk = await arweave.wallets.generate();
   // const storage = new ArweaveStorage({
-  //   key: arweaveWallet,
+  //   key: jwk,
   //   host: 'arweave.net',
   //   port: 443,
   //   protocol: 'https'
   // });
 
-  // const storeDocument = new StoreDocument({
-  //   client: secretNetwork.getClient(),
-  //   contract: contract,
-  //   storage: storage
-  // });
+  const storage = new FakeStorage();
 
-  // const url = await storeDocument.store(fileToStore);
+  const storeDocument = new StoreDocument({
+    client: secretNetwork.getClient(),
+    contract: contract,
+    storage: storage,
+    wallet: wallet,
+  });
+
+  const url = await storeDocument.store(fileToStore);
+
+  console.log("[INFO] Get storage URL:");
+  console.log({ url });
 
   // const shareDocument = new ShareDocumentSmartContract({ client: secretNetwork.getClient(), contract: contract });
   // const shareDocumentPublickKey = await shareDocument.getPublicKey();
@@ -190,5 +196,10 @@ async function test_gas_limits() {
 
   // console.log('[INFO] We have encrypted the data');
 
-  await runTestFunction(test_gas_limits, secretNetwork.getClient(), contract.hash, contract.address);
+  await runTestFunction(
+    test_gas_limits,
+    secretNetwork.getClient(),
+    contract.hash,
+    contract.address,
+  );
 })();

@@ -1,4 +1,4 @@
-name: (Smart Contract) Build & Test
+name: (SDK) Tests
 
 on:
   push:
@@ -6,34 +6,8 @@ on:
   pull_request:
     branches: ["*"]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  build_and_test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Cargo Dependencies
-        working-directory: ./contract
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Build & Unit Tests
-        working-directory: ./contract
-        run: |
-          make build
-          make test
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-artifacts
-          path: ./contract/contract.wasm
-
-  integration_tests:
+  sdk_tests:
     if: success()
     runs-on: ubuntu-latest
     needs: build_and_test
@@ -62,9 +36,9 @@ jobs:
           path: ./contract
 
       - name: Install Node Dependencies
-        working-directory: ./contract/tests
+        working-directory: ./sdk-js
         run: npm install
 
       - name: Run Integration Tests
-        working-directory: ./contract/tests
+        working-directory: ./sdk-js
         run: npm run test
