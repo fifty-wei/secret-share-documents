@@ -153,8 +153,9 @@ async function test_gas_limits() {
   console.log("[INFO] Initialized contract with:");
   console.log({ contract });
 
+  // const jwk = await arweave.wallets.generate();
   // const storage = new ArweaveStorage({
-  //   key: arweaveWallet,
+  //   key: jwk,
   //   host: 'arweave.net',
   //   port: 443,
   //   protocol: 'https'
