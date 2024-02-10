@@ -23,7 +23,7 @@ export default function Content() {
                     share sensitive administrative and confidential data to a
                     selected audience. Currently, the challenge lies in sharing
                     documents on-chain while safeguarding the privacy of users.
-                    We firmly believe that Secret Network's cutting-edge
+                    We firmly believe that Secret Network s cutting-edge
                     technology can effectively address this use case by enabling
                     individuals to share documents with the assurance of privacy
                     and data encryption, thus redefining the way confidential
