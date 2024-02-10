@@ -1,4 +1,4 @@
-name: Build & Test
+name: (Smart Contract) Build & Test
 
 on:
   push:
@@ -14,24 +14,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Cargo Dependencies
-      working-directory: ./contract
-      run: rustup target add wasm32-unknown-unknown
+      - name: Cargo Dependencies
+        working-directory: ./contract
+        run: rustup target add wasm32-unknown-unknown
 
-    - name: Build & Unit Tests
-      working-directory: ./contract
-      run: |
-        make build
-        make test
+      - name: Build & Unit Tests
+        working-directory: ./contract
+        run: |
+          make build
+          make test
 
-    - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: build-artifacts
-        path: ./contract/contract.wasm
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: ./contract/contract.wasm
 
   integration_tests:
     if: success()
@@ -52,24 +52,19 @@ jobs:
           - 9091:9091
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@v2
-      with:
-        name: build-artifacts
-        path: ./contract
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: ./contract
 
-    - name: Install Node Dependencies
-      working-directory: ./contract/tests
-      run: npm install
+      - name: Install Node Dependencies
+        working-directory: ./contract/tests
+        run: npm install
 
-
-    - name: Install Node Dependencies (SDK)
-      working-directory: ./sdk-js
-      run: npm install
-
-    - name: Run Integration Tests
-      working-directory: ./contract/tests
-      run: npx ts-node integration.ts
+      - name: Run Integration Tests
+        working-directory: ./contract/tests
+        run: npm run test
