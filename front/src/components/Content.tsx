@@ -13,18 +13,26 @@ export default function Content() {
               <div>
                 <div className="mt-6">
                   <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                    Make with love vy FiftyWei Team
+                    Make with love by FiftyWei Team
                   </h2>
                   <p className="mt-4 text-lg text-gray-500">
-                    Hey there! We're a bunch of tech enthusiasts who can't get
-                    enough of the Web3 world. With cups of coffee (or tea!) in
-                    hand, we dive into codes, laugh at our bugs, and celebrate
-                    every success
+                    We aimed to create a robust mechanism for securely sharing
+                    documents on the blockchain with specific recipients. This
+                    solution addresses a critical need for businesses and
+                    decentralized autonomous organizations (DAOs) seeking to
+                    share sensitive administrative and confidential data to a
+                    selected audience. Currently, the challenge lies in sharing
+                    documents on-chain while safeguarding the privacy of users.
+                    We firmly believe that Secret Network's cutting-edge
+                    technology can effectively address this use case by enabling
+                    individuals to share documents with the assurance of privacy
+                    and data encryption, thus redefining the way confidential
+                    information is shared within a blockchain ecosystem.
                   </p>
                   <div className="flex gap-10">
                     <div className="mt-6">
                       <a
-                        href="=https://www.fiftywei.co/"
+                        href="https://www.fiftywei.co/"
                         target="_blank"
                         className="inline-flex rounded-md border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 bg-origin-border px-4 py-2 text-base font-medium text-white shadow-sm hover:from-purple-700 hover:to-indigo-700"
                       >
@@ -34,11 +42,20 @@ export default function Content() {
 
                     <div className="mt-6">
                       <a
-                        href="=https://www.fiftywei.co/"
+                        href="https://www.fiftywei.co/"
                         target="_blank"
                         className="inline-flex rounded-md border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 bg-origin-border px-4 py-2 text-base font-medium text-white shadow-sm hover:from-purple-700 hover:to-indigo-700"
                       >
                         Github
+                      </a>
+                    </div>
+                    <div className="mt-6">
+                      <a
+                        href="https://github.com/scrtlabs/Grants/issues/123"
+                        target="_blank"
+                        className="inline-flex rounded-md border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 bg-origin-border px-4 py-2 text-base font-medium text-white shadow-sm hover:from-purple-700 hover:to-indigo-700"
+                      >
+                        Grant Details
                       </a>
                     </div>
                   </div>

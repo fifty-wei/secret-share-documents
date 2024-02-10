@@ -37,7 +37,7 @@ export default function Hero() {
                 share a file with Secret Network
               </p>
               {isConnected && (
-                <div className="mt-10">
+                <div className="mt-10 mx-auto sm:w-full md:w-3/4 lg:w-1/2">
                   {" "}
                   <DropContent />{" "}
                 </div>

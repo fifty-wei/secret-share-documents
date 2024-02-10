@@ -25,8 +25,7 @@ export function DropContent() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex justify-center items-center p-6">
-        <div className="w-full border-dashed border-2 border-gray-200 border-gray-300 rounded-lg p-4 text-center">
-          <UploadIcon className="w-12 h-12 mx-auto text-gray-400" />
+        <div className="w-full border-dashed border-2  border-gray-300 rounded-lg p-4 text-center">
           <div className="text-sm text-gray-500">Drag and drop your files</div>
         </div>
       </CardContent>
@@ -37,11 +36,9 @@ export function DropContent() {
             className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
             htmlFor="file"
           >
-            <UploadIcon className="w-4 h-4 mr-1 -translate-y-0.5" />
             Select files
           </label>
           <Button className="flex-1" variant="ghost">
-            <TrashIcon className="w-4 h-4 mr-1 -translate-y-0.5" />
             Remove all
           </Button>
         </div>
@@ -50,7 +47,7 @@ export function DropContent() {
   );
 }
 
-function UploadIcon(props) {
+function UploadIcon(props: any) {
   return (
     <svg
       {...props}
@@ -71,7 +68,7 @@ function UploadIcon(props) {
   );
 }
 
-function TrashIcon(props) {
+function TrashIcon(props: any) {
   return (
     <svg
       {...props}
