@@ -5,6 +5,7 @@ import ISmartContract from "../SmartContract/ISmartContract";
 import IStorage from "./Storage/IStorage";
 import IUploadOptions from "./Storage/IUploadOptions";
 import ECDHEncryption from "./Encryption/ECDHEncryption";
+import IEncryptedMessage from "./Encryption/IEncryptedPayload";
 
 class StoreDocument {
   client: SecretNetworkClient;
@@ -19,16 +20,7 @@ class StoreDocument {
     this.wallet = wallet;
   }
 
-  // TODO: Add the type of the return value.
-  async store(fileUrl: string): Promise<any> {
-    // Get the public key of the smart contract deployed on Secret Network
-    const shareDocument = new ShareDocumentSmartContract({
-      client: this.client,
-      contract: this.contract,
-      wallet: this.wallet,
-    });
-    const shareDocumentPublicKey = shareDocument.getPublicKey();
-
+  async store(fileUrl: string): Promise<IEncryptedMessage> {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKeyEncryption.generate();
 
@@ -60,25 +52,43 @@ class StoreDocument {
     // including the storage link and the symmetric key (generated locally) used to encrypt the data.
     const payloadJson = {
       url: storageLink,
-      publicKey: localSymmetricKey,
+      symmetricKey: localSymmetricKey,
     };
 
     // Use ECDH method, to generate local asymmetric keys.
     const ECDHKeys = ECDHEncryption.generate();
+    // Get the public key of the smart contract deployed on Secret Network
+    const shareDocument = new ShareDocumentSmartContract({
+      client: this.client,
+      contract: this.contract,
+      wallet: this.wallet,
+    });
+    const shareDocumentPublicKey = await shareDocument.getPublicKey();
+
+    const ECDHSharedKey = ECDHEncryption.generateSharedKey(
+      shareDocumentPublicKey,
+      ECDHKeys.privateKey,
+    );
     console.log("[INFO] Generated ECDH keys:");
     console.log({ ECDHKeys });
+    const shareDocumentPermit = await shareDocument.generatePermit();
 
-    // Build new JSON with the payload (binary) + the ECDH public key.
-    // const encyptedPayload = {
-    //   data: payloadJson,
-    //   publicKey: ECDH.getPublicKey()
-    // }
+    // Build new JSON with permit + the ECDH public key.
+    const payloadWithPermit = {
+      permit: shareDocumentPermit,
+      payload: JSON.stringify(payloadJson),
+    };
 
-    // The payload includes the action to be performed as specified in the JSON.
+    // Encrypt the JSON with the public ECDH shared key.
+    const encryptedPayload = await ECDHEncryption.encrypt(
+      payloadWithPermit,
+      ECDHSharedKey,
+    );
 
-    // Encrypt the JSON with the public ECDH key multiply by the public key of the Secret Network's smart contract.
-
-    // Make a request through the Polygon smart contract, which contacts Secret Network via Axelar to store everything in the Secret contract.
+    return {
+      payload: encryptedPayload,
+      publicKey: ECDHKeys.publicKey,
+    };
   }
 }
 

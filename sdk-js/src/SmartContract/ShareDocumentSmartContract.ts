@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { Permit, SecretNetworkClient, Wallet } from "secretjs";
 import ISmartContract from "./ISmartContract";
+import IEncryptedMessage from "../StoreDocument/IEncryptedMessage";
+import IEvmEncryptedMessage from "../StoreDocument/IEvmEcryptedMessage";
 
 export type Address = `0x${string}`;
 
@@ -25,7 +27,7 @@ class ShareDocumentSmartContract {
     this.wallet = wallet;
   }
 
-  async getPublicKey() {
+  async getPublicKey(): Promise<Uint8Array> {
     const res = (await this.client.query.compute.queryContract({
       contract_address: this.contract.address,
       code_hash: this.contract.hash,
@@ -38,7 +40,7 @@ class ShareDocumentSmartContract {
       );
     }
 
-    return res.public_key;
+    return Uint8Array.from(res.public_key);
   }
 
   async generatePermit(): Promise<Permit> {
@@ -49,6 +51,31 @@ class ShareDocumentSmartContract {
       [this.contract.address],
       ["owner"],
       false,
+    );
+  }
+
+  mapEncryptedMessageToEvm(message: IEncryptedMessage): IEvmEncryptedMessage {
+    return {
+      payload: message.payload,
+      public_key: message.payload,
+    };
+  }
+
+  async store(message: IEncryptedMessage) {
+    const payload = this.mapEncryptedMessageToEvm(message);
+
+    return await this.client.tx.compute.executeContract(
+      {
+        sender: this.wallet.address,
+        contract_address: this.contract.address,
+        code_hash: this.contract.hash,
+        msg: {
+          receive_message_evm: { payload: payload },
+        },
+      },
+      {
+        gasLimit: 100_000,
+      },
     );
   }
 }
