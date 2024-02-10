@@ -65,6 +65,10 @@ jobs:
         working-directory: ./contract/tests
         run: npm install
 
+      - name: Install Node Dependencies
+        working-directory: ./sdk-js
+        run: npm install
+
       - name: Run Integration Tests
         working-directory: ./contract/tests
         run: npm run test

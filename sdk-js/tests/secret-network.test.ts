@@ -1,3 +1,4 @@
+import "dotenv/config";
 import path from "node:path";
 import { expect, test } from "@jest/globals";
 import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
@@ -5,9 +6,9 @@ import { SecretNetworkClient, Wallet } from "secretjs";
 
 const wallet = new Wallet();
 const secretNetwork = new SecretNetworkIntergration({
-  endpoint: "http://localhost:1317",
-  chainId: "secretdev-1",
-  faucetEndpoint: 'http://localhost:5000',
+  endpoint: process.env.SECRET_NETWORK_ENDPOINT as string,
+  chainId: process.env.SECRET_NETWORK_CHAIN_ID as string,
+  faucetEndpoint: process.env.SECRET_NETWORK_FAUCET_ENDPOINT as string,
   wallet: wallet,
 });
 
