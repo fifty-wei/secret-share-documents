@@ -39,6 +39,7 @@ test("Get permit", async () => {
     contract: contract,
     wallet: wallet,
   });
+
   const permit = await shareDocument.generatePermit();
 
   console.log("[INFO] Get permit:", { permit });
