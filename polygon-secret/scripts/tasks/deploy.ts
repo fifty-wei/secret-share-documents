@@ -14,6 +14,15 @@ task('deploy', 'Deploy all contracts')
     const { verify } = args
     console.log('Network:', network.name)
 
+    let PolygonToSecretFactory = await ethers.getContractFactory('SendReceive')
+    let sendreceive = await PolygonToSecretFactory.deploy(
+      '0xC249632c2D40b9001FE907806902f63038B737Ab', // axelar gateway
+      '0xbE406F0189A0B4cf3A05C286473D23791Dd44Cc6', // axelar gas service
+      'Avalanche', // fuji chain name
+    )
+
+    console.log('SendReceive deployed to: ', sendreceive.address)
+
     const [deployer] = await ethers.getSigners()
     console.log('Using address: ', deployer.address)
 
