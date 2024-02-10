@@ -541,8 +541,6 @@ mod tests {
     // See this project - organization
     // https://github.com/desmos-labs/desmos-contracts/tree/master/contracts/poap
 
-
-
     /// Instanciate a new smart contract
     fn setup_contract(deps: DepsMut) {
         // Instanciate our Secret Contract
@@ -586,14 +584,16 @@ mod tests {
     }
 
     fn generate_user_2(deps: DepsMut) -> (Addr, Permit) {
+        // https://permits.scrtlabs.com/
 
         let token_address = CONFIG.load(deps.storage).unwrap().contract_address;
 
-        let user_address = "secret1399pyvvk3hvwgxwt3udkslsc5jl3rqv4yshfrl";
+        let user_address = "secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy";
         let permit_name = "default";
-        let chain_id = "secretdev-1";
-        let pub_key = "A5M49l32ZrV+SDsPnoRv8fH7ivNC4gEX9prvd4RwvRaL";
-        let signature = "hw/Mo3ZZYu1pEiDdymElFkuCuJzg9soDHw+4DxK7cL9rafiyykh7VynS+guotRAKXhfYMwCiyWmiznc6R+UlsQ==";
+        let chain_id = "secret-4";
+        let pub_key = "A9vpITCF1VTnIi+3x8g+IqNV2LAiFyqt4SlaYD+fk+SH";
+        let signature = "11zOqv1CKkXodChCLhMVQ2Hqkp1zj/IqyvgjMX55wLpG95c8iZO9Nmo+DgSBBBZVb7sfuApKBFSxPxueoAHu2Q==";
+
 
         let user_permit = Permit {
             params: PermitParams {
@@ -819,48 +819,43 @@ mod tests {
     }
 
 
-    // #[test]
-    // fn test_retrieve_file_with_no_access() {
-    //     let mut deps = mock_dependencies();
-    //     setup_contract(deps.as_mut());
+    #[test]
+    fn test_retrieve_file_with_no_access() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
 
-    //     // Generate user information & payload
-    //     let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
-    //     let payload = String::from("{\"file\": \"content\"}");
+        // Generate user information & payload
+        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        let payload = String::from("{\"file\": \"content\"}");
 
-    //     let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_permit);
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_permit);
 
-    //     // Send the evm message
-    //     let unauth_env = mock_info("anyone", &coins(0, "token"));
-    //     let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
-    //     assert!(res_store_file.is_ok());
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
         
-    //     // Query the user file
-    //     let user_file = _query_user_files(deps.as_ref(), &user_permit);
+        // Query the user file
+        let user_file = _query_user_files(deps.as_ref(), &user_permit);
         
-    //     // We should have the file we previously stored
-    //     assert_eq!(user_file.len(), 1); 
+        // We should have the file we previously stored
+        assert_eq!(user_file.len(), 1); 
 
+        // Generate another user
+        let (_user_2, user_permit_2) = generate_user_2(deps.as_mut());
 
-    //     let (_user_2, user_permit_2) = generate_user_2(deps.as_mut());
-        
-
-    //     // Query with the user the file
-    //     // let file_content = _query_file(deps.as_ref(), user_permit_2, &user_file[0]);
-
-        
-    //     let query_msg = QueryMsg::WithPermit { 
-    //         permit: user_permit_2.clone(),
-    //         query: QueryWithPermit::GetFileContent { file_id: user_file[0].clone() } 
-    //     };
-
-    //     let response = query(deps.as_ref(), mock_env(), query_msg);
-    //     assert!(response.is_err());
+        // Try to get the file of the user 1
+        let query_msg = QueryMsg::WithPermit { 
+            permit: user_permit_2.clone(),
+            query: QueryWithPermit::GetFileContent { file_id: user_file[0].clone() } 
+        };
+        let response = query(deps.as_ref(), mock_env(), query_msg);
+        assert!(response.is_err());
         
 
 
 
-    // }
+    }
 
 
 
