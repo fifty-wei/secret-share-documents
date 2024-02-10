@@ -75,7 +75,7 @@ class StoreDocument {
 
     return {
       payload: encryptedPayload,
-      publicKey: ECDHKeys.publicKey,
+      public_key: ECDHKeys.publicKey,
     };
   }
 }
