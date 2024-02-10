@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use } from "react";
 import { useAccount } from "wagmi";
+import { DropContent } from "./DropContent";
 
 export default function Hero() {
   const { address, isConnected } = useAccount();
@@ -36,13 +37,9 @@ export default function Hero() {
                 share a file with Secret Network
               </p>
               {isConnected && (
-                <div className="mx-auto mt-10 max-w-sm sm:flex sm:max-w-none sm:justify-center">
-                  <a
-                    href="https://github.com/0xRomain/web3-boilerplate"
-                    className="flex items-center justify-center rounded-md border border-transparent bg-indigo-500 bg-opacity-60 px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-opacity-70 sm:px-8"
-                  >
-                    Github
-                  </a>
+                <div className="mt-10">
+                  {" "}
+                  <DropContent />{" "}
                 </div>
               )}
             </div>
