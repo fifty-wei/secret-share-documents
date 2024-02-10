@@ -2,7 +2,9 @@ import path from "node:path";
 import { expect, test } from "@jest/globals";
 import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
-import { SecretNetworkClient, Wallet } from "secretjs";
+import { Wallet } from "secretjs";
+import StoreDocument from "../src/StoreDocument";
+import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 
 const wallet = new Wallet();
 const secretNetwork = new SecretNetworkIntergration({
@@ -12,7 +14,7 @@ const secretNetwork = new SecretNetworkIntergration({
   wallet: wallet,
 });
 
-test("Get public key", async () => {
+test("Get Encrypted Payload from PDF", async () => {
   await secretNetwork.fillUpFromFaucet(100_000_000);
   const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
   const contract = await secretNetwork.initializeContract(contractPath);
@@ -23,25 +25,16 @@ test("Get public key", async () => {
     wallet: wallet,
   });
 
-  const publicKey = await shareDocument.getPublicKey();
-  console.log("[INFO] Get publicKey:", { publicKey });
-
-  expect(publicKey).toBeDefined();
-}, 1_000_000);
-
-test("Get permit", async () => {
-  await secretNetwork.fillUpFromFaucet(100_000_000);
-  const contractPath = path.resolve(__dirname, "../../contract/contract.wasm");
-  const contract = await secretNetwork.initializeContract(contractPath);
-
-  const shareDocument = new ShareDocumentSmartContract({
-    client: secretNetwork.getClient(),
-    contract: contract,
-    wallet: wallet,
+  const storeDocument = new StoreDocument({
+    storage: new FakeStorage(),
+    shareDocument: shareDocument,
   });
-  const permit = await shareDocument.generatePermit();
 
-  console.log("[INFO] Get permit:", { permit });
+  const encrytedMessage = await storeDocument.store(
+    "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
+  );
 
-  expect(permit).toBeDefined();
+  expect(encrytedMessage).toBeDefined();
+  expect(encrytedMessage).toHaveProperty("payload");
+  expect(encrytedMessage).toHaveProperty("publicKey");
 }, 1_000_000);

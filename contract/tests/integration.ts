@@ -163,11 +163,15 @@ async function test_gas_limits() {
 
   const storage = new FakeStorage();
 
-  const storeDocument = new StoreDocument({
+  const shareDocument = new ShareDocumentSmartContract({
     client: secretNetwork.getClient(),
     contract: contract,
-    storage: storage,
     wallet: wallet,
+  });
+
+  const storeDocument = new StoreDocument({
+    shareDocument: shareDocument,
+    storage: storage,
   });
 
   const url = await storeDocument.store(fileToStore);
@@ -175,11 +179,6 @@ async function test_gas_limits() {
   console.log("[INFO] Get storage URL:");
   console.log({ url });
 
-  const shareDocument = new ShareDocumentSmartContract({
-    client: secretNetwork.getClient(),
-    contract: contract,
-    wallet: wallet,
-  });
   // const shareDocumentPublickKey = await shareDocument.getPublicKey();
   const shareDocumentPermit = await shareDocument.generatePermit();
 
