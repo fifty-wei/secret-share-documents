@@ -3,7 +3,6 @@ import assert from "assert";
 import path from "path";
 
 // https://docs.rs/getrandom/latest/getrandom/#webassembly-support
-
 import { runTestFunction } from "./test";
 import SecretNetworkIntergration from "../../sdk-js/src/SmartContract/SecretNetworkIntegration";
 import FakeStorage from "../../sdk-js/src/StoreDocument/Storage/FakeStorage";

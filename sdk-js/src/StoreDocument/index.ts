@@ -72,12 +72,14 @@ class StoreDocument {
     //   data: payloadJson,
     //   publicKey: ECDH.getPublicKey()
     // }
+    
     // The payload includes the action to be performed as specified in the JSON.
 
     // Encrypt the JSON with the public ECDH key multiply by the public key of the Secret Network's smart contract.
 
     // Make a request through the Polygon smart contract, which contacts Secret Network via Axelar to store everything in the Secret contract.
   }
+
 
   storeFile();
 }
