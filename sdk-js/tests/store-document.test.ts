@@ -7,7 +7,7 @@ import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import { Environment, getConfig } from "../config";
 
 test("Get Encrypted Payload from PDF", async () => {
-  const config = await getConfig(Environment.LOCAL);
+  const config = await getConfig(Environment.TESTNET);
 
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
 
@@ -67,11 +67,6 @@ test("Store Encrypted Payload from PDF", async () => {
     "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   );
 
-  // IEncryptedMessage {
-  //   payload: Uint8Array;
-  //   public_key: Uint8Array;
-  // }
-
   const payload = {
     source_chain: "test-chain",
     source_address: "test-address",
@@ -81,8 +76,6 @@ test("Store Encrypted Payload from PDF", async () => {
   const response = await shareDocument.store(payload);
 
   console.log("[INFO] Store document on Secret Network:", { response });
-
-  console.log(response.tx.body);
 
   expect(response).toBeDefined();
   expect(response.code).toEqual(0);
