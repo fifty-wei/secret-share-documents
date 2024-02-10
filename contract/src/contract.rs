@@ -168,7 +168,6 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
                 let _ = update_file_access(
                     deps,
                     extracted_key, 
-                    account,
                     add_viewing, 
                     delete_viewing, 
                     change_owner
@@ -319,7 +318,6 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
 pub fn update_file_access(
     deps: DepsMut,
     file_key: [u8; 32], 
-    account: Addr, 
     add_viewing: Vec<Addr>, 
     delete_viewing: Vec<Addr>, 
     change_owner: Addr) -> StdResult<()> {
@@ -327,14 +325,16 @@ pub fn update_file_access(
     // Add all viewing access
     for add in &add_viewing {
 
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, account.clone()));
+        println!("Iteraet {:?}", add);
+
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, add.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
             // Add permission
             let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, add.clone()), &true);
 
             // Add the file in the list of user view
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, account.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, add.as_bytes());
 
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
@@ -347,7 +347,7 @@ pub fn update_file_access(
 
             // Save the updated information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, account.as_bytes(), &user_info);
+            let _saved_result = save(&mut users_store, add.as_bytes(), &user_info);
         }
 
     };
@@ -355,14 +355,14 @@ pub fn update_file_access(
     for delete in &delete_viewing {
 
         // Check if the user has a viewing right
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, account.clone()));
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, delete.clone()));
         if already_added.is_some() {
             // Remove permission
             let _delete = FILE_PERMISSIONS.insert(deps.storage, &(file_key, delete.clone()), &false);
 
             // Remove the file from the user list
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = load(&users_store, account.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = load(&users_store, delete.as_bytes());
 
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
@@ -376,7 +376,7 @@ pub fn update_file_access(
 
             // Save the modification
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, account.as_bytes(), &user_info);
+            let _saved_result = save(&mut users_store, delete.as_bytes(), &user_info);
         }
 
     };
@@ -507,7 +507,7 @@ fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
 
             Ok(FileIdsResponse { file_ids: key_to_string })
         }
-        Ok(None) => panic!("File not found from the given key."),
+        Ok(None) => Ok(FileIdsResponse { file_ids: Vec::new() }),
         Err(error) => panic!("Error when loading file from storage: {:?}", error),        
     }
 
@@ -555,7 +555,7 @@ mod tests {
     }
 
     /// Generate a valid address and a valid permit
-    fn _generate_address_with_valid_permit(deps: DepsMut) -> (Addr, Permit) {
+    fn generate_user_1(deps: DepsMut) -> (Addr, Permit) {
 
         let token_address = CONFIG.load(deps.storage).unwrap().contract_address;
 
@@ -620,7 +620,6 @@ mod tests {
         return (user_address, user_permit)
     }
 
-
     fn _query_contract_pubic_key(deps: Deps) -> ContractKeyResponse {
         let query_msg = QueryMsg::GetContractKey {};
         let response = query(deps, mock_env(), query_msg).unwrap();
@@ -677,37 +676,6 @@ mod tests {
         return encrypt_message;
     }
 
-    #[test]
-    fn test_contract_initialization() {
-        // Initialize the smart contract
-        let mut deps = mock_dependencies();
-        setup_contract(deps.as_mut());
-
-        // Check that the contract generate a public key
-        let key_response = _query_contract_pubic_key(deps.as_ref());
-        assert_eq!(33, key_response.public_key.len()); // We have an additional 1 byte prefix for the X-coordinate
-    }
-
-
-    #[test]
-    fn keys_initialization() {
-        // Initialize the smart contract
-        let mut deps = mock_dependencies();
-        setup_contract(deps.as_mut());
-        
-        let key_response = _query_contract_pubic_key(deps.as_ref());
-        let public_key = key_response.public_key; 
-
-        // Verify that the public key is the same as the one we store
-        let contract_keys = CONTRACT_KEYS.load(deps.as_mut().storage);
-        let storage_public_key = match contract_keys {
-            Ok(keys) => keys.public_key,
-            Err(error) => panic!("Error when loading key from storage: {:?}", error),
-        };
-        assert!(public_key == storage_public_key);
-    }
-
-
     /// Create an execute message given a file and a user permit
     fn _create_evm_message(
         deps: Deps,
@@ -749,6 +717,55 @@ mod tests {
         }
     }
 
+
+    fn _create_manage_request_evm_message(
+        deps: Deps,
+        permit: &Permit,
+        file_id: String,
+        add_viewing: Vec<Addr>,
+        delete_viewing: Vec<Addr>,
+        change_owner: Addr
+    ) -> ExecuteMsg {
+
+        // Create the message for storing a new file
+        let message = &Json::serialize(
+            &ExecutePermitMsg::WithPermit { 
+                permit: permit.clone(), 
+                execute: ExecuteMsgAction::ManageFileRights {
+                    file_id: file_id,
+                    add_viewing: add_viewing,
+                    delete_viewing: delete_viewing,
+                    change_owner: change_owner
+                }
+            }
+        ).unwrap();
+
+        // Query the contract public key
+        let contract_public_key = _query_contract_pubic_key(deps).public_key;
+
+        // Generate public/private key locally
+        let (local_public_key, local_private_key) = _generate_local_public_private_key(mock_env());
+
+        // Create share secret
+        let encrypted_message = _encrypt_with_share_secret(
+            local_private_key, 
+            contract_public_key, 
+            message
+        );
+
+        // Create the request
+        ExecuteMsg::ReceiveMessageEvm {
+            source_chain: String::from("polygon"),
+            source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
+            payload: EncryptedExecuteMsg {
+                payload: Binary::from(encrypted_message),
+                public_key: local_public_key,
+            },
+        }
+    }
+
+
+
     fn _query_user_files(deps: Deps, permit: &Permit) -> Vec<String> {
         let query_msg = QueryMsg::WithPermit { 
             permit: permit.clone(),
@@ -776,12 +793,45 @@ mod tests {
 
 
     #[test]
+    fn test_contract_initialization() {
+        // Initialize the smart contract
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // Check that the contract generate a public key
+        let key_response = _query_contract_pubic_key(deps.as_ref());
+        assert_eq!(33, key_response.public_key.len()); // We have an additional 1 byte prefix for the X-coordinate
+    }
+
+
+    #[test]
+    fn keys_initialization() {
+        // Initialize the smart contract
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+        
+        let key_response = _query_contract_pubic_key(deps.as_ref());
+        let public_key = key_response.public_key; 
+
+        // Verify that the public key is the same as the one we store
+        let contract_keys = CONTRACT_KEYS.load(deps.as_mut().storage);
+        let storage_public_key = match contract_keys {
+            Ok(keys) => keys.public_key,
+            Err(error) => panic!("Error when loading key from storage: {:?}", error),
+        };
+        assert!(public_key == storage_public_key);
+    }
+
+
+    
+
+    #[test]
     fn test_evm_store_new_file() {
         let mut deps = mock_dependencies();
         setup_contract(deps.as_mut());
 
         // Generate user information & payload
-        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        let (_owner, user_permit) = generate_user_1(deps.as_mut());
         let payload = String::from("{\"file\": \"content\"}");
 
         let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_permit);
@@ -810,7 +860,7 @@ mod tests {
         let mut deps = mock_dependencies();
         setup_contract(deps.as_mut());
 
-        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        let (_owner, user_permit) = generate_user_1(deps.as_mut());
         
         // Query with the user the file
         let query_msg = QueryMsg::WithPermit { 
@@ -829,7 +879,7 @@ mod tests {
         setup_contract(deps.as_mut());
 
         // Generate user information & payload
-        let (_owner, user_permit) = _generate_address_with_valid_permit(deps.as_mut());
+        let (_owner, user_permit) = generate_user_1(deps.as_mut());
         let payload = String::from("{\"file\": \"content\"}");
 
         let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_permit);
@@ -859,40 +909,70 @@ mod tests {
 
 
 
-
     #[test]
-    fn test_unauthorized_file_access() {
-        
-        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
-        let _permit_name = "default";
-        let _chain_id = "secretdev-1";
-        let _pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
-        let _signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
-
+    fn test_store_file_and_give_user_access() {
         let mut deps = mock_dependencies();
         setup_contract(deps.as_mut());
 
-        let owner = deps.api.addr_validate(user_address).unwrap();
+        // Generate user info
+        let (user_1, user_1_permit) = generate_user_1(deps.as_mut());
+        let (user_2, user_2_permit) = generate_user_2(deps.as_mut());
+
+        // Generate user information & payload
         let payload = String::from("{\"file\": \"content\"}");
 
-        // Mock a new file for a user A
-        let _ = store_new_file(deps.as_mut(), owner.clone(), payload);
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_1_permit);
 
-        let file_ids = query_file_ids(deps.as_ref(), owner.clone()).unwrap();
-        assert_eq!(file_ids.file_ids.len(), 1);
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
 
-        let file_id = &file_ids.file_ids[0];
+        // User 1 should have one file
+        let user_1_file = _query_user_files(deps.as_ref(), &user_1_permit);
+        assert!(!user_1_file.is_empty());
 
-        println!("Here the key {:?}", file_id);
+        // User 2 should not have a file
+        let user_2_file = _query_user_files(deps.as_ref(), &user_2_permit);
+        assert!(user_2_file.is_empty());
 
-        // TODO :: Query file ok for owner
+        // Create request to authorize user 2
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_1_permit,
+            user_1_file[0].clone(),
+            Vec::from([user_2]),
+            Vec::new(),
+            user_1
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
 
-        // TODO :: Query file unauthorize user error
+        // See the list of the user 2
+        let user_2_file = _query_user_files(deps.as_ref(), &user_2_permit);
+        assert_eq!(user_2_file.len(), 1);
+
+        // Get the file from the user 2
+        let file_content = _query_file(deps.as_ref(), user_2_permit, &user_2_file[0]);
         
+        // Verify that the store data is the same as the input one
+        assert_eq!(file_content, payload);
+
+        // Check user 1 still have access to the file
+        let user_1_file = _query_user_files(deps.as_ref(), &user_1_permit);
+        assert_eq!(user_1_file.len(), 1);
+        let file_content = _query_file(deps.as_ref(), user_1_permit, &user_1_file[0]);
+        assert_eq!(file_content, payload);
+    }    
+    
 
 
 
-    }
+
+
+
+
 
 
     #[test]

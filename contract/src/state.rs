@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 
 use cosmwasm_std::{Addr, StdError, StdResult, Storage};
 
-use secret_toolkit::serialization::{Bincode2, Serde};
+use secret_toolkit::serialization::{Json, Serde};
 use secret_toolkit::storage::{Item, Keymap};
 
 
@@ -72,7 +72,7 @@ pub struct UserInfo {
 /// * `key` - a byte slice representing the key to access the stored item
 /// * `value` - a reference to the item to store
 pub fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) -> StdResult<()> {
-    storage.set(key, &Bincode2::serialize(value)?);
+    storage.set(key, &Json::serialize(value)?);
     Ok(())
 }
 
@@ -84,7 +84,7 @@ pub fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) ->
 /// * `storage` - a reference to the storage this item is in
 /// * `key` - a byte slice representing the key that accesses the stored item
 pub fn load<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> StdResult<T> {
-    Bincode2::deserialize(
+    Json::deserialize(
         &storage
             .get(key)
             .ok_or_else(|| StdError::not_found(type_name::<T>()))?,
@@ -100,7 +100,7 @@ pub fn load<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> StdResu
 /// * `key` - a byte slice representing the key that accesses the stored item
 pub fn may_load<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> StdResult<Option<T>> {
     match storage.get(key) {
-        Some(value) => Bincode2::deserialize(&value).map(Some),
+        Some(value) => Json::deserialize(&value).map(Some),
         None => Ok(None),
     }
 }
