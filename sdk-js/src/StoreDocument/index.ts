@@ -14,7 +14,7 @@ class StoreDocument {
     this.shareDocument = shareDocument;
   }
 
-  async store(fileUrl: string): Promise<IEncryptedMessage> {
+  async getEncryptedMessage(fileUrl: string): Promise<IEncryptedMessage> {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKeyEncryption.generate();
 
@@ -58,8 +58,7 @@ class StoreDocument {
       shareDocumentPublicKey,
       ECDHKeys.privateKey,
     );
-    console.log("[INFO] Generated ECDH keys:");
-    console.log({ ECDHKeys });
+
     const shareDocumentPermit = await this.shareDocument.generatePermit();
 
     // Build new JSON with permit + the ECDH public key.
