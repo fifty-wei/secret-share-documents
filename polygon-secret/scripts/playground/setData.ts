@@ -15,15 +15,14 @@ async function main() {
   )
 
   // Upload to IPFS
-  const data = {
-    title: 'Title',
-  }
-  const dataUri = await uploadToIPFS(data)
-  if (!dataUri) throw new Error('Failed to upload to IPFS')
+  // const data = {
+  //   title: 'Title',
+  // }
+  // const dataUri = await uploadToIPFS(data)
+  // if (!dataUri) throw new Error('Failed to upload to IPFS')
 
-  console.log('Data Uri: ', dataUri)
-
-  console.log('Set new data')
+  // console.log('Data Uri: ', dataUri)
+  // console.log('Set new data')
 }
 
 // We recommend this pattern to be able to use async/await everywhere

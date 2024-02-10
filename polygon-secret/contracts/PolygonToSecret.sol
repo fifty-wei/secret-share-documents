@@ -31,6 +31,12 @@ contract PolygonToSecret is AxelarExecutable {
         chainName = chainName_;
     }
 
+    /**
+     * @notice Sends a message to a specified address on a destination chain.
+     * @param destinationChain The chain where the message will be sent.
+     * @param destinationAddress The address on the destination chain to which the message will be sent.
+     * @param message The message to be sent.
+     */
     function send(
         string calldata destinationChain,
         string calldata destinationAddress,

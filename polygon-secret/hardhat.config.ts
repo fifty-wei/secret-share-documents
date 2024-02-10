@@ -1,14 +1,11 @@
 import { HardhatUserConfig } from 'hardhat/config'
 import 'hardhat-contract-sizer'
 import '@nomicfoundation/hardhat-toolbox'
-
 import './scripts/tasks/deploy'
 import './scripts/tasks/newtask'
-
 import dotenv from 'dotenv'
 
 dotenv.config()
-
 const mnemonic = process.env.MNEMONIC
 
 if (!mnemonic) {

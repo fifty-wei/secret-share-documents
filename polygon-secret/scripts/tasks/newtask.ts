@@ -9,7 +9,7 @@ import { task } from 'hardhat/config'
 
 export const myparam = 'initial value'
 
-task('newtask', 'Description of what ploup does')
+task('newtask', 'Description of what newtask does')
   .addFlag('flag')
   .addOptionalParam('param', 'An optional parameter')
   .setAction(async (args, { ethers }) => {
