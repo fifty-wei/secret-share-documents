@@ -28,12 +28,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifacts
-          path: ./contract
-
       - name: Install Node Dependencies
         working-directory: ./sdk-js
         run: npm install
