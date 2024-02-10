@@ -325,8 +325,6 @@ pub fn update_file_access(
     // Add all viewing access
     for add in &add_viewing {
 
-        println!("Iteraet {:?}", add);
-
         let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, add.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
             // Add permission
@@ -394,6 +392,31 @@ pub fn update_file_access(
     if file_state.owner != change_owner {
         file_state.owner = change_owner;
         save(&mut files_store, &file_key, &file_state)?;
+
+        // Be sure that the new owner have access to view the file
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, file_state.owner.clone()));
+        if already_added.is_none() || already_added.is_some_and(|x| !x) {
+
+            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, file_state.owner.clone()), &true);
+
+            // Add the file in the list of user view
+            let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, file_state.owner.as_bytes());
+
+            let mut user_info = match loaded_payload {
+                Ok(Some(user_info)) => user_info,
+                _ => UserInfo {
+                    files: Vec::new()
+                }
+            };
+
+            user_info.files.push(file_key);
+
+            // Save the updated information
+            let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
+            let _saved_result = save(&mut users_store, file_state.owner.as_bytes(), &user_info);
+
+        }
     };
 
     Ok(())
@@ -967,6 +990,69 @@ mod tests {
     }    
     
 
+
+
+    #[test]
+    fn test_unauthorized_user_update_file() {
+        // TODO
+    }
+
+
+
+
+    #[test]
+    fn test_transfert_file_ownership() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // Generate user info
+        let (_user_1, user_1_permit) = generate_user_1(deps.as_mut());
+        let (user_2, user_2_permit) = generate_user_2(deps.as_mut());
+
+        // Generate user information & payload
+        let payload = String::from("{\"file\": \"content\"}");
+
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_1_permit);
+
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+
+        // User 1 should have one file
+        let user_1_file = _query_user_files(deps.as_ref(), &user_1_permit);
+        assert!(!user_1_file.is_empty());
+
+        // User 2 should not have a file
+        let user_2_file = _query_user_files(deps.as_ref(), &user_2_permit);
+        assert!(user_2_file.is_empty());
+        
+        // Create request to authorize user 2
+        let updated_user_id = user_1_file[0].clone();
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_1_permit,
+            user_1_file[0].clone(),
+            Vec::new(),
+            Vec::new(),
+            user_2
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+
+        // User 1 should still have access to the file
+        let user_1_file = _query_user_files(deps.as_ref(), &user_1_permit);
+        assert!(!user_1_file.is_empty());
+        assert_eq!(user_1_file[0], updated_user_id);
+
+        // User 2 should now have access to the file
+        let user_2_file = _query_user_files(deps.as_ref(), &user_2_permit);
+        assert!(!user_2_file.is_empty());
+        assert_eq!(user_2_file[0], updated_user_id);
+
+    
+    }
 
 
 
