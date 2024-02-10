@@ -1,14 +1,12 @@
-# web3-contracts-starter
-
-Hardhat Project
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
-
-Try running some of the following tasks:
+# Polygon Secret
 
 ```
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+npm install
+Complete the .env file (choose your network and add your Mnemonic and Infura key)
+Check make commands
+- make deploy
+- make deploy-verify
+Find you deployed contract address in the in the .deployed folder
 ```
+
+s
