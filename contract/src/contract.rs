@@ -472,11 +472,15 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             match whitelisted {
                 Some(authorized) => {
                     if !authorized {
-                        panic!("Unauthorized user");
+                        return Err(StdError::generic_err(format!(
+                            "Unauthorized access for the given file."
+                        )));
                     }
                 },
                 _ => {
-                    panic!("Unauthorized user");
+                    return Err(StdError::generic_err(format!(
+                        "Unauthorized access for the given file."
+                    )));
                 }
             };
 
@@ -851,10 +855,6 @@ mod tests {
         };
         let response = query(deps.as_ref(), mock_env(), query_msg);
         assert!(response.is_err());
-        
-
-
-
     }
 
 
