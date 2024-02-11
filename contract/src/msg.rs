@@ -1,5 +1,5 @@
 use cosmwasm_std::Addr;
-use cosmwasm_std::Binary;
+// use cosmwasm_std::Binary;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub enum ExecuteMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct EncryptedExecuteMsg {
-    pub payload: Binary,
+    pub payload: Vec<u8>,
     pub public_key: Vec<u8>,  // TODO :: See with front if it is better to have it in hex instead
 }
 

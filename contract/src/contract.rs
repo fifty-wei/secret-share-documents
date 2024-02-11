@@ -193,7 +193,7 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
 /// enum values, which is not manage by this library.
 fn _decrypt_with_user_public_key(
     deps: &DepsMut,
-    payload: Binary,
+    payload: Vec<u8>,
     user_public_key: Vec<u8>,
 ) -> Result<ExecutePermitMsg, ContractError> {
     // Read the private key from the storage
@@ -214,7 +214,7 @@ fn _decrypt_with_user_public_key(
     let ad = Some(ad_data);
 
     // Decrypt the data and deserialized the message
-    let decrypted_data = aes_siv_decrypt(&payload, ad, &key)?;
+    let decrypted_data = aes_siv_decrypt(&Binary::from(payload), ad, &key)?;
     let data = Json::deserialize::<ExecutePermitMsg>(&decrypted_data).map(Some);
     
     match data {
@@ -770,7 +770,7 @@ mod tests {
             source_chain: String::from("polygon"),
             source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
             payload: EncryptedExecuteMsg {
-                payload: Binary::from(encrypted_message),
+                payload: encrypted_message,
                 public_key: local_public_key,
             },
         }
@@ -817,7 +817,7 @@ mod tests {
             source_chain: String::from("polygon"),
             source_address: String::from("0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6"),
             payload: EncryptedExecuteMsg {
-                payload: Binary::from(encrypted_message),
+                payload: encrypted_message,
                 public_key: local_public_key,
             },
         }
