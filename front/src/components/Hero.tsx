@@ -1,12 +1,33 @@
 "use client";
 
-import Link from "next/link";
-import { use } from "react";
+import { ErrorMessage, Field, Form, Formik } from "formik";
 import { useAccount } from "wagmi";
-import { DropContent } from "./DropContent";
+import FileDropper from "./FileDropper";
+import * as Yup from "yup";
+import SubmitButton from "./SubmitButton";
+import React, { useState } from "react"; // Make sure to import React and useState
 
 export default function Hero() {
-  const { address, isConnected } = useAccount();
+  interface IFormValues {
+    file: File | null;
+  }
+
+  const validationSchema = Yup.object({
+    file: Yup.mixed().required("Please provide a file"),
+  });
+
+  const initialValues: IFormValues = {
+    file: null,
+  };
+
+  const onSubmit = async (values: IFormValues) => {
+    console.log("values", values.file);
+  };
+
+  const [fileSelected, setFileSelected] = useState<File | null>(null);
+  const { isConnected } = useAccount();
+
+  console.log("isConnected", isConnected);
 
   return (
     <div className="bg-white">
@@ -33,13 +54,36 @@ export default function Hero() {
                 </span>
               </h1>
               <p className="mx-auto mt-6 max-w-lg text-center text-xl text-indigo-200 sm:max-w-3xl">
-                Please connect your wallet to be able to depose, protect and
+                Please connect your wallet to be able to depose, protect, and
                 share a file with Secret Network
               </p>
               {isConnected && (
-                <div className="mt-10 mx-auto sm:w-full md:w-3/4 lg:w-1/2">
-                  {" "}
-                  <DropContent />{" "}
+                <div className="mt-10 mx-auto lg:w-1/3">
+                  <Formik
+                    initialValues={initialValues}
+                    onSubmit={onSubmit}
+                    validationSchema={validationSchema}
+                  >
+                    {({ isSubmitting, dirty, isValid }) => (
+                      <Form className="justify-center">
+                        <div className="flex justify-center gap-6 border border-gray-200 rounded-md p-8">
+                          <FileDropper
+                            setFileSelected={setFileSelected}
+                            fileSelected={fileSelected}
+                          />
+                          <Field type="hidden" id="file" name="file" />
+                          {/* Error messages and submit button */}
+                        </div>
+                        <div className="mt-4 flex justify-center">
+                          <SubmitButton
+                            isSubmitting={isSubmitting}
+                            disabled={!isValid || !dirty}
+                            label="Submit your file"
+                          />
+                        </div>
+                      </Form>
+                    )}
+                  </Formik>
                 </div>
               )}
             </div>
