@@ -1,32 +1,12 @@
 import path from "node:path";
 import { Wallet } from "secretjs";
 import PolygonToSecretAbi from "../src/abis/PolygonToSecret.json";
-import IPolygonSmartContract from "../src/SmartContract/IPolygonSmartContract";
-import ISecretNetworkSmartContract from "../src/SmartContract/ISecretNetworkSmartContract";
+import IConfig from "./IConfig";
+import Environment from "./Environment";
 import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 
-export enum Environment {
-  MAINNET = "main",
-  TESTNET = "test",
-  LOCAL = "local",
-}
-
-interface Config {
-  chains: {
-    polygon: {
-      chainId: number;
-    };
-    secretNetwork: {
-      chainId: string;
-      endpoint: string;
-      faucetEndpoint: string;
-    };
-  };
-  contracts: {
-    PolygonToSecret: IPolygonSmartContract;
-    ShareDocument: ISecretNetworkSmartContract;
-  };
-}
+import dotenv from "dotenv";
+dotenv.config();
 
 const config = {
   [Environment.LOCAL]: {
@@ -41,9 +21,6 @@ const config = {
   },
   [Environment.TESTNET]: {
     chains: {
-      polygon: {
-        chainId: 80_001,
-      },
       secretNetwork: {
         chainId: "pulsar-3",
         endpoint: "https://api.pulsar.scrttestnet.com",
@@ -63,8 +40,19 @@ const config = {
   },
 };
 
-export async function getConfig(env: Environment): Promise<Config> {
-  let tempConfig = config[env];
+export async function getConfig(env: Environment = null): Promise<IConfig> {
+  let nodeEnv = process.env.ENVIRONMENT || Environment.LOCAL;
+  if (env !== null) {
+    nodeEnv = env;
+  }
+
+  const envKey = Object.keys(config).find((key) => key === nodeEnv.toString());
+
+  if (!envKey) {
+    throw new Error(`Environment ${nodeEnv} not found in config`);
+  }
+
+  let tempConfig = config[envKey];
 
   if (env === Environment.LOCAL) {
     const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);

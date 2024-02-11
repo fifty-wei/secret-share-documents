@@ -1,29 +1,25 @@
-import { config } from "../../config/wagmi";
-import IEncryptedMessage from "../StoreDocument/IEncryptedMessage";
-import IPolygonSmartContract from "./IPolygonSmartContract";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
-import { writeContract } from "@wagmi/core";
+import ViemClient from "./ViemClient";
 
 interface Props {
-  polygonContract: IPolygonSmartContract;
   secretContract: ISecretNetworkSmartContract;
+  viemClient: ViemClient;
 }
 
 class PolygonToSecretSmartContrat {
-  polygonContract: IPolygonSmartContract;
   secretContract: ISecretNetworkSmartContract;
+  viemClient: ViemClient;
 
-  constructor({ secretContract, polygonContract }: Props) {
-    this.polygonContract = polygonContract;
+  constructor({ secretContract, viemClient }: Props) {
+    this.viemClient = viemClient;
     this.secretContract = secretContract;
   }
 
-  async send(message: IEncryptedMessage) {
-    return await writeContract(config, {
-      abi: this.polygonContract.abi,
-      address: this.polygonContract.address,
+  async send(message: any): Promise<`0x${string}`> {
+    return await this.viemClient.writeContract({
       functionName: "send",
       args: [0, "secret", this.secretContract.address, message],
+      value: undefined,
     });
   }
 }

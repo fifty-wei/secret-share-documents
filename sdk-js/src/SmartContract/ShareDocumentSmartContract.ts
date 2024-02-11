@@ -1,11 +1,13 @@
 import "dotenv/config";
 import { Permit, SecretNetworkClient, Wallet } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
-import IEncryptedMessage from "../StoreDocument/IEncryptedMessage";
+import { getConfig } from "../../config";
+import { Chain } from "viem";
 
 export type Address = `0x${string}`;
 
 interface Props {
+  chainId: string;
   client: SecretNetworkClient;
   contract: ISecretNetworkSmartContract;
   wallet: Wallet;
@@ -19,8 +21,10 @@ class ShareDocumentSmartContract {
   private client: SecretNetworkClient;
   private contract: ISecretNetworkSmartContract;
   private wallet: Wallet;
+  private chainId: string;
 
-  constructor({ client, contract, wallet }: Props) {
+  constructor({ chainId, client, contract, wallet }: Props) {
+    this.chainId = chainId;
     this.client = client;
     this.contract = contract;
     this.wallet = wallet;
@@ -43,9 +47,10 @@ class ShareDocumentSmartContract {
   }
 
   async generatePermit(): Promise<Permit> {
+    const config = await getConfig();
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
-      process.env.SECRET_NETWORK_CHAIN_ID as string,
+      this.chainId,
       "SHARE_DOCUMENT_PERMIT_" + Math.ceil(Math.random() * 10000), // Should be unique for every contract, add random string in order to maintain uniqueness
       [this.contract.address],
       ["owner"],
@@ -54,7 +59,7 @@ class ShareDocumentSmartContract {
   }
 
   async store(message: any) {
-    const response = await this.client.tx.compute.executeContract(
+    return await this.client.tx.compute.executeContract(
       {
         sender: this.wallet.address,
         contract_address: this.contract.address,
@@ -67,8 +72,6 @@ class ShareDocumentSmartContract {
         gasLimit: 100_000,
       },
     );
-
-    return response;
   }
 }
 

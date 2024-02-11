@@ -1,14 +1,14 @@
 import { expect, test } from "@jest/globals";
 import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
-import SecretNetworkIntergration from "../src/SmartContract/SecretNetworkIntegration";
+import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 import { Wallet } from "secretjs";
-import { Environment, getConfig } from "../config";
+import { getConfig } from "../config";
 
 test("Get public key", async () => {
-  const config = await getConfig(Environment.LOCAL);
+  const config = await getConfig();
 
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-  const secretNetwork = new SecretNetworkIntergration({
+  const secretNetwork = new SecretNetworkIntegration({
     endpoint: config.chains.secretNetwork.endpoint,
     chainId: config.chains.secretNetwork.chainId,
     faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
@@ -16,6 +16,7 @@ test("Get public key", async () => {
   });
 
   const shareDocument = new ShareDocumentSmartContract({
+    chainId: config.chains.secretNetwork.chainId,
     client: secretNetwork.getClient(),
     contract: config.contracts.ShareDocument,
     wallet: wallet,
@@ -28,10 +29,10 @@ test("Get public key", async () => {
 }, 1_000_000);
 
 test("Get permit", async () => {
-  const config = await getConfig(Environment.LOCAL);
+  const config = await getConfig();
 
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-  const secretNetwork = new SecretNetworkIntergration({
+  const secretNetwork = new SecretNetworkIntegration({
     endpoint: config.chains.secretNetwork.endpoint,
     chainId: config.chains.secretNetwork.chainId,
     faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
@@ -39,6 +40,7 @@ test("Get permit", async () => {
   });
 
   const shareDocument = new ShareDocumentSmartContract({
+    chainId: config.chains.secretNetwork.chainId,
     client: secretNetwork.getClient(),
     contract: config.contracts.ShareDocument,
     wallet: wallet,
