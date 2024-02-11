@@ -15,7 +15,7 @@ use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::ContractError;
-use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
+use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileAccessResponse, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
     load, may_load, save, Config, ContractKeys, FileMetadata, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_FILES_METADATA, PREFIX_REVOKED_PERMITS, PREFIX_USERS
@@ -401,6 +401,8 @@ pub fn update_file_access(
             // Remove the user from the list
             let index = file_metadata.viewers.iter().position(|x| x == delete).unwrap();
             file_metadata.viewers.remove(index);
+
+            println!("Remove: {:?}", file_metadata);
         }
 
     };
@@ -408,9 +410,6 @@ pub fn update_file_access(
     // Update the owner
     if file_metadata.owner != change_owner {
         file_metadata.owner = change_owner;
-
-        let mut file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
-        save(&mut file_metadata_store, &file_key, &file_metadata)?;
 
         // Be sure that the new owner have access to view the file
         let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, file_metadata.owner.clone()));
@@ -437,6 +436,11 @@ pub fn update_file_access(
 
         }
     };
+
+    // Update file information
+    let mut file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+    save(&mut file_metadata_store, &file_key, &file_metadata)?;
+
 
     Ok(())
 }
@@ -549,14 +553,12 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
                 )));
             };
 
-            // Get the viewning list
+            let file_access_response = FileAccessResponse {
+                owner: loaded_metadata.owner,
+                viewers: loaded_metadata.viewers
+            };
 
-            // Get the owner
-
-
-            // 
-            // TODO remove
-            to_binary(&query_file_content(deps, file_id)?)
+            to_binary(&file_access_response)
         }
     }
 }
@@ -856,6 +858,17 @@ mod tests {
         file_content.payload
     }
 
+    fn _query_file_metadata(deps: Deps, permit: Permit, file_key: &String) -> FileAccessResponse {
+        let query_msg = QueryMsg::WithPermit { 
+            permit: permit,
+            query: QueryWithPermit::GetFileAccess { file_id: file_key.clone() } 
+        };
+
+        let response = query(deps, mock_env(), query_msg).unwrap();
+        let file_content: FileAccessResponse = from_binary(&response).unwrap();
+        file_content
+    }
+
 
     #[test]
     fn test_contract_initialization() {
@@ -1042,9 +1055,9 @@ mod tests {
             deps.as_ref(),
             &user_1_permit,
             user_1_file[0].clone(),
-            Vec::from([user_2]),
+            Vec::from([user_2.clone()]),
             Vec::new(),
-            user_1
+            user_1.clone()
         );
         let unauth_env = mock_info("anyone", &coins(0, "token"));
         let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
@@ -1063,8 +1076,17 @@ mod tests {
         // Check user 1 still have access to the file
         let user_1_file = _query_user_files(deps.as_ref(), &user_1_permit);
         assert_eq!(user_1_file.len(), 1);
-        let file_content = _query_file(deps.as_ref(), user_1_permit, &user_1_file[0]);
+        let file_content = _query_file(deps.as_ref(), user_1_permit.clone(), &user_1_file[0]);
         assert_eq!(file_content, payload);
+
+
+        // From the owner, get the file permission
+        let file_metadata = _query_file_metadata(deps.as_ref(), user_1_permit.clone(), &user_1_file[0]);
+        assert_eq!(file_metadata.owner, user_1.clone());
+        assert_eq!(file_metadata.viewers.len(), 2);
+        assert_eq!(file_metadata.viewers[0], user_1.clone());
+        assert_eq!(file_metadata.viewers[1], user_2.clone());
+
     }    
     
 
