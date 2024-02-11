@@ -14,7 +14,7 @@ const ipfsStorage = new IPFSStorage({
   gateway: gateway,
 });
 
-it("uploads encrypted data to IPFS and returns a CID", async () => {
+test("uploads encrypted data to IPFS and returns a CID", async () => {
   const encryptedData = {
     data: Buffer.from("Hello, world!"), // Simulate encrypted data as a Buffer
     initialVector: "iv",
