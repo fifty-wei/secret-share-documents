@@ -21,9 +21,9 @@ pub const PREFIX_FILES_METADATA: &[u8] = b"files_metadata";
 pub const PREFIX_REVOKED_PERMITS: &str = "revoked_permits";
 pub const PREFIX_USERS: &[u8] = b"users";  // TODO :: Do a working approach then improve !
 
-
-
 pub static CONFIG: Item<Config> = Item::new(KEY_CONFIG);
+
+
 
 /// Item to store the public/private key of the Secret Smart Contract
 pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(KEY_CONTRACT_KEYS);
@@ -41,6 +41,7 @@ pub static FILE_PERMISSIONS: Keymap<([u8; 32], Addr), bool> = Keymap::new(KEY_FI
 pub struct Config {
     // the address of this contract, used to validate query permits
     pub contract_address: Addr,
+    pub index: u128,
 }
 
 

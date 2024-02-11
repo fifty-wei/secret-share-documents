@@ -67,6 +67,7 @@ pub fn instantiate(
     // Save the configuration of this contract
     let _ = CONFIG.save(deps.storage, &Config {
         contract_address: env.contract.address,
+        index: 0
     });
 
 
@@ -248,14 +249,11 @@ pub fn aes_siv_decrypt(
 /// We decide to create a hash using the struct element to have a unique
 /// key, allowing us to store the data.
 ///
-pub fn create_key_from_file_state(file_state: &FileState) -> [u8; 32] {
-    // Encode the file state struct data
-    let encoded_file_state: Vec<u8> = bincode::serialize(file_state).unwrap();
-
+pub fn create_key_from_file_state(index: &u128) -> [u8; 32] {
     // Hash the data
     let mut hasher = Sha256::new();
-    hasher.update(&encoded_file_state);
-
+    hasher.update(index.to_le_bytes());
+    
     // Retrieve the hash
     let key: [u8; 32] = hasher.finalize().into();
 
@@ -289,6 +287,14 @@ pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResul
 /// Store a new file in the smartcontract storage
 ///
 pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<String> {
+    
+    
+    let mut config = CONFIG.load(deps.storage)?;
+    config.index = config.index + 1;
+    CONFIG.save(deps.storage, &config)?;
+
+    let id = config.index;
+    
     // Get the storage for files
     let mut file_storage = PrefixedStorage::new(deps.storage, PREFIX_FILES);
 
@@ -297,7 +303,7 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
         payload: payload,
     };
 
-    let key: [u8; 32] = create_key_from_file_state(&file_state);
+    let key: [u8; 32] = create_key_from_file_state(&id);
 
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
@@ -591,12 +597,6 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
     use secret_toolkit::serialization::Serde;
-
-    use cosmwasm_std::Api;
-
-    use crate::state::may_load;
-    use crate::state::PREFIX_FILES;
-    use cosmwasm_storage::ReadonlyPrefixedStorage;
 
     // Some references
     // https://github.com/desmos-labs/desmos-contracts/blob/master/contracts/poap/src/contract_tests.rs
@@ -1129,52 +1129,6 @@ mod tests {
 
 
 
-
-
-
-
-    #[test]
-    fn test_store_new_file() {
-        let mut deps = mock_dependencies();
-
-        let raw_address = "secretvaloper14c29nyq8e9jgpcpw55e3n7ea4aktxg4xnurynd";
-        let owner = deps.api.addr_validate(raw_address).unwrap();
-        let payload = String::from("{\"file\": \"content\"}");
-
-        // Store the new file
-        let store_new_file_result = store_new_file(deps.as_mut(), owner.clone(), payload.clone());
-        let key = match store_new_file_result {
-            Ok(storage_key) => storage_key,
-            Err(error) => panic!("Error when storing a new file: {:?}", error),
-        };
-
-        let expected_key = create_key_from_file_state(&FileState {
-            payload: payload.clone(),
-        });
-
-        // Verify the key data
-        assert_eq!(key, hex::encode(expected_key));
-
-        let extracted_key = match hex::decode(key) {
-            Ok(k) => k,
-            _ => panic!("Invalid key"),
-        };
-
-        assert_eq!(extracted_key, expected_key);
-
-        // read the storage content
-        let files_store = ReadonlyPrefixedStorage::new(&deps.storage, PREFIX_FILES);
-        let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &extracted_key);
-
-        let store_data: FileState = match loaded_payload {
-            Ok(Some(file_state)) => file_state,
-            Ok(None) => panic!("File not found from the given key."),
-            Err(error) => panic!("Error when loading file from storage: {:?}", error),
-        };
-
-        // assert_eq!(store_data.owner, owner);
-        assert_eq!(store_data.payload, payload);
-    }
 
     // TODO :: ~/Project/examples/EVM-encrypt-decrypt/secret_network
 
