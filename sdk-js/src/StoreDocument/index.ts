@@ -63,8 +63,14 @@ class StoreDocument {
 
     // Build new JSON with permit + the ECDH public key.
     const payloadWithPermit = {
-      permit: shareDocumentPermit,
-      payload: JSON.stringify(payloadJson),
+      with_permit: {
+        permit: shareDocumentPermit,
+        execute: {
+          store_new_file: {
+            payload: JSON.stringify(payloadJson),
+          },
+        },
+      },
     };
 
     // Encrypt the JSON with the public ECDH shared key.
@@ -74,8 +80,8 @@ class StoreDocument {
     );
 
     return {
-      payload: encryptedPayload,
-      public_key: ECDHKeys.publicKey,
+      payload: Array.from(encryptedPayload),
+      public_key: Array.from(ECDHKeys.publicKey),
     };
   }
 }

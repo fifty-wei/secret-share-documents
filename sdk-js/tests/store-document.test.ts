@@ -41,7 +41,7 @@ test("Get Encrypted Payload from PDF", async () => {
 }, 1_000_000);
 
 test("Store Encrypted Payload from PDF", async () => {
-  const config = await getConfig(Environment.LOCAL);
+  const config = await getConfig(Environment.TESTNET);
 
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
 

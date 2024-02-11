@@ -56,8 +56,8 @@ const config = {
         abi: PolygonToSecretAbi,
       },
       ShareDocument: {
-        address: "secret1k2uh472n6w8mrrz67uk7v3k06larkth3k09gjf",
-        hash: "98ff54a9ee4d51c3463332734d3db0236441178e33d4d42f3224b682b638e902",
+        address: "secret1lg6hf72tma667ryqhuxs9dfsg80yzz7gq66sj2",
+        hash: "c6ac12674e76ff7a2d48e3fbac06bb937aab5f554a380b35e53119b182c28228",
       },
     },
   },
