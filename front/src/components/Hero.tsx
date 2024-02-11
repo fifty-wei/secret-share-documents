@@ -54,8 +54,12 @@ export default function Hero() {
                 </span>
               </h1>
               <p className="mx-auto mt-6 max-w-lg text-center text-xl text-indigo-200 sm:max-w-3xl">
-                Please connect your wallet to be able to depose, protect, and
-                share a file with Secret Network
+                {!isConnected && (
+                  <span className="text-white">
+                    Please connect your wallet to be able to depose, protect,
+                    and share a file with Secret Network
+                  </span>
+                )}
               </p>
               {isConnected && (
                 <div className="mt-10 mx-auto lg:w-1/3">
