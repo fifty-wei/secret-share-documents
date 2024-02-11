@@ -14,8 +14,6 @@ export function getChainId(env: Environment = null): Network {
     nodeEnv = env;
   }
 
-  console.log({ nodeEnv });
-
   switch (nodeEnv) {
     case Environment.LOCAL:
     case Environment.TESTNET:

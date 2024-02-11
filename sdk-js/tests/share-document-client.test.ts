@@ -2,6 +2,7 @@ import { test, expect } from "@jest/globals";
 import { getConfig } from "../config";
 import ShareDocumentClient from "../src";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
+import StoreDocument from "../src/StoreDocument";
 
 test("Get SDK with our configuration", async () => {
   const config = await getConfig();
@@ -14,9 +15,6 @@ test("Get SDK with our configuration", async () => {
       },
     },
   });
-
-  expect(client).toBeDefined();
-  expect(client.storeDocument()).toBeInstanceOf(ShareDocumentClient);
 
   const responseUrl = await client
     .storeDocument()

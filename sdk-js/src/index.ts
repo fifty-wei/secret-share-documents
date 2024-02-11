@@ -4,7 +4,7 @@ import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
 import IStorage from "./StoreDocument/Storage/IStorage";
 import IConfig from "../config/IConfig";
-import { getChain, getChaindId } from "../config/chains";
+import { getChain, getChainId } from "../config/chains";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
 import IWalletConfig from "./SmartContract/IWalletConfig";
 
@@ -53,7 +53,7 @@ class ShareDocumentClient {
 
   private viemClient() {
     return new ViemClient({
-      chain: getChain(getChaindId()),
+      chain: getChain(getChainId()),
       walletConfig: this.config.evmWalletConfig,
       contract: this.config.contracts.PolygonToSecret,
     });
