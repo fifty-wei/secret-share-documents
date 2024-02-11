@@ -225,7 +225,7 @@ fn _decrypt_with_user_public_key(
                 None => Err(ContractError::UnknownExecutePermitMsg)
             }
         },
-        Err(_) => Err(ContractError::UnknownExecutePermitMsg)
+        Err(err) => Err(ContractError::ErrorDeserializeExectueMsg { val: err.to_string()})
     }
 }
 
@@ -401,8 +401,6 @@ pub fn update_file_access(
             // Remove the user from the list
             let index = file_metadata.viewers.iter().position(|x| x == delete).unwrap();
             file_metadata.viewers.remove(index);
-
-            println!("Remove: {:?}", file_metadata);
         }
 
     };

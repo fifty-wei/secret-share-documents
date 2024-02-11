@@ -25,4 +25,7 @@ pub enum ContractError {
     #[error("The provided execute message encrypted is unknown.")]
     UnknownExecutePermitMsg,
 
+    #[error("Error when deserialize the Permit message encrypted. More detail: {val:?}")]
+    ErrorDeserializeExectueMsg {val: String},
+
 }
