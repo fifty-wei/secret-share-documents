@@ -1,4 +1,4 @@
 export default interface IEncryptedMessage {
-  payload: Uint8Array;
-  publicKey: Uint8Array;
+  payload: Array<number>;
+  public_key: Array<number>;
 }

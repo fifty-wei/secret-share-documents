@@ -1,7 +1,7 @@
 // import fetch from "node-fetch";
 import fs from "fs";
 import { Wallet, SecretNetworkClient } from "secretjs";
-import ISmartContract from "./ISmartContract";
+import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 
 interface Props {
   wallet: Wallet;
@@ -11,7 +11,6 @@ interface Props {
 }
 
 class SecretNetworkIntegration {
-
   wallet: Wallet;
   client: SecretNetworkClient;
   faucetEndpoint: string;
@@ -24,11 +23,13 @@ class SecretNetworkIntegration {
       chainId: chainId,
       wallet: this.wallet,
       walletAddress: this.wallet.address,
-    })
+    });
   }
 
   async getFromFaucet() {
-    return fetch(`${this.faucetEndpoint}/faucet?address=${this.client.address}`);
+    return fetch(
+      `${this.faucetEndpoint}/faucet?address=${this.client.address}`,
+    );
   }
 
   async fillUpFromFaucet(targetBalance: number) {
@@ -52,7 +53,9 @@ class SecretNetworkIntegration {
     return response.balance!.amount!;
   }
 
-  async initializeContract(contractPath: string): Promise<ISmartContract> {
+  async initializeContract(
+    contractPath: string,
+  ): Promise<ISecretNetworkSmartContract> {
     const wasmCode = fs.readFileSync(contractPath);
     const uploadReceipt = await this.client.tx.compute.storeCode(
       {
@@ -112,7 +115,7 @@ class SecretNetworkIntegration {
       address: contract_address,
       hash: code_hash,
     };
-  };
+  }
 
   getClient(): SecretNetworkClient {
     return this.client;

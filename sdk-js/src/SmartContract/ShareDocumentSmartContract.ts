@@ -1,14 +1,15 @@
 import "dotenv/config";
 import { Permit, SecretNetworkClient, Wallet } from "secretjs";
-import ISmartContract from "./ISmartContract";
-import IEncryptedMessage from "../StoreDocument/IEncryptedMessage";
-import IEvmEncryptedMessage from "../StoreDocument/IEvmEcryptedMessage";
+import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
+import { getConfig } from "../../config";
+import { Chain } from "viem";
 
 export type Address = `0x${string}`;
 
 interface Props {
+  chainId: string;
   client: SecretNetworkClient;
-  contract: ISmartContract;
+  contract: ISecretNetworkSmartContract;
   wallet: Wallet;
 }
 
@@ -18,10 +19,12 @@ type PublicKey = {
 
 class ShareDocumentSmartContract {
   private client: SecretNetworkClient;
-  private contract: ISmartContract;
+  private contract: ISecretNetworkSmartContract;
   private wallet: Wallet;
+  private chainId: string;
 
-  constructor({ client, contract, wallet }: Props) {
+  constructor({ chainId, client, contract, wallet }: Props) {
+    this.chainId = chainId;
     this.client = client;
     this.contract = contract;
     this.wallet = wallet;
@@ -44,9 +47,10 @@ class ShareDocumentSmartContract {
   }
 
   async generatePermit(): Promise<Permit> {
+    const config = await getConfig();
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
-      process.env.SECRET_NETWORK_CHAIN_ID as string,
+      this.chainId,
       "SHARE_DOCUMENT_PERMIT_" + Math.ceil(Math.random() * 10000), // Should be unique for every contract, add random string in order to maintain uniqueness
       [this.contract.address],
       ["owner"],
@@ -54,23 +58,14 @@ class ShareDocumentSmartContract {
     );
   }
 
-  mapEncryptedMessageToEvm(message: IEncryptedMessage): IEvmEncryptedMessage {
-    return {
-      payload: message.payload,
-      public_key: message.payload,
-    };
-  }
-
-  async store(message: IEncryptedMessage) {
-    const payload = this.mapEncryptedMessageToEvm(message);
-
+  async store(message: any) {
     return await this.client.tx.compute.executeContract(
       {
         sender: this.wallet.address,
         contract_address: this.contract.address,
         code_hash: this.contract.hash,
         msg: {
-          receive_message_evm: { payload: payload },
+          receive_message_evm: message,
         },
       },
       {
