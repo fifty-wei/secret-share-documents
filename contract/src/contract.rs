@@ -335,6 +335,12 @@ pub fn update_file_access(
     delete_viewing: Vec<Addr>, 
     change_owner: Addr) -> StdResult<()> {
 
+
+    // Load the file metadata
+    let file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+    let mut file_metadata: FileMetadata = load(&file_metadata_store, &file_key)?;
+    
+
     // Add all viewing access
     for add in &add_viewing {
 
@@ -359,6 +365,9 @@ pub fn update_file_access(
             // Save the updated information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
             let _saved_result = save(&mut users_store, add.as_bytes(), &user_info);
+
+            // Update the file metadata
+            file_metadata.viewers.push(add.clone());
         }
 
     };
@@ -388,33 +397,30 @@ pub fn update_file_access(
             // Save the modification
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
             let _saved_result = save(&mut users_store, delete.as_bytes(), &user_info);
+
+            // Remove the user from the list
+            let index = file_metadata.viewers.iter().position(|x| x == delete).unwrap();
+            file_metadata.viewers.remove(index);
         }
 
     };
 
-    // Check if we need to change the owner
-    let mut file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
-    let loaded_metadata: StdResult<Option<FileMetadata>> = load(&file_metadata_store, &file_key);
-
-    let mut metadata = match loaded_metadata {
-        Ok(Some(metadata)) => metadata,
-        _ => panic!("error")
-    };
-
     // Update the owner
-    if metadata.owner != change_owner {
-        metadata.owner = change_owner;
-        save(&mut file_metadata_store, &file_key, &metadata)?;
+    if file_metadata.owner != change_owner {
+        file_metadata.owner = change_owner;
+
+        let mut file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+        save(&mut file_metadata_store, &file_key, &file_metadata)?;
 
         // Be sure that the new owner have access to view the file
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, metadata.owner.clone()));
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, file_metadata.owner.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
 
-            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, metadata.owner.clone()), &true);
+            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, file_metadata.owner.clone()), &true);
 
             // Add the file in the list of user view
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, metadata.owner.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, file_metadata.owner.as_bytes());
 
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
@@ -427,7 +433,7 @@ pub fn update_file_access(
 
             // Save the updated information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, metadata.owner.as_bytes(), &user_info);
+            let _saved_result = save(&mut users_store, file_metadata.owner.as_bytes(), &user_info);
 
         }
     };
