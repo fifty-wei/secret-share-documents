@@ -70,6 +70,7 @@ pub enum QueryMsg {
 pub enum QueryWithPermit {
     GetFileIds {},
     GetFileContent { file_id: String },
+    GetFileAccess { file_id: String },
 }
 
 // We define a custom struct for each query response
@@ -86,4 +87,10 @@ pub struct ContractKeyResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct FileIdsResponse {
     pub file_ids: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+pub struct FileAccessResponse {
+    pub owner: Addr,
+    pub viewers: Vec<Addr>,
 }

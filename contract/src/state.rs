@@ -17,6 +17,7 @@ pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
 
 /// Prefix to store all the files in the smart contract
 pub const PREFIX_FILES: &[u8] = b"files";
+pub const PREFIX_FILES_METADATA: &[u8] = b"files_metadata";
 pub const PREFIX_REVOKED_PERMITS: &str = "revoked_permits";
 pub const PREFIX_USERS: &[u8] = b"users";  // TODO :: Do a working approach then improve !
 
@@ -51,10 +52,15 @@ pub struct ContractKeys {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct FileState {
-    pub owner: Addr,
     pub payload: String, 
-    // pub viewers: Keymap<Addr, bool> // = Keymap::new(b"votes");
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+pub struct FileMetadata {
+    pub owner: Addr, 
+    pub viewers: Vec<Addr>,
+}
+
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct UserInfo {

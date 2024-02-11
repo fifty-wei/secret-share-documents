@@ -18,7 +18,7 @@ use crate::error::ContractError;
 use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
 
 use crate::state::{
-    load, may_load, save, Config, ContractKeys, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_REVOKED_PERMITS, PREFIX_USERS
+    load, may_load, save, Config, ContractKeys, FileMetadata, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_FILES_METADATA, PREFIX_REVOKED_PERMITS, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -156,15 +156,15 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
             let extracted_key: [u8; 32] = extracted_key.try_into().unwrap();
         
             // Check the file exist for the given key
-            let files_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES);
-            let loaded_file: Option<FileState> = may_load(&files_store, &extracted_key)?;
+            let file_metadata_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+            let loaded_metadata: Option<FileMetadata> = may_load(&file_metadata_store, &extracted_key)?;
 
-            let file_state = match loaded_file {
-                Some(file_state) => file_state,
+            let metadata = match loaded_metadata {
+                Some(metadata) => metadata,
                 _ => panic!("error")
             };
 
-            if file_state.owner == account {
+            if metadata.owner == account {
                 let _ = update_file_access(
                     deps,
                     extracted_key, 
@@ -294,7 +294,6 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
 
     // Create the file content
     let file_state = FileState {
-        owner: owner.clone(),
         payload: payload,
     };
 
@@ -302,6 +301,14 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
 
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
+
+    // Save associated metadata
+    let mut file_metadata_storage = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+    let file_metadata = FileMetadata {
+        owner: owner.clone(),
+        viewers: Vec::from([owner.clone()])
+    };
+    save(&mut file_metadata_storage, &key, &file_metadata)?;
 
     // Add the viewing right for the user
     FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true)?;
@@ -380,28 +387,28 @@ pub fn update_file_access(
     };
 
     // Check if we need to change the owner
-    let mut files_store = PrefixedStorage::new(deps.storage, PREFIX_FILES);
-    let loaded_file: StdResult<Option<FileState>> = load(&files_store, &file_key);
+    let mut file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+    let loaded_metadata: StdResult<Option<FileMetadata>> = load(&file_metadata_store, &file_key);
 
-    let mut file_state = match loaded_file {
-        Ok(Some(file_state)) => file_state,
+    let mut metadata = match loaded_metadata {
+        Ok(Some(metadata)) => metadata,
         _ => panic!("error")
     };
 
     // Update the owner
-    if file_state.owner != change_owner {
-        file_state.owner = change_owner;
-        save(&mut files_store, &file_key, &file_state)?;
+    if metadata.owner != change_owner {
+        metadata.owner = change_owner;
+        save(&mut file_metadata_store, &file_key, &metadata)?;
 
         // Be sure that the new owner have access to view the file
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, file_state.owner.clone()));
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, metadata.owner.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
 
-            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, file_state.owner.clone()), &true);
+            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, metadata.owner.clone()), &true);
 
             // Add the file in the list of user view
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, file_state.owner.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, metadata.owner.as_bytes());
 
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
@@ -414,7 +421,7 @@ pub fn update_file_access(
 
             // Save the updated information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, file_state.owner.as_bytes(), &user_info);
+            let _saved_result = save(&mut users_store, metadata.owner.as_bytes(), &user_info);
 
         }
     };
@@ -508,6 +515,35 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             };
 
             // Get the file content
+            to_binary(&query_file_content(deps, file_id)?)
+        },
+        QueryWithPermit::GetFileAccess { file_id } => {
+
+            // Extract the key
+            let key = match hex::decode(&file_id) {
+                Ok(key) => key,
+                _ => return Err(StdError::NotFound { kind: String::from("Invalid key.") })
+            };
+            let u8_key: [u8; 32] = key.try_into().unwrap();
+
+            // Get the file owner    
+            let file_metadata_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
+            let loaded_metadata: FileMetadata = may_load(&file_metadata_store, &u8_key)?.unwrap();
+
+            // Check the input user is the owner
+            if loaded_metadata.owner != account {
+                return Err(StdError::generic_err(format!(
+                    "Unauthorized access for the given file."
+                )));
+            };
+
+            // Get the viewning list
+
+            // Get the owner
+
+
+            // 
+            // TODO remove
             to_binary(&query_file_content(deps, file_id)?)
         }
     }
@@ -845,9 +881,6 @@ mod tests {
         assert!(public_key == storage_public_key);
     }
 
-
-    
-
     #[test]
     fn test_evm_store_new_file() {
         let mut deps = mock_dependencies();
@@ -876,6 +909,45 @@ mod tests {
         // Verify that the store data is the same as the input one
         assert_eq!(file_content, payload);
     }
+ 
+
+    #[test]
+    fn test_evm_store_two_same_files() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // Generate user information & payload
+        let (_owner, user_permit) = generate_user_1(deps.as_mut());
+        let payload = String::from("{\"file\": \"content\"}");
+
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_permit);
+
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env.clone(), evm_message.clone());
+        assert!(res_store_file.is_ok());
+        
+        // Send again the transaction 
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env.clone(), evm_message.clone());
+        assert!(res_store_file.is_ok());
+
+        // Query the user file
+        let user_file = _query_user_files(deps.as_ref(), &user_permit);
+        
+        // We should have the files and two different ids
+        assert_eq!(user_file.len(), 2);
+        assert_ne!(user_file[0], user_file[1]);
+
+        // Query with the user the file
+        let file_content_1 = _query_file(deps.as_ref(), user_permit.clone(), &user_file[0]);
+        let file_content_2 = _query_file(deps.as_ref(), user_permit.clone(), &user_file[1]);
+
+        // Verify that the store data is the same as the input one
+        assert_eq!(file_content_1, payload);
+        assert_eq!(file_content_2, payload);
+        assert_eq!(file_content_1, file_content_2);
+    }
+
 
 
     #[test]
@@ -1077,7 +1149,6 @@ mod tests {
         };
 
         let expected_key = create_key_from_file_state(&FileState {
-            owner: owner.clone(),
             payload: payload.clone(),
         });
 
@@ -1101,7 +1172,7 @@ mod tests {
             Err(error) => panic!("Error when loading file from storage: {:?}", error),
         };
 
-        assert_eq!(store_data.owner, owner);
+        // assert_eq!(store_data.owner, owner);
         assert_eq!(store_data.payload, payload);
     }
 
