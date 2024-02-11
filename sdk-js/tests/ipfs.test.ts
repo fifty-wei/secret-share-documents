@@ -4,8 +4,8 @@ import { test, expect, beforeAll, afterAll } from "@jest/globals";
 import fs from "fs";
 import IUploadOptions from "../src/StoreDocument/Storage/IUploadOptions";
 
-const infuraID = "2Er6nLb2S8XDPrZ370KJogG1eur";
-const infuraSecret = "e5ce1a9a99c3dc1e8f2f10b370169577";
+const infuraID = "xxxx";
+const infuraSecret = "xxxx";
 const gateway = "https://ipfs.infura.io";
 
 const ipfsStorage = new IPFSStorage({
