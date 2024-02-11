@@ -175,7 +175,7 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
                 );
 
             } else {
-                panic!("error");
+                return Err(ContractError::Unauthorized {})
             }
 
         }
@@ -1091,11 +1091,71 @@ mod tests {
 
 
     #[test]
-    fn test_unauthorized_user_update_file() {
-        // TODO
+    fn test_unauthorized_user_update_file_rights() {
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // Generate user info
+        let (user_1, user_1_permit) = generate_user_1(deps.as_mut());
+        let (user_2, user_2_permit) = generate_user_2(deps.as_mut());
+
+        // Generate user information & payload
+        let payload = String::from("{\"file\": \"content\"}");
+
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_1_permit);
+
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+
+        // Get file id
+        let file_id = &_query_user_files(deps.as_ref(), &user_1_permit)[0];
+        
+        // User 2 try to add in viewing
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_2_permit,
+            file_id.clone(),
+            Vec::from([user_2.clone()]),
+            Vec::new(),
+            user_1.clone()
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_err());
+
+
+        // User 2 try to delete user 1
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_2_permit,
+            file_id.clone(),
+            Vec::new(),
+            Vec::from([user_2.clone()]),
+            user_1.clone()
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_err());
+
+        // User 2 try to get the owner
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_2_permit,
+            file_id.clone(),
+            Vec::new(),
+            Vec::new(),
+            user_2.clone()
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_err());
+
     }
 
 
+    // TODO :: Try update user by deleting the owner
 
 
     #[test]
