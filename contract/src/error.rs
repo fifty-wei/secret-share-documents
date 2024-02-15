@@ -14,8 +14,8 @@ pub enum ContractError {
     FromHexError(#[from] FromHexError),
 
     // issued when message sender != owner
-    #[error("Unauthorized")]
-    Unauthorized,
+    #[error("Unauthorized access for the given file.")]
+    UnauthorizedAccess,
 
     #[error("Custom Error val: {val:?}")]
     CustomError { val: String },

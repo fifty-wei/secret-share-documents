@@ -201,7 +201,7 @@ fn execute_permit_message(
                 )?;
                 
             } else {
-                return Err(ContractError::Unauthorized)
+                return Err(ContractError::UnauthorizedAccess)
             }
 
         }
@@ -482,26 +482,22 @@ pub fn update_file_access(
 }
 
 
-// TODO Given a contract id & owner, see the rights
-
-
-
 /// Read the data from the storage
 pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
-    // TODO :: Future version :: Need to verify the user
 
+    // Decode the key
     let extracted_key = match hex::decode(key) {
         Ok(k) => k,
         _ => panic!("Invalid key"),
     };
 
+    // Try to load the file
     let files_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES);
-    let loaded_payload: StdResult<Option<FileState>> = may_load(&files_store, &extracted_key);
+    let loaded_payload: Option<FileState> = may_load(&files_store, &extracted_key)?;
 
     let payload: String = match loaded_payload {
-        Ok(Some(file_state)) => file_state.payload,
-        Ok(None) => panic!("Error."),
-        Err(_error) => panic!("Error."),
+        Some(file_state) => file_state.payload,
+        _ => panic!("Error."),
     };
 
     Ok(payload)
@@ -566,8 +562,13 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
                 }
             };
 
-            // Get the file content
-            to_binary(&query_file_content(deps, file_id)?)
+            // Load the file
+            let file_content: String = load_file(deps, file_id)?;
+            let response = FilePayloadResponse {
+                payload: file_content,
+            };
+
+            to_binary(&response)
         },
         QueryWithPermit::GetFileAccess { file_id } => {
 
@@ -620,14 +621,6 @@ fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
         Err(error) => panic!("Error when loading file from storage: {:?}", error),        
     }
 
-}
-
-fn query_file_content(deps: Deps, key: String) -> StdResult<FilePayloadResponse> {
-    let file_content: String = load_file(deps, key)?;
-
-    Ok(FilePayloadResponse {
-        payload: file_content,
-    })
 }
 
 
@@ -1291,12 +1284,5 @@ mod tests {
 
     
     }
-
-
-
-
-
-    // TODO :: ~/Project/examples/EVM-encrypt-decrypt/secret_network
-
-    
+        
 }

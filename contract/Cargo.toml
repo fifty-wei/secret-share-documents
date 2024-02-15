@@ -54,8 +54,3 @@ prost = { version = "0.12.1", default-features = false, features = [
 ] }
 ethabi = { version = "18.0.0", default-features = false, features = [] }
 
-
-[dev-dependencies]
-rstest = "0.18.2"
-
-
