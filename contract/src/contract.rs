@@ -290,7 +290,10 @@ pub fn generate_unique_id(index: &u128) -> [u8; 32] {
 
 
 /// Add a key to a user
-pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResult<()> {
+///
+/// Get the user information if it exists. Else, create a new user information.
+/// Add the file key for the given user and store it.
+pub fn add_file_key_to_user(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResult<()> {
 
     let user_address = owner.as_bytes();
 
@@ -313,10 +316,9 @@ pub fn store_new_key(deps: DepsMut, owner: Addr, file_key: [u8; 32]) -> StdResul
 
 
 /// Store a new file in the smartcontract storage
-///
 pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<String> {
     
-    
+    // Get a unique id
     let mut config = CONFIG.load(deps.storage)?;
     config.index = config.index + 1;
     CONFIG.save(deps.storage, &config)?;
@@ -348,39 +350,40 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
     FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true)?;
 
     // Add the key to the user
-    store_new_key(deps, owner.clone(), key)?;
+    add_file_key_to_user(deps, owner.clone(), key)?;
 
     // Return the key of the file
     Ok(hex::encode(&key))
 }
 
 
-
+/// Update file permissions
 pub fn update_file_access(
     deps: DepsMut,
     file_key: [u8; 32], 
     add_viewing: Vec<Addr>, 
     delete_viewing: Vec<Addr>, 
-    change_owner: Addr) -> Result<(), ContractError> {
-
+    change_owner: Addr
+) -> Result<(), ContractError> {
 
     // Load the file metadata
     let file_metadata_store = PrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
     let mut file_metadata: FileMetadata = load(&file_metadata_store, &file_key)?;
     
-
     // Add all viewing access
-    for add in &add_viewing {
+    for user_add in &add_viewing {
 
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, add.clone()));
+        // Check if the user already has access
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, user_add.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
             // Add permission
-            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, add.clone()), &true);
+            FILE_PERMISSIONS.insert(deps.storage, &(file_key, user_add.clone()), &true)?;
 
             // Add the file in the list of user view
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, add.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = may_load(&users_store, user_add.as_bytes());
 
+            // The user can already exists or not.
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
                 _ => UserInfo {
@@ -392,30 +395,31 @@ pub fn update_file_access(
 
             // Save the updated information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, add.as_bytes(), &user_info);
+            save(&mut users_store, user_add.as_bytes(), &user_info)?;
 
             // Update the file metadata
-            file_metadata.viewers.push(add.clone());
+            file_metadata.viewers.push(user_add.clone());
         }
 
     };
 
-    for delete in &delete_viewing {
+    // Delete viewing access
+    for user_delete in &delete_viewing {
 
         // Check if the user has a viewing right
-        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, delete.clone()));
+        let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, user_delete.clone()));
         if already_added.is_some() {
 
-            if delete == &change_owner {
+            if user_delete == &change_owner {
                 return Err( ContractError::CustomError { val: String::from("Cannot remove viewing right from the new owner") });
             }
 
             // Remove permission
-            let _delete = FILE_PERMISSIONS.insert(deps.storage, &(file_key, delete.clone()), &false);
+            FILE_PERMISSIONS.remove(deps.storage, &(file_key, user_delete.clone()))?;
 
             // Remove the file from the user list
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let loaded_payload: StdResult<Option<UserInfo>> = load(&users_store, delete.as_bytes());
+            let loaded_payload: StdResult<Option<UserInfo>> = load(&users_store, user_delete.as_bytes());
 
             let mut user_info = match loaded_payload {
                 Ok(Some(user_info)) => user_info,
@@ -424,15 +428,16 @@ pub fn update_file_access(
                 }
             };
 
+            // Get the index of the file and remove it
             let index = user_info.files.iter().position(|x| *x == file_key).unwrap();
             user_info.files.remove(index);
 
-            // Save the modification
+            // Update user information
             let mut users_store = PrefixedStorage::new(deps.storage, PREFIX_USERS);
-            let _saved_result = save(&mut users_store, delete.as_bytes(), &user_info);
+            save(&mut users_store, user_delete.as_bytes(), &user_info)?;
 
             // Remove the user from the list
-            let index = file_metadata.viewers.iter().position(|x| x == delete).unwrap();
+            let index = file_metadata.viewers.iter().position(|x| x == user_delete).unwrap();
             file_metadata.viewers.remove(index);
         }
 
@@ -446,7 +451,7 @@ pub fn update_file_access(
         let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, file_metadata.owner.clone()));
         if already_added.is_none() || already_added.is_some_and(|x| !x) {
 
-            let _add = FILE_PERMISSIONS.insert(deps.storage, &(file_key, file_metadata.owner.clone()), &true);
+            FILE_PERMISSIONS.insert(deps.storage, &(file_key, file_metadata.owner.clone()), &true)?;
 
             // Add the file in the list of user view
             let users_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_USERS);

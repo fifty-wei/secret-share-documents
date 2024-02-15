@@ -65,10 +65,9 @@ pub struct FileMetadata {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct UserInfo {
+    // Files the user can see
     pub files: Vec<[u8; 32]>, 
 }
-
-
 
 
 /// Returns StdResult<()> resulting from saving an item to storage
