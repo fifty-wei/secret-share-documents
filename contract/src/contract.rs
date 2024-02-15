@@ -15,10 +15,16 @@ use secret_toolkit::serialization::{Json, Serde};
 
 
 use crate::error::ContractError;
-use crate::msg::{ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, ExecutePermitMsg, FileAccessResponse, FileIdsResponse, FilePayloadResponse, InstantiateMsg, QueryMsg, QueryWithPermit};
+use crate::msg::{
+    ContractKeyResponse, EncryptedExecuteMsg, ExecuteMsg, ExecuteMsgAction, 
+    ExecutePermitMsg, FileAccessResponse, FileIdsResponse, FilePayloadResponse, 
+    InstantiateMsg, QueryMsg, QueryWithPermit
+};
 
 use crate::state::{
-    load, may_load, save, Config, ContractKeys, FileMetadata, FileState, UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, PREFIX_FILES_METADATA, PREFIX_REVOKED_PERMITS, PREFIX_USERS
+    load, may_load, save, Config, ContractKeys, FileMetadata, FileState, 
+    UserInfo, CONFIG, CONTRACT_KEYS, FILE_PERMISSIONS, PREFIX_FILES, 
+    PREFIX_FILES_METADATA, PREFIX_REVOKED_PERMITS, PREFIX_USERS
 };
 
 use cosmwasm_storage::PrefixedStorage;
@@ -30,15 +36,12 @@ use aes_siv::siv::Aes128Siv;
 
 use hex;
 
-// use ethabi::{decode, ParamType};
 
-
-// TODO :: See Revoking permits - need implementation ?
-// I do not think this can be done on a permits execute message
-// Maybe need to execute directly on secret network
-// https://scrt.university/pathways/33/implementing-viewing-keys-and-permits
-
-
+/// Instanciate contract.
+/// 
+/// Generate a pair of public/private key for the contract. This key will be use
+/// to exchange message safely from polygon chain to the secret network. (Secret 
+/// As A Service).
 #[entry_point]
 pub fn instantiate(
     deps: DepsMut,
@@ -64,12 +67,11 @@ pub fn instantiate(
 
     CONTRACT_KEYS.save(deps.storage, &my_keys)?;
 
-    // Save the configuration of this contract
-    let _ = CONFIG.save(deps.storage, &Config {
+    // Save the configuration
+    CONFIG.save(deps.storage, &Config {
         contract_address: env.contract.address,
         index: 0
-    });
-
+    })?;
 
     deps.api
         .debug(&format!("Contract was initialized by {}", info.sender));
@@ -77,6 +79,11 @@ pub fn instantiate(
     Ok(Response::default())
 }
 
+
+/// Execute function of the Smart Contract
+///
+/// As we are using Secret As A Service, we should only receive EVM message 
+/// sent from Polygon via Axelar.
 #[entry_point]
 pub fn execute(
     deps: DepsMut,
@@ -94,7 +101,12 @@ pub fn execute(
 }
 
 
-/// Decrypt and execute the message passed from EVM
+/// Decrypt and execute the message passed from EVM.
+///
+/// We are using permit here to prove the user identity. By passing a message through Axelar,
+/// the message will be execute by Axelar and not by the end user. Thus, to prove the 
+/// secret address, we need to use a permit mechanism allowing us to confirm the user 
+/// identity as it is the only one to generate a valid permit.
 pub fn receive_message_evm(
     deps: DepsMut,
     _source_chain: String,
@@ -109,14 +121,18 @@ pub fn receive_message_evm(
     let decrypt_msg = _decrypt_with_user_public_key(&deps, encrypted_data, user_public_key)?;
     match decrypt_msg {
         ExecutePermitMsg::WithPermit { permit, execute } => {
-            return permit_execute_message(deps, permit, execute);
+            return execute_permit_message(deps, permit, execute);
         }
     };
 }
 
 /// Verify the permit and check if it is the right users.
 /// Returns: verified user address.
-fn _verify_permit(deps: Deps, permit: Permit, contract_address: Addr) -> Result<Addr, ContractError> {
+fn _verify_permit(
+    deps: Deps, 
+    permit: Permit, 
+    contract_address: Addr
+) -> Result<Addr, ContractError> {
 
     // Get and validate user address
     let account = secret_toolkit::permit::validate(
@@ -133,7 +149,16 @@ fn _verify_permit(deps: Deps, permit: Permit, contract_address: Addr) -> Result<
 }
 
 
-fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction) -> Result<Response, ContractError> {
+/// Execute permit message
+///
+/// Verify that the permit is valid. Then, execute the query message:
+/// - StoreNewFile: Store a new file in the Smart contract.
+/// - ManageFileRights: Update / Revoke rights for a given file.
+fn execute_permit_message(
+    deps: DepsMut, 
+    permit: Permit, 
+    query: ExecuteMsgAction
+) -> Result<Response, ContractError> {
 
     // Verify the account
     let contract_address = CONFIG.load(deps.storage)?.contract_address;
@@ -142,40 +167,41 @@ fn permit_execute_message(deps: DepsMut, permit: Permit, query: ExecuteMsgAction
     // Execute the message
     match query {
         ExecuteMsgAction::StoreNewFile { payload } => {
-            let _ = store_new_file(deps, account, payload);
+            store_new_file(deps, account, payload)?;
         },
-        ExecuteMsgAction::ManageFileRights { file_id, add_viewing, delete_viewing, change_owner } => {
-            // let u8_key: [u8; 32] = key.as_bytes().try_into().unwrap();
-            // let whitelisted = FILE_PERMISSIONS.get(deps.storage, &(u8_key, account));
-            // TODO 
-
+        ExecuteMsgAction::ManageFileRights { 
+            file_id, 
+            add_viewing, 
+            delete_viewing, 
+            change_owner 
+        } => {
+            
             // Decode the file key 
-            let extracted_key = match hex::decode(file_id) {
-                Ok(k) => k,
-                _ => panic!("Invalid key"),
-            };
+            let extracted_key = hex::decode(file_id)?;
             let extracted_key: [u8; 32] = extracted_key.try_into().unwrap();
         
-            // Check the file exist for the given key
+            // Get the file metadata
             let file_metadata_store = ReadonlyPrefixedStorage::new(deps.storage, PREFIX_FILES_METADATA);
             let loaded_metadata: Option<FileMetadata> = may_load(&file_metadata_store, &extracted_key)?;
 
+            // Be sure that the file exists
             let metadata = match loaded_metadata {
                 Some(metadata) => metadata,
-                _ => panic!("error")
+                _ => return Err(ContractError::InvalidFileID)
             };
 
+            // Check that only the owner can update the permissions
             if metadata.owner == account {
-                let _ = update_file_access(
+                update_file_access(
                     deps,
                     extracted_key, 
                     add_viewing, 
                     delete_viewing, 
                     change_owner
-                );
-
+                )?;
+                
             } else {
-                return Err(ContractError::Unauthorized {})
+                return Err(ContractError::Unauthorized)
             }
 
         }
@@ -229,6 +255,8 @@ fn _decrypt_with_user_public_key(
     }
 }
 
+
+/// Decrypt AES message.
 pub fn aes_siv_decrypt(
     plaintext: &[u8],
     ad: Option<&[&[u8]]>,
@@ -249,7 +277,7 @@ pub fn aes_siv_decrypt(
 /// We decide to create a hash using the struct element to have a unique
 /// key, allowing us to store the data.
 ///
-pub fn create_key_from_file_state(index: &u128) -> [u8; 32] {
+pub fn generate_unique_id(index: &u128) -> [u8; 32] {
     // Hash the data
     let mut hasher = Sha256::new();
     hasher.update(index.to_le_bytes());
@@ -303,7 +331,7 @@ pub fn store_new_file(deps: DepsMut, owner: Addr, payload: String) -> StdResult<
         payload: payload,
     };
 
-    let key: [u8; 32] = create_key_from_file_state(&id);
+    let key: [u8; 32] = generate_unique_id(&id);
 
     // Save the file
     save(&mut file_storage, &key, &file_state)?;
@@ -333,7 +361,7 @@ pub fn update_file_access(
     file_key: [u8; 32], 
     add_viewing: Vec<Addr>, 
     delete_viewing: Vec<Addr>, 
-    change_owner: Addr) -> StdResult<()> {
+    change_owner: Addr) -> Result<(), ContractError> {
 
 
     // Load the file metadata
@@ -377,6 +405,11 @@ pub fn update_file_access(
         // Check if the user has a viewing right
         let already_added = FILE_PERMISSIONS.get(deps.storage, &(file_key, delete.clone()));
         if already_added.is_some() {
+
+            if delete == &change_owner {
+                return Err( ContractError::CustomError { val: String::from("Cannot remove viewing right from the new owner") });
+            }
+
             // Remove permission
             let _delete = FILE_PERMISSIONS.insert(deps.storage, &(file_key, delete.clone()), &false);
 
@@ -1157,6 +1190,48 @@ mod tests {
 
     // TODO :: Try update user by deleting the owner
 
+    #[test]
+    fn test_remove_viewing_rights_and_keep_owner() {
+        // Given a file created by an user, we want to check that if we delete the user, who owns the file 
+        // we will have an error. And the owner can still have access to the file.
+        //
+        // Note: As the transaction is in error, the transaction will be reverted. However,
+        //      here, the storage modification is not modify. This is wy in our test, at the
+        //      end we do not verify the user 2 query.
+        
+        let mut deps = mock_dependencies();
+        setup_contract(deps.as_mut());
+
+        // Generate user info
+        let (user_1, user_1_permit) = generate_user_1(deps.as_mut());
+        let (user_2, _user_2_permit) = generate_user_2(deps.as_mut());
+
+        // Generate user information & payload
+        let payload = String::from("{\"file\": \"content\"}");
+
+        let evm_message = _create_evm_message(deps.as_ref(), &payload, &user_1_permit);
+
+        // Send the evm message
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_ok());
+
+        // Get file id
+        let file_id = &_query_user_files(deps.as_ref(), &user_1_permit)[0];
+        
+        // User 1 add user 2 access and cannot remove himself of the list as it is still the owner
+        let evm_message = _create_manage_request_evm_message(
+            deps.as_ref(),
+            &user_1_permit,
+            file_id.clone(),
+            Vec::from([user_2.clone()]),
+            Vec::from([user_1.clone()]),
+            user_1.clone()
+        );
+        let unauth_env = mock_info("anyone", &coins(0, "token"));
+        let res_store_file = execute(deps.as_mut(), mock_env(), unauth_env, evm_message);
+        assert!(res_store_file.is_err());
+    }
 
     #[test]
     fn test_transfert_file_ownership() {

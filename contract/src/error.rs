@@ -1,20 +1,24 @@
 use cosmwasm_std::StdError;
 use thiserror::Error;
+use hex::FromHexError;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
+
+    /// Import From<StdError>
     #[error("{0}")]
-    // let thiserror implement From<StdError> for you
     Std(#[from] StdError),
 
-    #[error("Unauthorized")]
+    /// Import From<FromHexError>
+    #[error("{0}")]
+    FromHexError(#[from] FromHexError),
+
     // issued when message sender != owner
-    Unauthorized {},
+    #[error("Unauthorized")]
+    Unauthorized,
 
     #[error("Custom Error val: {val:?}")]
     CustomError { val: String },
-    // Add any other custom errors you like here.
-    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 
     #[error("The provided public key is invalid: {val:?}")]
     InvalidPublicKey { val: String },
@@ -27,5 +31,8 @@ pub enum ContractError {
 
     #[error("Error when deserialize the Permit message encrypted. More detail: {val:?}")]
     ErrorDeserializeExectueMsg {val: String},
+
+    #[error("Invalid file id. The file does not seems to exists.")]
+    InvalidFileID,
 
 }
