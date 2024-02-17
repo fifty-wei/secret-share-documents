@@ -488,7 +488,7 @@ pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
     // Decode the key
     let extracted_key = match hex::decode(key) {
         Ok(k) => k,
-        _ => panic!("Invalid key"),
+        _ => return Err(StdError::NotFound { kind: String::from("Invalid file key.") }),
     };
 
     // Try to load the file
@@ -497,7 +497,7 @@ pub fn load_file(deps: Deps, key: String) -> StdResult<String> {
 
     let payload: String = match loaded_payload {
         Some(file_state) => file_state.payload,
-        _ => panic!("Error."),
+        _ => return Err(StdError::NotFound { kind: String::from("Error when loading the file.") }),
     };
 
     Ok(payload)
@@ -536,7 +536,7 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
         },
         QueryWithPermit::GetFileContent { file_id } => {
 
-            // hex::encode(&bytes_key)
+            // Decode the file key
             let key = match hex::decode(&file_id) {
                 Ok(key) => key,
                 _ => return Err(StdError::NotFound { kind: String::from("Invalid key.") })
@@ -544,7 +544,6 @@ fn permit_queries(deps: Deps, permit: Permit, query: QueryWithPermit) -> Result<
             let u8_key: [u8; 32] = key.try_into().unwrap();
 
             // Check the permission - whitelisted
-            // let _ = FILE_PERMISSIONS.insert(deps.storage, &(key, owner.clone()), &true);
             let whitelisted = FILE_PERMISSIONS.get(deps.storage, &(u8_key, account));
 
             match whitelisted {
@@ -618,11 +617,11 @@ fn query_file_ids(deps: Deps, account: Addr) -> StdResult<FileIdsResponse> {
             Ok(FileIdsResponse { file_ids: key_to_string })
         }
         Ok(None) => Ok(FileIdsResponse { file_ids: Vec::new() }),
-        Err(error) => panic!("Error when loading file from storage: {:?}", error),        
+        Err(error) => Err(StdError::generic_err(format!(
+            "Error when loading file from storage: {:?}", error
+        )))
     }
-
 }
-
 
 
 #[cfg(test)]
@@ -634,12 +633,6 @@ mod tests {
     use cosmwasm_std::{coins, from_binary};
     use secret_toolkit::permit::{PermitParams, PermitSignature, PubKey, TokenPermissions};
     use secret_toolkit::serialization::Serde;
-
-    // Some references
-    // https://github.com/desmos-labs/desmos-contracts/blob/master/contracts/poap/src/contract_tests.rs
-
-    // See this project - organization
-    // https://github.com/desmos-labs/desmos-contracts/tree/master/contracts/poap
 
     /// Instanciate a new smart contract
     fn setup_contract(deps: DepsMut) {
@@ -1184,9 +1177,6 @@ mod tests {
         assert!(res_store_file.is_err());
 
     }
-
-
-    // TODO :: Try update user by deleting the owner
 
     #[test]
     fn test_remove_viewing_rights_and_keep_owner() {

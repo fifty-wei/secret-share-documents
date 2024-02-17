@@ -10,7 +10,6 @@ use secret_toolkit::serialization::{Json, Serde};
 use secret_toolkit::storage::{Item, Keymap};
 
 
-
 pub const KEY_CONFIG: &[u8] = b"config";
 pub const KEY_CONTRACT_KEYS: &[u8] = b"contract_keys";
 pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
@@ -19,21 +18,15 @@ pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
 pub const PREFIX_FILES: &[u8] = b"files";
 pub const PREFIX_FILES_METADATA: &[u8] = b"files_metadata";
 pub const PREFIX_REVOKED_PERMITS: &str = "revoked_permits";
-pub const PREFIX_USERS: &[u8] = b"users";  // TODO :: Do a working approach then improve !
+pub const PREFIX_USERS: &[u8] = b"users";
 
 pub static CONFIG: Item<Config> = Item::new(KEY_CONFIG);
-
-
 
 /// Item to store the public/private key of the Secret Smart Contract
 pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(KEY_CONTRACT_KEYS);
 
 /// (file_id, user_address) => access
 pub static FILE_PERMISSIONS: Keymap<([u8; 32], Addr), bool> = Keymap::new(KEY_FILE_PERMISSIONS);
-
-
-// Some documentation
-// https://docs.scrt.network/secret-network-documentation/development/secret-contract-cosmwasm-framework/contract-components/storage/prefixed-storage
 
 
 #[derive(Serialize, Debug, Deserialize, Clone, JsonSchema)]
