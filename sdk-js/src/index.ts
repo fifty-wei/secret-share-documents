@@ -3,32 +3,26 @@ import ShareDocumentSmartContract from "./SmartContract/ShareDocumentSmartContra
 import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
 import IStorage from "./StoreDocument/Storage/IStorage";
-import IConfig from "../config/IConfig";
+import Config from "./Config";
 import { getChain, getChainId } from "../config/chains";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
 import IWalletConfig from "./SmartContract/IWalletConfig";
 
-interface IShareDocumentConfig extends IConfig {
-  evmWalletConfig: IWalletConfig;
-}
-
-interface Props {
-  storage: IStorage;
-  config: IShareDocumentConfig;
-}
+// interface IShareDocumentConfig extends IConfig {
+//   evmWalletConfig: IWalletConfig;
+// }
 
 class ShareDocumentClient {
   private storage: IStorage;
-  private config: IShareDocumentConfig;
+  private config: Config;
 
-  constructor({ storage, config }: Props) {
-    this.storage = storage;
+  constructor(config: Config) {
     this.config = config;
   }
 
   private polygonToSecret() {
     return new PolygonToSecretSmartContrat({
-      secretContract: this.config.contracts.ShareDocument,
+      secretContract: this.config.getShareDocument(),
       viemClient: this.viemClient(),
     });
   }
@@ -44,8 +38,8 @@ class ShareDocumentClient {
 
     const wallet = this.secretNetworkWallet();
     return new SecretNetworkClient({
-      url: this.config.chains.secretNetwork.endpoint,
-      chainId: this.config.chains.secretNetwork.chainId,
+      url: this.config.getSecretNetwork().endpoint,
+      chainId: this.config.getSecretNetwork().chainId,
       wallet: wallet,
       walletAddress: wallet.address,
     });
@@ -53,9 +47,9 @@ class ShareDocumentClient {
 
   private viemClient() {
     return new ViemClient({
-      chain: getChain(getChainId()),
-      walletConfig: this.config.evmWalletConfig,
-      contract: this.config.contracts.PolygonToSecret,
+      chain: this.config.getChain(this.config.getChainId()),
+      walletConfig: this.config.getWallet(),
+      contract: this.config.getPolygonToSecret(),
     });
   }
 
@@ -65,16 +59,16 @@ class ShareDocumentClient {
     }
 
     return new ShareDocumentSmartContract({
-      chainId: this.config.chains.secretNetwork.chainId,
+      chainId: this.config.getSecretNetwork().chainId,
       client: this.secretNetworkClient(),
       wallet: this.secretNetworkWallet(),
-      contract: this.config.contracts.ShareDocument,
+      contract: this.config.getShareDocument(),
     });
   }
 
   public storeDocument() {
     return new StoreDocument({
-      storage: this.storage,
+      storage: this.config.getStorage(),
       shareDocument: this.shareDocument(),
       polygonToSecret: this.polygonToSecret(),
     });

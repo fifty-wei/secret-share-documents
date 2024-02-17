@@ -6,18 +6,31 @@ import ISecretNetworkSmartContract from "./SmartContract/ISecretNetworkSmartCont
 import Environment from "./Environment";
 import PolygonToSecretAbi from "./abis/PolygonToSecret.json";
 import Network from "./Network";
+import IStorage from "./StoreDocument/Storage/IStorage";
 
 const ENVIRONMENT =
   (process.env.ENVIRONMENT as Environment) || Environment.LOCAL;
 
-class Config {
-  private config: Partial<IConfig>;
+interface IClientConfig extends IConfig {
+  storage: IStorage;
+}
 
-  constructor(config: Partial<IConfig> = {}) {
+class Config {
+  private config: Partial<IClientConfig>;
+
+  constructor(config: Partial<IClientConfig> = {}) {
     this.config = {
       ...this.defaultConfig(ENVIRONMENT),
       ...config,
     };
+  }
+
+  useStorage(storage: IStorage) {
+    this.config.storage = storage;
+  }
+
+  getStorage(): IStorage {
+    return this.config.storage;
   }
 
   getSecretNetwork() {
@@ -26,6 +39,22 @@ class Config {
 
   getPolygon() {
     return this.config.chains.secretNetwork;
+  }
+
+  getChainId(env: Environment = null): Network {
+    let nodeEnv = (process.env.ENVIRONMENT as Environment) || Environment.LOCAL;
+
+    if (env !== null) {
+      nodeEnv = env;
+    }
+
+    switch (nodeEnv) {
+      case Environment.LOCAL:
+      case Environment.TESTNET:
+        return Network.MUMBAI;
+      case Environment.MAINNET:
+        return Network.POLYGON;
+    }
   }
 
   getChain(networkId: Network) {
