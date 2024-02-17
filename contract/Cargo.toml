@@ -1,10 +1,11 @@
 [package]
-name = "secret-share-documents"
+name = "cw-secret-share-documents"
 version = "0.1.0"
 authors = ["FiftyWei"]
 edition = "2021"
 description = "Share document with Secret Network"
 license = "MIT"
+repository = "https://github.com/fifty-wei/secret-share-documents"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
