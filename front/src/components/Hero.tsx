@@ -1,13 +1,20 @@
 "use client";
 
-import { ErrorMessage, Field, Form, Formik } from "formik";
-import { useAccount } from "wagmi";
+import { Field, Form, Formik } from "formik";
+import { useAccount, useWalletClient } from "wagmi";
 import FileDropper from "./FileDropper";
 import * as Yup from "yup";
 import SubmitButton from "./SubmitButton";
 import React, { useState } from "react"; // Make sure to import React and useState
+import { getConfig } from "../config/config";
+import { NetworkEnum } from "@/config/types";
+import PolygonToSecret from "../contracts/ABI/PolygonToSecret.json";
 
 export default function Hero() {
+  const { address, chainId } = useAccount();
+  const { data: walletClient } = useWalletClient({ chainId });
+  const config = getConfig(chainId as NetworkEnum);
+
   interface IFormValues {
     file: File | null;
   }
@@ -20,14 +27,39 @@ export default function Hero() {
     file: null,
   };
 
-  const onSubmit = async (values: IFormValues) => {
-    console.log("values", values.file);
+  const onSubmit = async (
+    values: IFormValues,
+    { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
+  ) => {
+    console.log("values", values.file?.name);
+    console.log("destination chain", process.env.NEXT_PUBLIC_DESTINATION_CHAIN);
+
+    let tx;
+    if (isConnected && address) {
+      try {
+        tx = await walletClient?.writeContract({
+          address: config.contracts.talentLayerId,
+          abi: PolygonToSecret.abi,
+          functionName: "send",
+          args: [
+            process.env.NEXT_PUBLIC_DESTINATION_CHAIN,
+            config.contracts.polygonToSecret,
+            values.file?.name,
+          ],
+          account: address,
+        });
+
+        console.log(tx);
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setSubmitting(false);
+      }
+    }
   };
 
   const [fileSelected, setFileSelected] = useState<File | null>(null);
   const { isConnected } = useAccount();
-
-  console.log("isConnected", isConnected);
 
   return (
     <div className="bg-white">
