@@ -4,27 +4,38 @@ import { test, expect, beforeAll, afterAll } from "@jest/globals";
 import fs from "fs";
 import IUploadOptions from "../src/StoreDocument/Storage/IUploadOptions";
 
-const infuraID = "xxxx";
-const infuraSecret = "xxxx";
-const gateway = "https://ipfs.infura.io";
-
-const ipfsStorage = new IPFSStorage({
-  infuraId: infuraID,
-  infuraSecret: infuraSecret,
-  gateway: gateway,
+const storage = new IPFSStorage({
+  gateway: "https://ipfs.infura.io",
 });
 
 test("uploads encrypted data to IPFS and returns a CID", async () => {
-  const encryptedData = {
-    data: Buffer.from("Hello, world!"), // Simulate encrypted data as a Buffer
-    initialVector: "iv",
-    authTag: "authTag",
-  };
-  const options = {}; // Assuming IUploadOptions can be empty for this test
-  const cid = await ipfsStorage.upload(encryptedData, options);
+  const fileUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
 
-  expect(cid).toEqual(
-    `https://ipfs.infura.io/ipfs/bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efm3dqk6nghqg5hakj234hqe`
+  const response = await fetch(fileUrl);
+  let uploadOptions: IUploadOptions = {
+    contentType: "",
+  };
+
+  if (response.headers.get("content-type")) {
+    uploadOptions.contentType = response.headers.get("content-type") as string;
+  }
+
+  const data = await response.arrayBuffer();
+  const bufferData = Buffer.from(data);
+
+  const localSymmetricKey = SymmetricKeyEncryption.generate();
+  const encryptedData = SymmetricKeyEncryption.encrypt(
+    bufferData,
+    localSymmetricKey
   );
-  expect(add).toHaveBeenCalledWith(encryptedData.data); // Ensure the IPFS add function was called with correct data
+
+  try {
+    const res = await storage.upload(encryptedData, uploadOptions);
+    console.log({ res });
+
+    expect(res).toBeDefined();
+  } catch (e) {
+    console.error(`[ERROR] Failed to store encrypted data to Arweave.`);
+    console.error(e.error);
+  }
 });

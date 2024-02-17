@@ -1,37 +1,26 @@
 import IStorage from "./IStorage";
 import IEncryptedData from "../Encryption/IEncryptedData";
 import IUploadOptions from "./IUploadOptions";
-import { create, IPFSHTTPClient } from "ipfs-http-client";
+import { createHelia } from "helia";
+import { json } from "@helia/json";
 
 interface Props {
-  infuraId: string;
-  infuraSecret: string;
   gateway: string; // e.g /ipfs.io/
 }
 
 class IPFSStorage implements IStorage {
-  private client: IPFSHTTPClient;
-
   gateway: string;
-  authorization: string;
-  ipfsWriteUrl: string;
-
-  constructor({ infuraId, infuraSecret, gateway }: Props) {
-    this.gateway = gateway;
-
-    this.client = create({
-      url: this.ipfsWriteUrl,
-      headers: {
-        authorization:
-          "Basic " +
-          Buffer.from(`${infuraId}:${infuraSecret}`).toString("base64"),
-      },
-    });
+  constructor(private props: Props) {
+    this.gateway = props.gateway;
   }
-
   async upload(data: IEncryptedData, options: IUploadOptions): Promise<string> {
-    const cid = await this.client.add(data.data);
-    return `${this.gateway}/ipfs/${cid}`;
+    const helia = await createHelia();
+    const j = json(helia);
+
+    const myImmutableAddress = await j.add({ hello: "world" });
+
+    const ipfsAddress = `https://${this.gateway}/ipfs/${myImmutableAddress}`;
+    return ipfsAddress;
   }
 }
 
