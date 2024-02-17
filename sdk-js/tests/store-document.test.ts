@@ -9,6 +9,7 @@ import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSma
 import ViemClient from "../src/SmartContract/ViemClient";
 import { getChain, getChainId } from "../config/chains";
 import Environment from "../config/Environment";
+import Config from "../src/Config";
 
 test("Get Encrypted Payload from PDF", async () => {
   const config = await getConfig(Environment.TESTNET);
@@ -71,33 +72,34 @@ test("Get Encrypted Payload from PDF", async () => {
 }, 1_000_000);
 
 test("Store Encrypted Payload from PDF", async () => {
-  const config = await getConfig();
+  const config = new Config();
+  config.useWallet({
+    mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+  });
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
 
   const secretNetwork = new SecretNetworkIntegration({
-    endpoint: config.chains.secretNetwork.endpoint,
-    chainId: config.chains.secretNetwork.chainId,
-    faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
+    endpoint: config.getSecretNetwork().endpoint,
+    chainId: config.getSecretNetwork().chainId,
+    faucetEndpoint: config.getSecretNetwork().faucetEndpoint,
     wallet: wallet,
   });
 
   const shareDocument = new ShareDocumentSmartContract({
-    chainId: config.chains.secretNetwork.chainId,
+    chainId: config.getSecretNetwork().chainId,
     client: secretNetwork.getClient(),
-    contract: config.contracts.ShareDocument,
+    contract: config.getShareDocument(),
     wallet: wallet,
   });
 
   const viemClient = new ViemClient({
     chain: getChain(getChainId()),
-    walletConfig: {
-      mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-    },
-    contract: config.contracts.PolygonToSecret,
+    walletConfig: config.getWallet(),
+    contract: config.getPolygonToSecret(),
   });
 
   const polygonToSecret = new PolygonToSecretSmartContrat({
-    secretContract: config.contracts.ShareDocument,
+    secretContract: config.getShareDocument(),
     viemClient: viemClient,
   });
 
