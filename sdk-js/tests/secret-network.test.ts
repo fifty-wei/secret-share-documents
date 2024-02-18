@@ -3,7 +3,7 @@ import { expect, test } from "@jest/globals";
 import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import { getConfig } from "../config";
-import Environment from "../config/Environment";
+import Environment from "../src/Environment";
 
 test("Initialize a client", async () => {
   const config = await getConfig(Environment.LOCAL);

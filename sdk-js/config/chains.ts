@@ -1,6 +1,6 @@
 import { Chain, polygon, polygonMumbai } from "viem/chains";
-import Network from "./Network";
-import Environment from "./Environment";
+import Network from "../src/Network";
+import Environment from "../src/Environment";
 
 const chains = {
   [Network.MUMBAI]: polygonMumbai,

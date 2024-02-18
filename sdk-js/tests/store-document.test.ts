@@ -8,7 +8,7 @@ import { getConfig } from "../config";
 import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import { getChain, getChainId } from "../config/chains";
-import Environment from "../config/Environment";
+import Environment from "../src/Environment";
 import Config from "../src/Config";
 
 test("Get Encrypted Payload from PDF", async () => {

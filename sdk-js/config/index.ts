@@ -1,8 +1,8 @@
 import path from "node:path";
 import { Wallet } from "secretjs";
 import PolygonToSecretAbi from "../src/abis/PolygonToSecret.json";
-import IConfig from "./IConfig";
-import Environment from "./Environment";
+import IConfig from "../src/IConfig";
+import Environment from "../src/Environment";
 import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 
 import dotenv from "dotenv";
