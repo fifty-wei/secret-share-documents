@@ -1,6 +1,6 @@
 import { WalletClient } from "viem";
 
-export default interface IWalletConfig {
+export default interface IViemWallet {
   mnemonic?: string;
   client?: WalletClient;
 }

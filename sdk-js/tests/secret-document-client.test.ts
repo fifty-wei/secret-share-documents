@@ -1,20 +1,16 @@
 import { test, expect } from "@jest/globals";
-import { getConfig } from "../config";
-import ShareDocumentClient from "../src";
+import SecretDocumentClient from "../src";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import StoreDocument from "../src/StoreDocument";
+import Config from "../src/Config";
+import Environment from "../src/Environment";
 
 test("Get SDK with our configuration", async () => {
-  const config = await getConfig();
-  const client = new ShareDocumentClient({
-    storage: new FakeStorage(),
-    config: {
-      ...config,
-      evmWalletConfig: {
-        mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-      },
-    },
+  const config = new Config({
+    env: Environment.TESTNET,
   });
+  config.useStorage(new FakeStorage());
+  const client = new SecretDocumentClient(config);
 
   const responseUrl = await client
     .storeDocument()

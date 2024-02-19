@@ -1,25 +1,78 @@
-import { Chain, polygon, polygonMumbai } from "viem/chains";
+import { polygon, polygonMumbai } from "viem/chains";
 import IConfig from "./IConfig";
-import IWalletConfig from "./SmartContract/IWalletConfig";
 import IPolygonSmartContract from "./SmartContract/IPolygonSmartContract";
 import ISecretNetworkSmartContract from "./SmartContract/ISecretNetworkSmartContract";
 import Environment from "./Environment";
 import PolygonToSecretAbi from "./abis/PolygonToSecret.json";
 import Network from "./Network";
 import IStorage from "./StoreDocument/Storage/IStorage";
+import IViemWallet from "./SmartContract/IViemWallet";
+import ISecretNewtorkWallet from "./SmartContract/ISecretNewtorkWallet";
+import FakeStorage from "./StoreDocument/Storage/FakeStorage";
 
-interface IClientConfig extends IConfig {
+interface IClientConfig {
+  chains: {
+    polygon: {
+      chainId: string;
+    };
+    secretNetwork: {
+      chainId: string;
+      endpoint: string;
+      faucetEndpoint: string;
+    };
+  };
+  contracts: {
+    PolygonToSecret: IPolygonSmartContract;
+    ShareDocument: ISecretNetworkSmartContract;
+  };
   storage: IStorage;
   env: Environment;
+  wallets: {
+    secretNetwork: ISecretNewtorkWallet;
+    polygon: IViemWallet;
+  };
 }
 
 class Config {
-  private config: Partial<IClientConfig>;
+  private config: IClientConfig;
   private env: Environment;
 
   constructor(config: Partial<IClientConfig> = {}) {
+    const emptyConfig: IClientConfig = {
+      storage: new FakeStorage(),
+      env: Environment.LOCAL,
+      contracts: {
+        PolygonToSecret: {
+          address: "",
+          abi: PolygonToSecretAbi,
+        },
+        ShareDocument: {
+          address: "",
+          hash: "",
+        },
+      },
+      chains: {
+        secretNetwork: {
+          chainId: "",
+          endpoint: "",
+          faucetEndpoint: "", // Only need for SecretNetworkIntergration to fill up faucet. Maybe to be removed.
+        },
+        polygon: {
+          chainId: "",
+        },
+      },
+      wallets: {
+        secretNetwork: {
+          mnemonic: "",
+        },
+        polygon: {
+          mnemonic: "",
+        },
+      },
+    };
     this.env = config.env || Environment.LOCAL;
     this.config = {
+      ...emptyConfig,
       ...this.defaultConfig(this.env),
       ...config,
     };
@@ -42,7 +95,7 @@ class Config {
   }
 
   getPolygon() {
-    return this.config.chains.secretNetwork;
+    return this.config.chains.polygon;
   }
 
   getChainId(env: Environment = null): Network {
@@ -82,7 +135,7 @@ class Config {
     return chains[chainKey as keyof typeof Network];
   }
 
-  defaultLocalConfig(): Partial<IConfig> {
+  defaultLocalConfig(): Partial<IClientConfig> {
     return {
       chains: {
         secretNetwork: {
@@ -104,10 +157,18 @@ class Config {
           hash: "",
         },
       },
+      wallets: {
+        secretNetwork: {
+          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
+        },
+        polygon: {
+          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+        },
+      },
     };
   }
 
-  defaultTestnetConfig(): Partial<IConfig> {
+  defaultTestnetConfig(): Partial<IClientConfig> {
     return {
       chains: {
         secretNetwork: {
@@ -129,6 +190,14 @@ class Config {
           hash: "c6ac12674e76ff7a2d48e3fbac06bb937aab5f554a380b35e53119b182c28228",
         },
       },
+      wallets: {
+        secretNetwork: {
+          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
+        },
+        polygon: {
+          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+        },
+      },
     };
   }
 
@@ -141,12 +210,20 @@ class Config {
     }
   }
 
-  useWallet(wallet: IWalletConfig) {
-    this.config.wallet = wallet;
+  useEvmWallet(wallet: IViemWallet) {
+    this.config.wallets.polygon = wallet;
   }
 
-  getWallet(): IWalletConfig {
-    return this.config.wallet;
+  getEvmWallet(): IViemWallet {
+    return this.config.wallets.polygon;
+  }
+
+  useSecretWallet(wallet: ISecretNewtorkWallet) {
+    this.config.wallets.secretNetwork = wallet;
+  }
+
+  getSecretNetworkWallet(): ISecretNewtorkWallet {
+    return this.config.wallets.secretNetwork;
   }
 
   usePolygonToSecret(contract: IPolygonSmartContract) {

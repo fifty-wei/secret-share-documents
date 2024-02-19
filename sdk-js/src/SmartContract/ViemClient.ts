@@ -9,11 +9,11 @@ import {
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import IPolygonSmartContract from "./IPolygonSmartContract";
-import IWalletConfig from "./IWalletConfig";
+import IViemWallet from "./IViemWallet";
 
 interface Props {
   chain: Chain;
-  walletConfig: IWalletConfig;
+  walletConfig: IViemWallet;
   contract: IPolygonSmartContract;
 }
 
@@ -39,7 +39,7 @@ class ViemClient {
     });
   }
 
-  public setupWallet(config: IWalletConfig) {
+  public setupWallet(config: IViemWallet) {
     if (config?.mnemonic) {
       const account = mnemonicToAccount(config.mnemonic);
       return createWalletClient({

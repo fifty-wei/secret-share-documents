@@ -4,17 +4,14 @@ import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
 import Config from "./Config";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
-import Environment from "./Environment";
 
-// interface IShareDocumentConfig extends IConfig {
-//   evmWalletConfig: IWalletConfig;
-// }
-
-class ShareDocumentClient {
+class SecretDocumentClient {
   private config: Config;
 
   constructor(config: Config) {
     this.config = config;
+
+    console.log({ config });
   }
 
   private polygonToSecret() {
@@ -25,14 +22,10 @@ class ShareDocumentClient {
   }
 
   private secretNetworkWallet() {
-    return new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+    return new Wallet(this.config.getSecretNetworkWallet().mnemonic);
   }
 
   private secretNetworkClient() {
-    if (!this.config) {
-      throw new Error("Config not loaded. Please call getConfig() first.");
-    }
-
     const wallet = this.secretNetworkWallet();
     return new SecretNetworkClient({
       url: this.config.getSecretNetwork().endpoint,
@@ -45,7 +38,7 @@ class ShareDocumentClient {
   private viemClient() {
     return new ViemClient({
       chain: this.config.getChain(this.config.getChainId()),
-      walletConfig: this.config.getWallet(),
+      walletConfig: this.config.getEvmWallet(),
       contract: this.config.getPolygonToSecret(),
     });
   }
@@ -72,4 +65,4 @@ class ShareDocumentClient {
   }
 }
 
-export default ShareDocumentClient;
+export default SecretDocumentClient;

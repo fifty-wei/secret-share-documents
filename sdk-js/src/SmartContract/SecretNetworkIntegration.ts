@@ -1,4 +1,3 @@
-// import fetch from "node-fetch";
 import fs from "fs";
 import { Wallet, SecretNetworkClient } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
