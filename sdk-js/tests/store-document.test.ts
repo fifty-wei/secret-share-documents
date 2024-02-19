@@ -1,6 +1,5 @@
 import { expect, test } from "@jest/globals";
 import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
-import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
