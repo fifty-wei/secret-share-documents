@@ -2,7 +2,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/fifty-wei/secret-share-documents">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/logo.png" alt="Logo" width="160" height="160">
   </a>
 
   <h3 align="center">Secret Share Documents</h3>
@@ -44,7 +44,18 @@ This project is decomposed in sevaral components:
 
 ## Architecture
 
-TODO
+Our propose approach to store confidential document on chain, rely on multiple components. First, to be able to store large document, we need solution like IPFS. However, anyone can access IPFS data. In order to store it confidentially, we need to encrypt the document. To encrypt it, we will generate locally a key allowing us to crypt and decrypt the document. Now we need another component to store those sensitive information, and this is where Secret Network comes in. On Secret Network all transactions are encrypted. Also, the state of a smart contract is also encrypted, allowing us to store sensitive information by providing restriction on user access. However, using directly Secret Network will require to use another wallet for the user. However, we want to limit the friction for the end user. Thus instead of using direclty Secret Network, we can use a classical request on a EVM chain and use Secret As A Service. 
+
+The idea behind Secret As A Service, is to keep a classical EVM architecture, which means having a contract, for instance on Polygon, but using Secret Network when we need to store sensitive information. Instead of calling directly from the client browser, we will call it on the EVM chain. This allows the user to keep the interaction on a single chain. The Smart contract on Polygon, will then managed all the process. It will call Axelar, that will bridge the message from the Polygon chain to the Secret Network chain, allowing to store confidential information.
+
+<div align="center">
+  <img src="images/architecture.png" alt="Architecture" width="800">
+</div>
+
+On the diagram, we can saw the different components. On the use case for storing a document, a user will first have a document he wants to store on blockchain. He will first locally generate a symmetric key [1] allowing him to encrypt the document. The encrypted document is then store on IPFS and he will get a link to it [2]. Then, the user will prepare a payload to store sensitive information on Secret Network. This payload will contain the link to IPFS and the symmetric key used to encrypt the document. This payload will then be encrypted using the public key of the smart contract on Secret Network. Notice that this interaction is seamless for the user as it is a query request, no wallet are required. Also, notice that we encrypt the payload, as on a EVM chain, any transaction can be seen. However, here we only want the Secret Smart Contract to see the user request.
+
+Once the payload encrypted, the user send a transaction on Polygon [3]. The smart contract on Polygon, can do additional process regarding the user request (it is customizable) and then send the payload to Axelar. Axelar transfer the payload from Polygon to Secret Network and send it to the Secret Smart Contract where it will be process. The Secret Smart Contract decrypt the payload of the user, and store the sensitive information on the Smart Contract. Finally, is the user wants to retrive the data, he can query the Secret Smart Contract, obatin an id of the stored file and then retrieve the file information.
+
 
 ## Contact
 
