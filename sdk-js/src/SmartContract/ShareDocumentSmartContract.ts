@@ -1,8 +1,5 @@
-import "dotenv/config";
 import { Permit, SecretNetworkClient, Wallet } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
-import { getConfig } from "../../config";
-import { Chain } from "viem";
 
 export type Address = `0x${string}`;
 
@@ -47,7 +44,6 @@ class ShareDocumentSmartContract {
   }
 
   async generatePermit(): Promise<Permit> {
-    const config = await getConfig();
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
       this.chainId,

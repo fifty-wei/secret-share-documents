@@ -128,6 +128,7 @@ class StoreDocument {
     const encryptedMessage = await this.getEncryptedMessage(bufferData, {
       contentType: file.type,
     });
+    console.log({ encryptedMessage });
     return this.storeEncryptedMessage(encryptedMessage);
   }
 }

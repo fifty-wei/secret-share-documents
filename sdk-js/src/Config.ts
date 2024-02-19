@@ -8,21 +8,25 @@ import PolygonToSecretAbi from "./abis/PolygonToSecret.json";
 import Network from "./Network";
 import IStorage from "./StoreDocument/Storage/IStorage";
 
-const ENVIRONMENT =
-  (process.env.ENVIRONMENT as Environment) || Environment.LOCAL;
-
 interface IClientConfig extends IConfig {
   storage: IStorage;
+  env: Environment;
 }
 
 class Config {
   private config: Partial<IClientConfig>;
+  private env: Environment;
 
   constructor(config: Partial<IClientConfig> = {}) {
+    this.env = config.env || Environment.LOCAL;
     this.config = {
-      ...this.defaultConfig(ENVIRONMENT),
+      ...this.defaultConfig(this.env),
       ...config,
     };
+  }
+
+  getEnv() {
+    return this.env;
   }
 
   useStorage(storage: IStorage) {
@@ -42,7 +46,7 @@ class Config {
   }
 
   getChainId(env: Environment = null): Network {
-    let nodeEnv = (process.env.ENVIRONMENT as Environment) || Environment.LOCAL;
+    let nodeEnv = this.env || Environment.LOCAL;
 
     if (env !== null) {
       nodeEnv = env;

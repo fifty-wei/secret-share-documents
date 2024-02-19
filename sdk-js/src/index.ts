@@ -2,18 +2,15 @@ import { SecretNetworkClient, Wallet } from "secretjs";
 import ShareDocumentSmartContract from "./SmartContract/ShareDocumentSmartContract";
 import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
-import IStorage from "./StoreDocument/Storage/IStorage";
 import Config from "./Config";
-import { getChain, getChainId } from "../config/chains";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
-import IWalletConfig from "./SmartContract/IWalletConfig";
+import Environment from "./Environment";
 
 // interface IShareDocumentConfig extends IConfig {
 //   evmWalletConfig: IWalletConfig;
 // }
 
 class ShareDocumentClient {
-  private storage: IStorage;
   private config: Config;
 
   constructor(config: Config) {
