@@ -1,60 +1,65 @@
 import { expect, test } from "@jest/globals";
 import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
 import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
-import { Wallet } from "secretjs";
+import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
-import { getConfig } from "../config";
 import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
-import { getChain, getChainId } from "../config/chains";
-import Environment from "../config/Environment";
 import Config from "../src/Config";
+import dotenv from "dotenv";
+import Environment from "../src/Environment";
+
+dotenv.config();
+
+const config = new Config({
+  env: Environment.TESTNET,
+});
+
+config.useEvmWallet({
+  mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+});
+
+const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+
+const secretNetworkClient = new SecretNetworkClient({
+  url: config.getSecretNetwork().endpoint,
+  chainId: config.getSecretNetwork().chainId,
+  wallet: wallet,
+  walletAddress: wallet.address,
+});
+
+const shareDocument = new ShareDocumentSmartContract({
+  chainId: config.getSecretNetwork().chainId,
+  client: secretNetworkClient,
+  contract: config.getShareDocument(),
+  wallet: wallet,
+});
+
+const viemClient = new ViemClient({
+  chain: config.getChain(config.getChainId()),
+  walletConfig: config.getEvmWallet(),
+  contract: config.getPolygonToSecret(),
+});
+
+const polygonToSecret = new PolygonToSecretSmartContrat({
+  secretContract: config.getShareDocument(),
+  viemClient: viemClient,
+});
+
+const storeDocument = new StoreDocument({
+  storage: new FakeStorage(),
+  shareDocument: shareDocument,
+  polygonToSecret: polygonToSecret,
+});
+
+const fileUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
+
+const uploadOptions = {
+  contentType: "application/pdf",
+};
 
 test("Get Encrypted Payload from PDF", async () => {
-  const config = await getConfig(Environment.TESTNET);
-
-  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-
-  const secretNetwork = new SecretNetworkIntegration({
-    endpoint: config.chains.secretNetwork.endpoint,
-    chainId: config.chains.secretNetwork.chainId,
-    faucetEndpoint: config.chains.secretNetwork.faucetEndpoint,
-    wallet: wallet,
-  });
-
-  const shareDocument = new ShareDocumentSmartContract({
-    chainId: config.chains.secretNetwork.chainId,
-    client: secretNetwork.getClient(),
-    contract: config.contracts.ShareDocument,
-    wallet: wallet,
-  });
-
-  const viemClient = new ViemClient({
-    chain: getChain(getChainId()),
-    walletConfig: {
-      mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-    },
-    contract: config.contracts.PolygonToSecret,
-  });
-
-  const polygonToSecret = new PolygonToSecretSmartContrat({
-    secretContract: config.contracts.ShareDocument,
-    viemClient: viemClient,
-  });
-
-  const storeDocument = new StoreDocument({
-    storage: new FakeStorage(),
-    shareDocument: shareDocument,
-    polygonToSecret: polygonToSecret,
-  });
-
-  const fileUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
-
-  const uploadOptions = {
-    contentType: "application/pdf",
-  };
-
   const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
   uploadOptions.contentType = contentType;
   const bufferData = Buffer.from(data);
@@ -72,49 +77,6 @@ test("Get Encrypted Payload from PDF", async () => {
 }, 1_000_000);
 
 test("Store Encrypted Payload from PDF", async () => {
-  const config = new Config();
-  config.useWallet({
-    mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-  });
-  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-
-  const secretNetwork = new SecretNetworkIntegration({
-    endpoint: config.getSecretNetwork().endpoint,
-    chainId: config.getSecretNetwork().chainId,
-    faucetEndpoint: config.getSecretNetwork().faucetEndpoint,
-    wallet: wallet,
-  });
-
-  const shareDocument = new ShareDocumentSmartContract({
-    chainId: config.getSecretNetwork().chainId,
-    client: secretNetwork.getClient(),
-    contract: config.getShareDocument(),
-    wallet: wallet,
-  });
-
-  const viemClient = new ViemClient({
-    chain: getChain(getChainId()),
-    walletConfig: config.getWallet(),
-    contract: config.getPolygonToSecret(),
-  });
-
-  const polygonToSecret = new PolygonToSecretSmartContrat({
-    secretContract: config.getShareDocument(),
-    viemClient: viemClient,
-  });
-
-  const storeDocument = new StoreDocument({
-    storage: new FakeStorage(),
-    shareDocument: shareDocument,
-    polygonToSecret: polygonToSecret,
-  });
-
-  const fileUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
-
-  const uploadOptions = {
-    contentType: "application/pdf",
-  };
-
   const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
   uploadOptions.contentType = contentType;
   const bufferData = Buffer.from(data);
