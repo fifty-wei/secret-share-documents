@@ -10,7 +10,6 @@ use secret_toolkit::serialization::{Json, Serde};
 use secret_toolkit::storage::{Item, Keymap};
 
 
-
 pub const KEY_CONFIG: &[u8] = b"config";
 pub const KEY_CONTRACT_KEYS: &[u8] = b"contract_keys";
 pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
@@ -19,21 +18,15 @@ pub const KEY_FILE_PERMISSIONS: &[u8] = b"files_permissions";
 pub const PREFIX_FILES: &[u8] = b"files";
 pub const PREFIX_FILES_METADATA: &[u8] = b"files_metadata";
 pub const PREFIX_REVOKED_PERMITS: &str = "revoked_permits";
-pub const PREFIX_USERS: &[u8] = b"users";  // TODO :: Do a working approach then improve !
+pub const PREFIX_USERS: &[u8] = b"users";
 
 pub static CONFIG: Item<Config> = Item::new(KEY_CONFIG);
-
-
 
 /// Item to store the public/private key of the Secret Smart Contract
 pub static CONTRACT_KEYS: Item<ContractKeys> = Item::new(KEY_CONTRACT_KEYS);
 
 /// (file_id, user_address) => access
 pub static FILE_PERMISSIONS: Keymap<([u8; 32], Addr), bool> = Keymap::new(KEY_FILE_PERMISSIONS);
-
-
-// Some documentation
-// https://docs.scrt.network/secret-network-documentation/development/secret-contract-cosmwasm-framework/contract-components/storage/prefixed-storage
 
 
 #[derive(Serialize, Debug, Deserialize, Clone, JsonSchema)]
@@ -65,10 +58,9 @@ pub struct FileMetadata {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct UserInfo {
+    // Files the user can see
     pub files: Vec<[u8; 32]>, 
 }
-
-
 
 
 /// Returns StdResult<()> resulting from saving an item to storage
@@ -121,38 +113,3 @@ pub fn may_load<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> Std
 pub fn remove<S: Storage>(storage: &mut S, key: &[u8]) {
     storage.remove(key);
 }
-
-// TODO :: Should we change the encoding method - Use it when we have enum 
-
-// /// Returns StdResult<()> resulting from saving an item to storage using Json (de)serialization
-// /// because bincode2 annoyingly uses a float op when deserializing an enum
-// ///
-// /// # Arguments
-// ///
-// /// * `storage` - a mutable reference to the storage this item should go to
-// /// * `key` - a byte slice representing the key to access the stored item
-// /// * `value` - a reference to the item to store
-// pub fn json_save<T: Serialize, S: Storage>(
-//     storage: &mut S,
-//     key: &[u8],
-//     value: &T,
-// ) -> StdResult<()> {
-//     storage.set(key, &Json::serialize(value)?);
-//     Ok(())
-// }
-
-// /// Returns StdResult<T> from retrieving the item with the specified key using Json
-// /// (de)serialization because bincode2 annoyingly uses a float op when deserializing an enum.
-// /// Returns a StdError::NotFound if there is no item with that key
-// ///
-// /// # Arguments
-// ///
-// /// * `storage` - a reference to the storage this item is in
-// /// * `key` - a byte slice representing the key that accesses the stored item
-// pub fn json_load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
-//     Json::deserialize(
-//         &storage
-//             .get(key)
-//             .ok_or_else(|| StdError::not_found(type_name::<T>()))?,
-//     )
-// }

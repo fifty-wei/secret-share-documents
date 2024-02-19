@@ -1,41 +1,7 @@
-# Secret Contracts Starter Pack
+# Secret Sharing Document - Contract
 
-This is a template to build secret contracts in Rust to run in
-[Secret Network](https://github.com/scrtlabs/SecretNetwork).
-To understand the framework better, please read the overview in the
-[cosmwasm repo](https://github.com/CosmWasm/cosmwasm/blob/master/README.md),
-and dig into the [cosmwasm docs](https://www.cosmwasm.com).
-This assumes you understand the theory and just want to get coding.
-
-## Using your project
-
-Check the [Developing] section bellow to explain
-more on how to run tests and develop code. Or go through the
-[online tutorial](https://www.cosmwasm.com/docs/getting-started/intro) to get a better feel
-of how to develop.
-
-[Publishing](./Publishing.md) contains useful information on how to publish your contract
-to the world, once you are ready to deploy it on a running blockchain. And
-
-[Importing](./Importing.md) contains information about pulling in other contracts or crates
-that have been published.
-
-You can also find lots of useful recipes in the `Makefile` which you can use
-if you have `make` installed (very recommended. at least check them out).
-
-Please replace this README file with information about your specific project. You can keep
-the `Developing.md` and `Publishing.md` files as useful referenced, but please set some
-proper description in the README.
-
-
-# Developing
-
-If you have recently created a contract with this template, you probably could use some
-help on how to build and test the contract, as well as prepare it for production. This
-file attempts to provide a brief overview, assuming you have installed a recent
-version of Rust already (eg. 1.41+).
-
-
+Smart contract for sharing confidential documents on Secret Network.
+This contract is design to be use through Secret As A Service. 
 
 ## Prerequisites
 
@@ -56,90 +22,217 @@ rustup target add wasm32-unknown-unknown
 
 ## Compiling and running tests
 
-Now that you created your custom contract, make sure you can compile and run it before
-making any changes. Go into the
-
 ```sh
-# this will produce a wasm build in ./target/wasm32-unknown-unknown/release/secret_share_documents.wasm
-cargo wasm
+make build
+
+make test
 ```
 
+To auto-generate json schema, use 
 ```sh
-# this runs unit tests with helpful backtraces
-RUST_BACKTRACE=1 cargo unit-test
+make schema
+```
 
-# this runs integration tests with cranelift backend (uses rust stable)
-cargo integration-test
+# Requests 
 
-# auto-generate json schema
-cargo schema
+## Instanciate message
+
+Allows to initialize the contract. This message has no parameter.
+
+During the initialization, we are generating in the smart contract a public/private key, allowing future private communication through Secret As A Service. 
+
+As a reminder, execute transactions are not passed directly on secret network, but first on an EVM chain, as Polygon, and then, through Axelar GMP passed to Secret Network. On an EVM chain, the transaction needs to be encrypted as the content will be passed in clear. This is the reason why we need to have a public/private key in the contract, that allow us to create a shared secret between a user and the smart contract. 
+
+## Execute message
+
+Our smart contract expects to receive an EVM message. 
+
+To communicate, we have encapsulated sevral layers which composed the final user message. Each layer is responsible of a specific component. As an overview, we will have: 
+
+EVM Message > Encrypted Message > Permit Message > Execute Message
+
+### Receive Message EVM
+
+The smart contract expects to receive a `ReceiveMessageEvm`, which is the message sent by Axelar GMP.
+
+As an example:
+
+```json
+"receive_message_evm": {
+    "source_chain": "polygon",
+    "source_address": "0x329CdCBBD82c934fe32322b423bD8fBd30b4EEB6",
+    "payload": EncryptedExecuteMsg, 
+}
+```
+
+### Encrypted Execute Message
+
+The `EncryptedExecuteMsg` is a structure allowing users to share confidential message to the smart contract. 
+We expect the user to generate a public/private key locally, and use the public key of the smart contract to generate a shared secret. Then, using this shared secret to encrypt an `ExecutePermitMsg` that will be the `payload` of this message and share also the public key generated locally in `public_key` allowing the smart contract to know the shared secret based on the user public key and the smart contract private key.
+
+We expect `Vec<u8>` for the two parameters.
+
+```json
+{
+    "payload": [...],
+    "public_key": [...]
+}
+```
+
+### Execute Permit Message
+
+Once the message decrypted, we will expect to have an `ExecutePermitMsg`. We will expect to have a `permit`, allowing us to prove that the sender is the owner of the given account, and a message to execute.
+
+Note: we need a permit to prove the user as all the messages will be executed by Axelar GMP. In this way, the message is signed by Axelar and not the user. Without a permit, we cannot know which user has sent us a message.
+
+```json
+"execute_permit_msg": {
+    "with_permit": {
+        "permit": Permit,
+        "execute": ExecuteMsgAction,
+    },
+}
+```
+
+### Execute Message Action
+
+After all the previous encapsulated layer, it is now the final one, the type of action the user want to execute.
+
+#### Store a new file Action
+
+Store a new file. We expect to only have the content of it. The content can take any form as we expect a string.
+So, you can create a json with multiple information and store it directly.
+
+Notice: for larger data, as a file, you can use our SDK that will encrypt your file and store it in IPFS, then store in this smart contract the link of the file on IPFS and the key to decrypt it.
+
+```json
+"store_new_file": {
+    "payload": "{\"file\": \"content\"}"
+}
+```
+
+#### Manage file rights Action
+
+Only the owner of the file can call this function for the given file id.
+
+This message allow us to allow users to view the file (`add_viewing`) or revoke the viewing access to some user (`delete_viewing`). For those parameters, we expect a list of addresses.
+We also provide a way to change the owner of this file (`change_owner`), which expect an address.
+
+Notice: if we do not want to change the owner, we still need to provide the current owner of the file.
+
+```json
+"manage_file_rights": {
+    "file_id": "4cbbd8ca5215b8d161aec181a74b694f4e24b001d5b081dc0030ed797a8973e0",
+    "add_viewing": ["secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy"],
+    "delete_viewing": ["secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y"],
+    "change_owner": "secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy",
+}
 ```
 
 
-## Run integration tests
+## Query messages
 
-To run the latest integration tests, you need to explicitely rebuild the Wasm file with
-`cargo wasm` and then run `cargo integration-test`.
+Here the query message of the contract.
 
-## Generating JSON Schema
+### Get Contract Key Query
 
-While the Wasm calls (`init`, `handle`, `query`) accept JSON, this is not enough
-information to use it. We need to expose the schema for the expected messages to the
-clients. You can generate this schema by calling `cargo schema`, which will output
-4 files in `./schema`, corresponding to the 3 message types the contract accepts,
-as well as the internal `State`.
+Get the public key of the contract, allowing future encrypted communication with the smart contract by creating a share secret using this public key.
 
-These files are in standard json-schema format, which should be usable by various
-client side tools, either to auto-generate codecs, or just to validate incoming
-json wrt. the defined schema.
-
-
-## Preparing the Wasm bytecode for production
-
-Before we upload it to a chain, we need to ensure the smallest output size possible,
-as this will be included in the body of a transaction. We also want to have a
-reproducible build process, so third parties can verify that the uploaded Wasm
-code did indeed come from the claimed rust code.
-
-To solve both these issues, we have produced `rust-optimizer`, a docker image to
-produce an extremely small build output in a consistent manner. The suggest way
-to run it is this:
-
-```sh
-docker run --rm -v "$$(pwd)":/contract \
-    --mount type=volume,source="$$(basename "$$(pwd)")_cache",target=/contract/target \
-    --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-    enigmampc/secret-contract-optimizer:1.0.8
+```json
+{
+    "get_contract_key": {}
+}
 ```
 
-We must mount the contract code to `/contract`. You can use an absolute path instead
-of `$(pwd)` if you don't want to `cd` to the directory first. The other two
-volumes are nice for speedup. Mounting `/contract/target` in particular is useful
-to avoid docker overwriting your local dev files with root permissions.
-Note the `/contract/target` cache is unique for each contract being compiled to limit
-interference, while the registry cache is global.
+Response:
 
-This is rather slow compared to local compilations, especially the first compile
-of a given contract. The use of the two volume caches is very useful to speed up
-following compiles of the same contract.
-
-This produces a `contract.wasm` file in the current directory (which must be the root
-directory of your rust project, the one with `Cargo.toml` inside). As well as
-`hash.txt` containing the Sha256 hash of `contract.wasm`, and it will rebuild
-your schema files as well.
-
-### Testing production build
-
-Once we have this compressed `contract.wasm`, we may want to ensure it is actually
-doing everything it is supposed to (as it is about 4% of the original size).
-If you update the "WASM" line in `tests/integration.rs`, it will run the integration
-steps on the optimized build, not just the normal build. I have never seen a different
-behavior, but it is nice to verify sometimes.
-
-```rust
-static WASM: &[u8] = include_bytes!("../contract.wasm");
+```json
+{
+    "public_key": [...]
+}
 ```
 
-Note that this is the same (deterministic) code you will be uploading to
-a blockchain to test it out, as we need to shrink the size and produce a
-clear mapping from wasm hash back to the source code.
+
+### With Permit Query
+
+For some requests, we expect the user to prove that he is the owner of his address. Permits allow us to do this verification.
+
+```json
+{
+    "with_permit": {
+        "permit": Permit,
+        "query" QueryWithPermit
+    }
+}
+```
+
+### Query With Permit
+
+Once the user has proved that he owns his secret address, we can have multiple queries.
+
+#### Get file ids Query
+
+Given a user, retrieve the identifiers of the files to which the user has access.
+
+Example message:
+
+```json
+{
+    "get_file_ids": {}
+}
+```
+
+
+Example response:
+
+```json
+{
+    "file_ids": [..]
+}
+```
+
+
+#### Get File Content Query
+
+Retrieve the contents of the given file id. The requesting user must have view rights to access it. 
+
+Example message:
+
+```json
+{
+    "get_file_content": {
+        "file_id": "id_of_file"
+    }
+}
+```
+
+
+Example response:
+
+```json
+{
+    "payload": "{\"file\": \"content\"}"
+}
+```
+
+#### Get File Access Query
+
+Retrieve the rights of the given file id. Only the owner of the file can see it.
+
+```json
+{
+    "get_file_access": {
+        "file_id": "id_of_file"
+    }
+}
+```
+
+
+Example response:
+
+```json
+{
+    "owner": "secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy",
+    "viewers": ["secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy", ...]
+}
+```
