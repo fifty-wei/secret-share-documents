@@ -6,6 +6,7 @@ import {
   createPublicClient,
   createWalletClient,
   http,
+  formatEther,
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import IPolygonSmartContract from "./IPolygonSmartContract";
@@ -37,6 +38,10 @@ class ViemClient {
       chain: this.chain,
       transport: http(),
     });
+  }
+
+  getContract(){
+    return this.contract;
   }
 
   public setupWallet(config: IViemWallet) {
@@ -83,6 +88,10 @@ class ViemClient {
     });
 
     return this.walletClient.writeContract(request);
+  }
+
+  formatEther(value: bigint) {
+    return formatEther(value);
   }
 }
 
