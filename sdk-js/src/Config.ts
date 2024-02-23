@@ -9,6 +9,9 @@ import IStorage from "./StoreDocument/Storage/IStorage";
 import IViemWallet from "./SmartContract/IViemWallet";
 import ISecretNewtorkWallet from "./SmartContract/ISecretNewtorkWallet";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 interface IClientConfig {
   chains: {
@@ -150,7 +153,7 @@ class Config {
       contracts: {
         PolygonToSecret: {
           address: "",
-          abi: PolygonToSecretAbi,
+          abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
           address: "",
@@ -183,7 +186,7 @@ class Config {
       contracts: {
         PolygonToSecret: {
           address: "0x6DF893616680CaF051977D82CdcB4F6f66B2773d",
-          abi: PolygonToSecretAbi,
+          abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
           address: "secret1lg6hf72tma667ryqhuxs9dfsg80yzz7gq66sj2",

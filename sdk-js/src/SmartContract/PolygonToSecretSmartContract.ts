@@ -1,3 +1,4 @@
+import { parseEther } from "viem";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
 
@@ -18,8 +19,8 @@ class PolygonToSecretSmartContrat {
   async send(message: any): Promise<`0x${string}`> {
     return await this.viemClient.writeContract({
       functionName: "send",
-      args: [0, "secret", this.secretContract.address, message],
-      value: undefined,
+      args: ["secret", this.secretContract.address, message],
+      value: parseEther("0"),
     });
   }
 }

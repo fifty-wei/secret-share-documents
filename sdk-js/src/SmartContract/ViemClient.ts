@@ -6,6 +6,8 @@ import {
   createPublicClient,
   createWalletClient,
   http,
+  HDAccount,
+  PrivateKeyAccount,
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import IPolygonSmartContract from "./IPolygonSmartContract";
@@ -40,20 +42,31 @@ class ViemClient {
   }
 
   public setupWallet(config: IViemWallet) {
-    if (config?.mnemonic) {
-      const account = mnemonicToAccount(config.mnemonic);
-      return createWalletClient({
-        account: account,
-        chain: this.chain,
-        transport: http(),
-      });
-    }
-
+    /**
+     * EVM Wallet
+     */
     if (config?.client) {
       return config.client;
     }
 
+    /**
+     * Local Account
+     * @see https://viem.sh/docs/clients/wallet#local-accounts-private-key-mnemonic-etc
+     */
+    if (config?.mnemonic) {
+      return this.createWalletWithAccount(mnemonicToAccount(config.mnemonic));
+    }
+
+    if (config?.privateKey) {
+      return this.createWalletWithAccount(
+        privateKeyToAccount(config.privateKey),
+      );
+    }
+  }
+
+  public createWalletWithAccount(account: PrivateKeyAccount | HDAccount) {
     return createWalletClient({
+      account: account,
       chain: this.chain,
       transport: http(),
     });
@@ -68,11 +81,10 @@ class ViemClient {
 
     if (!address) {
       throw Error(
-        "Wallet Client not initialised. Please provide a valid mnemonic or client.",
+        "Wallet Client not initialised. Please provide a valid client based on mnemonic or private key or browser.",
       );
     }
 
-    // @ts-ignore
     const { request } = await this.publicClient.simulateContract({
       address: this.contract.address as `0x${string}`,
       abi: this.contract.abi,
@@ -81,6 +93,8 @@ class ViemClient {
       account: address,
       value: value,
     });
+
+    console.log({ request });
 
     return this.walletClient.writeContract(request);
   }
