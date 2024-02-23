@@ -1,21 +1,23 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
 import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
 
-class ViewDocument {
-  shareDocument: SecretDocumentSmartContract;
-  polygonToSecret: PolygonToSecretSmartContract;
+interface Props {
+  secretDocument: SecretDocumentSmartContract;
+}
 
-  constructor({ shareDocument, polygonToSecret }) {
-    this.shareDocument = shareDocument;
-    this.polygonToSecret = polygonToSecret;
+class ViewDocument {
+  secretDocument: SecretDocumentSmartContract;
+
+  constructor({ secretDocument }: Props) {
+    this.secretDocument = secretDocument;
   }
 
   async all(): Promise<Array<string>> {
-    return this.shareDocument.findAll();
+    return this.secretDocument.findAll();
   }
 
   async get(fileId: string): Promise<any> {
-    return this.shareDocument.getFile(fileId);
+    return this.secretDocument.getFile(fileId);
   }
 }
 

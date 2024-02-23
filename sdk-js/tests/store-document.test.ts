@@ -64,11 +64,9 @@ test("Get Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-      bufferData,
-      uploadOptions,
+    bufferData,
+    uploadOptions,
   );
-
-  console.log("[INFO] Encrypted message:", { encryptedMessage });
 
   expect(encryptedMessage).toBeDefined();
   expect(encryptedMessage).toHaveProperty("payload");
@@ -81,8 +79,8 @@ test("Store Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-      bufferData,
-      uploadOptions,
+    bufferData,
+    uploadOptions,
   );
 
   const payload = {
@@ -92,8 +90,6 @@ test("Store Encrypted Payload from PDF", async () => {
   };
 
   const response = await secretDocument.store(payload);
-
-  console.log("[INFO] Store document on Secret Network:", { response });
 
   expect(response).toBeDefined();
   expect(response.code).toEqual(0);

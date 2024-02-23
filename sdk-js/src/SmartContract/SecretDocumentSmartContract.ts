@@ -14,7 +14,11 @@ interface PublicKeyResponse {
   public_key: Array<number>;
 }
 
-interface FindAllFilesResponse {
+interface GetFileContentResponse {
+  payload: string;
+}
+
+interface GetFileIdsResponse {
   file_ids: Array<string>;
 }
 
@@ -47,7 +51,7 @@ class SecretDocumentSmartContract {
     return Uint8Array.from(res.public_key);
   }
 
-  async findAll(): Promise<any> {
+  async findAll(): Promise<Array<string>> {
     const permit = await this.generatePermit();
     const res = (await this.client.query.compute.queryContract({
       contract_address: this.contract.address,
@@ -56,21 +60,45 @@ class SecretDocumentSmartContract {
         with_permit: {
           permit: permit,
           query: {
-            get_file_ids: {}
-          }
-        }
+            get_file_ids: {},
+          },
+        },
       },
-    })) as FindAllFilesResponse;
+    })) as GetFileIdsResponse;
 
-    console.log(res);
-    //
-    // if ('err"' in res) {
-    //   throw new Error(
-    //     `Query failed with the following err: ${JSON.stringify(res)}`,
-    //   );
-    // }
+    if (!res?.file_ids) {
+      throw new Error(
+        `Query failed with the following err: ${JSON.stringify(res)}`,
+      );
+    }
 
     return res.file_ids;
+  }
+
+  async getFile(fileId: string) {
+    const permit = await this.generatePermit();
+    const res = (await this.client.query.compute.queryContract({
+      contract_address: this.contract.address,
+      code_hash: this.contract.hash,
+      query: {
+        with_permit: {
+          permit: permit,
+          query: {
+            get_file_content: {
+              file_id: fileId,
+            },
+          },
+        },
+      },
+    })) as GetFileContentResponse;
+
+    if (!res?.payload) {
+      throw new Error(
+        `Query failed with the following err: ${JSON.stringify(res)}`,
+      );
+    }
+
+    return JSON.parse(res.payload);
   }
 
   async generatePermit(): Promise<Permit> {

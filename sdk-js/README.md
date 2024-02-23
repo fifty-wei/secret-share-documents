@@ -43,7 +43,7 @@ config.useStorage(new ArweaveStorage()) // Store files on Arweave.
 const client = new SecretDocumentClient(config);
 ```
 
-### Store a document
+### Store new document
 
 ``` js
 const config = new Config();
@@ -52,7 +52,7 @@ const res = await client.storeDocument().fromFile(file); // file must be of type
 const res = await client.storeDocument().fromUrl('https://example.com/file.pdf');
 ```
 
-### View a document
+### View documents
 
 ``` js
 const config = new Config();

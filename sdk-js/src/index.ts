@@ -4,6 +4,7 @@ import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
 import Config from "./Config";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
+import ViewDocument from "./ViewDocument";
 
 class SecretDocumentClient {
   private config: Config;
@@ -56,11 +57,20 @@ class SecretDocumentClient {
     });
   }
 
+  /**
+   * Use cases
+   */
   public storeDocument() {
     return new StoreDocument({
       storage: this.config.getStorage(),
-      shareDocument: this.shareDocument(),
+      secretDocument: this.shareDocument(),
       polygonToSecret: this.polygonToSecret(),
+    });
+  }
+
+  public viewDocument() {
+    return new ViewDocument({
+      secretDocument: this.shareDocument(),
     });
   }
 }
