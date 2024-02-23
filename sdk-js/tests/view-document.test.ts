@@ -50,13 +50,19 @@ const viewDocument = new ViewDocument({
   polygonToSecret: polygonToSecret,
 });
 
-
 test("Find all allowed files", async () => {
   const data = await viewDocument.all();
-
-  console.log("[INFO] Allowed Files:", { data });
 
   expect(data).toBeDefined();
   // expect(data).toHaveProperty("payload");
   // expect(data).toHaveProperty("public_key");
-}, 1_000_000);
+});
+
+test("Find a single file by Id", async () => {
+  const data = await viewDocument.get(
+    "24b4bd2bd6495f74dc1fbd7473292f8fd658d6fede78e6343e2aceb0fdc2b967",
+  );
+
+  expect(data).toBeDefined();
+  expect(data).toHaveProperty("url");
+});
