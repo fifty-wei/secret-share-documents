@@ -3,7 +3,7 @@ import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartC
 import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
-import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
+import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import Config from "../src/Config";
 import dotenv from "dotenv";
@@ -41,7 +41,7 @@ const viemClient = new ViemClient({
   contract: config.getPolygonToSecret(),
 });
 
-const polygonToSecret = new PolygonToSecretSmartContrat({
+const polygonToSecret = new PolygonToSecretSmartContract({
   secretContract: config.getShareDocument(),
   viemClient: viemClient,
 });
@@ -64,8 +64,8 @@ test("Get Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
+      bufferData,
+      uploadOptions,
   );
 
   console.log("[INFO] Encrypted message:", { encryptedMessage });
@@ -81,8 +81,8 @@ test("Store Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
+      bufferData,
+      uploadOptions,
   );
 
   const payload = {
