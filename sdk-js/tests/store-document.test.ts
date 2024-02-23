@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
+import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
@@ -28,7 +28,7 @@ const secretNetworkClient = new SecretNetworkClient({
   walletAddress: wallet.address,
 });
 
-const shareDocument = new ShareDocumentSmartContract({
+const secretDocument = new SecretDocumentSmartContract({
   chainId: config.getSecretNetwork().chainId,
   client: secretNetworkClient,
   contract: config.getShareDocument(),
@@ -48,7 +48,7 @@ const polygonToSecret = new PolygonToSecretSmartContract({
 
 const storeDocument = new StoreDocument({
   storage: new FakeStorage(),
-  shareDocument: shareDocument,
+  secretDocument: secretDocument,
   polygonToSecret: polygonToSecret,
 });
 
@@ -91,7 +91,7 @@ test("Store Encrypted Payload from PDF", async () => {
     payload: encryptedMessage,
   };
 
-  const response = await shareDocument.store(payload);
+  const response = await secretDocument.store(payload);
 
   console.log("[INFO] Store document on Secret Network:", { response });
 
