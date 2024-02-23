@@ -9,6 +9,9 @@ import IStorage from "./StoreDocument/Storage/IStorage";
 import IViemWallet from "./SmartContract/IViemWallet";
 import ISecretNewtorkWallet from "./SmartContract/ISecretNewtorkWallet";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 interface IClientConfig {
   chains: {

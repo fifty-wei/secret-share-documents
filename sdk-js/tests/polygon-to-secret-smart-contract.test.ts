@@ -2,8 +2,8 @@ import { jest, expect, test } from "@jest/globals";
 import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import Config from "../src/Config";
-import Environment from "../src/Environment";
 import dotenv from "dotenv";
+import Environment from "../src/Environment";
 
 dotenv.config();
 
@@ -23,9 +23,7 @@ test("Send message from Polygon to Secret Network", async () => {
 
   const viemClient = new ViemClient({
     chain: config.getChain(config.getChainId()),
-    walletConfig: {
-      mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-    },
+    walletConfig: config.getEvmWallet(),
     contract: config.getPolygonToSecret(),
   });
 

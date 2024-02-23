@@ -1,6 +1,13 @@
+import { parseEther } from "viem";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
-import {AxelarQueryAPI, AxelarQueryAPIFeeResponse, Environment, EvmChain, GasToken} from "@axelar-network/axelarjs-sdk";
+import {
+  AxelarQueryAPI,
+  AxelarQueryAPIFeeResponse,
+  Environment,
+  EvmChain,
+  GasToken,
+} from "@axelar-network/axelarjs-sdk";
 
 interface Props {
   secretContract: ISecretNetworkSmartContract;
@@ -16,7 +23,7 @@ class PolygonToSecretSmartContrat {
     this.secretContract = secretContract;
   }
 
-  async getEstimateFee(): Promise<AxelarQueryAPIFeeResponse>{
+  async getEstimateFee(): Promise<AxelarQueryAPIFeeResponse> {
     const axelar = new AxelarQueryAPI({
       environment: Environment.TESTNET,
     });
@@ -26,17 +33,17 @@ class PolygonToSecretSmartContrat {
       destinationContractAddress: this.secretContract.address,
       sourceContractAddress: this.viemClient.getContract().address,
       tokenSymbol: GasToken.MATIC,
-    }
+    };
 
-    return await axelar.estimateGasFee(
-        EvmChain.POLYGON,
-        'secret',
-        GasToken.MATIC,
-        BigInt(100000),
-        "auto",
-        "0",
-        gmpParams
-    ) as AxelarQueryAPIFeeResponse;
+    return (await axelar.estimateGasFee(
+      EvmChain.POLYGON,
+      "secret",
+      GasToken.MATIC,
+      BigInt(100000),
+      "auto",
+      "0",
+      gmpParams,
+    )) as AxelarQueryAPIFeeResponse;
   }
 
   async send(message: any): Promise<`0x${string}`> {
