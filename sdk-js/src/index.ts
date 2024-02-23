@@ -1,5 +1,5 @@
 import { SecretNetworkClient, Wallet } from "secretjs";
-import ShareDocumentSmartContract from "./SmartContract/ShareDocumentSmartContract";
+import SecretDocumentSmartContract from "./SmartContract/SecretDocumentSmartContract";
 import ViemClient from "./SmartContract/ViemClient";
 import StoreDocument from "./StoreDocument";
 import Config from "./Config";
@@ -48,7 +48,7 @@ class SecretDocumentClient {
       throw new Error("Config not loaded. Please call getConfig() first.");
     }
 
-    return new ShareDocumentSmartContract({
+    return new SecretDocumentSmartContract({
       chainId: this.config.getSecretNetwork().chainId,
       client: this.secretNetworkClient(),
       wallet: this.secretNetworkWallet(),

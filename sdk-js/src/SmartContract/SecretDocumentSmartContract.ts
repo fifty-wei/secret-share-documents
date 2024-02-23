@@ -10,11 +10,15 @@ interface Props {
   wallet: Wallet;
 }
 
-type PublicKey = {
+interface PublicKeyResponse {
   public_key: Array<number>;
-};
+}
 
-class ShareDocumentSmartContract {
+interface FindAllFilesResponse {
+  file_ids: Array<string>;
+}
+
+class SecretDocumentSmartContract {
   private client: SecretNetworkClient;
   private contract: ISecretNetworkSmartContract;
   private wallet: Wallet;
@@ -32,7 +36,7 @@ class ShareDocumentSmartContract {
       contract_address: this.contract.address,
       code_hash: this.contract.hash,
       query: { get_contract_key: {} },
-    })) as PublicKey;
+    })) as PublicKeyResponse;
 
     if ('err"' in res) {
       throw new Error(
@@ -43,11 +47,37 @@ class ShareDocumentSmartContract {
     return Uint8Array.from(res.public_key);
   }
 
+  async findAll(): Promise<any> {
+    const permit = await this.generatePermit();
+    const res = (await this.client.query.compute.queryContract({
+      contract_address: this.contract.address,
+      code_hash: this.contract.hash,
+      query: {
+        with_permit: {
+          permit: permit,
+          query: {
+            get_file_ids: {}
+          }
+        }
+      },
+    })) as FindAllFilesResponse;
+
+    console.log(res);
+    //
+    // if ('err"' in res) {
+    //   throw new Error(
+    //     `Query failed with the following err: ${JSON.stringify(res)}`,
+    //   );
+    // }
+
+    return res.file_ids;
+  }
+
   async generatePermit(): Promise<Permit> {
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
       this.chainId,
-      "SHARE_DOCUMENT_PERMIT_" + Math.ceil(Math.random() * 10000), // Should be unique for every contract, add random string in order to maintain uniqueness
+      "SECRET_DOCUMENT_PERMIT_" + Math.ceil(Math.random() * 10000), // Should be unique for every contract, add random string in order to maintain uniqueness
       [this.contract.address],
       ["owner"],
       false,
@@ -71,4 +101,4 @@ class ShareDocumentSmartContract {
   }
 }
 
-export default ShareDocumentSmartContract;
+export default SecretDocumentSmartContract;

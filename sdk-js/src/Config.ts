@@ -47,7 +47,7 @@ class Config {
       contracts: {
         PolygonToSecret: {
           address: "",
-          abi: PolygonToSecretAbi,
+          abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
           address: "",

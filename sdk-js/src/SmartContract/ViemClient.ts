@@ -10,27 +10,27 @@ import {
   PrivateKeyAccount,
   formatEther,
 } from "viem";
-import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
+import {mnemonicToAccount, privateKeyToAccount} from "viem/accounts";
 import IPolygonSmartContract from "./IPolygonSmartContract";
 import IViemWallet from "./IViemWallet";
 
 interface Props {
-  chain: Chain;
-  walletConfig: IViemWallet;
-  contract: IPolygonSmartContract;
+    chain: Chain;
+    walletConfig: IViemWallet;
+    contract: IPolygonSmartContract;
 }
 
 interface WriteContractProps {
-  functionName: string;
-  args: Array<any>;
-  value?: bigint;
+    functionName: string;
+    args: Array<any>;
+    value?: bigint;
 }
 
 class ViemClient {
-  chain: Chain;
-  walletClient: WalletClient;
-  publicClient: PublicClient<Transport, Chain>;
-  contract: IPolygonSmartContract;
+    chain: Chain;
+    walletClient: WalletClient;
+    publicClient: PublicClient<Transport, Chain>;
+    contract: IPolygonSmartContract;
 
   constructor({ chain, walletConfig, contract }: Props) {
     this.chain = chain;
@@ -77,34 +77,45 @@ class ViemClient {
     });
   }
 
-  public async writeContract({
-    functionName,
-    args,
-    value,
-  }: WriteContractProps) {
-    const [address] = await this.walletClient.getAddresses();
+        if (config?.client) {
+            return config.client;
+        }
 
-    if (!address) {
-      throw Error(
-        "Wallet Client not initialised. Please provide a valid client based on mnemonic or private key or browser.",
-      );
+        return createWalletClient({
+            chain: this.chain,
+            transport: http(),
+        });
     }
 
-    const { request } = await this.publicClient.simulateContract({
-      address: this.contract.address as `0x${string}`,
-      abi: this.contract.abi,
-      functionName: functionName,
-      args: args,
-      account: address,
-      value: value,
-    });
+    public async writeContract({
+                                   functionName,
+                                   args,
+                                   value,
+                               }: WriteContractProps) {
+        const [address] = await this.walletClient.getAddresses();
 
-    return this.walletClient.writeContract(request);
-  }
+        if (!address) {
+            throw Error(
+                "Wallet Client not initialised. Please provide a valid mnemonic or client.",
+            );
+        }
 
-  formatEther(value: bigint) {
-    return formatEther(value);
-  }
+        // @ts-ignore
+        const {request} = await this.publicClient.simulateContract({
+            address: this.contract.address as `0x${string}`,
+            abi: this.contract.abi,
+            functionName: functionName,
+            args: args,
+            account: address,
+            value: value,
+        });
+
+        return this.walletClient.writeContract(request);
+    }
+
+    formatEther(value: bigint): bigint {
+        return BigInt(formatEther(value));
+    }
 }
 
 export default ViemClient;
