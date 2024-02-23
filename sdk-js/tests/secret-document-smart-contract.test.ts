@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
+import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import Config from "../src/Config";
 import dotenv from "dotenv";
@@ -20,7 +20,7 @@ const secretNetworkClient = new SecretNetworkClient({
 });
 
 test("Get ShareDocument public key", async () => {
-  const shareDocument = new ShareDocumentSmartContract({
+  const shareDocument = new SecretDocumentSmartContract({
     chainId: config.getSecretNetwork().chainId,
     client: secretNetworkClient,
     contract: config.getShareDocument(),
@@ -33,7 +33,7 @@ test("Get ShareDocument public key", async () => {
 }, 1_000_000);
 
 test("Get ShareDocument permit", async () => {
-  const shareDocument = new ShareDocumentSmartContract({
+  const shareDocument = new SecretDocumentSmartContract({
     chainId: config.getSecretNetwork().chainId,
     client: secretNetworkClient,
     contract: config.getShareDocument(),

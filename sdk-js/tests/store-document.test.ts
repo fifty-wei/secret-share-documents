@@ -1,9 +1,9 @@
 import { expect, test } from "@jest/globals";
-import ShareDocumentSmartContract from "../src/SmartContract/ShareDocumentSmartContract";
+import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
-import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
+import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import Config from "../src/Config";
 import dotenv from "dotenv";
@@ -28,7 +28,7 @@ const secretNetworkClient = new SecretNetworkClient({
   walletAddress: wallet.address,
 });
 
-const shareDocument = new ShareDocumentSmartContract({
+const secretDocument = new SecretDocumentSmartContract({
   chainId: config.getSecretNetwork().chainId,
   client: secretNetworkClient,
   contract: config.getShareDocument(),
@@ -41,14 +41,14 @@ const viemClient = new ViemClient({
   contract: config.getPolygonToSecret(),
 });
 
-const polygonToSecret = new PolygonToSecretSmartContrat({
+const polygonToSecret = new PolygonToSecretSmartContract({
   secretContract: config.getShareDocument(),
   viemClient: viemClient,
 });
 
 const storeDocument = new StoreDocument({
   storage: new FakeStorage(),
-  shareDocument: shareDocument,
+  secretDocument: secretDocument,
   polygonToSecret: polygonToSecret,
 });
 
@@ -64,8 +64,8 @@ test("Get Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
+      bufferData,
+      uploadOptions,
   );
 
   console.log("[INFO] Encrypted message:", { encryptedMessage });
@@ -81,8 +81,8 @@ test("Store Encrypted Payload from PDF", async () => {
   const bufferData = Buffer.from(data);
 
   const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
+      bufferData,
+      uploadOptions,
   );
 
   const payload = {
@@ -91,7 +91,7 @@ test("Store Encrypted Payload from PDF", async () => {
     payload: encryptedMessage,
   };
 
-  const response = await shareDocument.store(payload);
+  const response = await secretDocument.store(payload);
 
   console.log("[INFO] Store document on Secret Network:", { response });
 

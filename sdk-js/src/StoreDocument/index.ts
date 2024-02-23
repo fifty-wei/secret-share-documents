@@ -1,19 +1,25 @@
-import ShareDocumentSmartContract from "../SmartContract/ShareDocumentSmartContract";
 import SymmetricKeyEncryption from "./Encryption/SymmetricKeyEncryption";
 import IUploadOptions from "./Storage/IUploadOptions";
 import ECDHEncryption from "./Encryption/ECDHEncryption";
 import IEncryptedMessage from "./IEncryptedMessage";
 import IStorage from "./Storage/IStorage";
-import PolygonToSecretSmartContrat from "../SmartContract/PolygonToSecretSmartContract";
+import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
+import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
+
+interface Props {
+    secretDocument: SecretDocumentSmartContract;
+    polygonToSecret: PolygonToSecretSmartContract;
+    storage: IStorage;
+}
 
 class StoreDocument {
   storage: IStorage;
-  shareDocument: ShareDocumentSmartContract;
-  polygonToSecret: PolygonToSecretSmartContrat;
+  secretDocument: SecretDocumentSmartContract;
+  polygonToSecret: PolygonToSecretSmartContract;
 
-  constructor({ shareDocument, polygonToSecret, storage }) {
+  constructor({ secretDocument, polygonToSecret, storage }: Props) {
     this.storage = storage;
-    this.shareDocument = shareDocument;
+    this.secretDocument = secretDocument;
     this.polygonToSecret = polygonToSecret;
   }
 
@@ -43,14 +49,14 @@ class StoreDocument {
     // Use ECDH method, to generate local asymmetric keys.
     const ECDHKeys = ECDHEncryption.generate();
     // Get the public key of the smart contract deployed on Secret Network
-    const shareDocumentPublicKey = await this.shareDocument.getPublicKey();
+    const shareDocumentPublicKey = await this.secretDocument.getPublicKey();
 
     const ECDHSharedKey = ECDHEncryption.generateSharedKey(
       shareDocumentPublicKey,
       ECDHKeys.privateKey,
     );
 
-    const shareDocumentPermit = await this.shareDocument.generatePermit();
+    const shareDocumentPermit = await this.secretDocument.generatePermit();
 
     // Build new JSON with permit + the ECDH public key.
     const payloadWithPermit = {

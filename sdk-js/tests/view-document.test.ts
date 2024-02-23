@@ -65,6 +65,4 @@ test("Find a single file by Id", async () => {
 
   expect(data).toBeDefined();
   expect(data).toHaveProperty("url");
-  // expect(data).toHaveProperty("payload");
-  // expect(data).toHaveProperty("public_key");
-}, 1_000_000);
+});
