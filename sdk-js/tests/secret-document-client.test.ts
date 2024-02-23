@@ -2,12 +2,18 @@ import { test, expect } from "@jest/globals";
 import SecretDocumentClient from "../src";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import Config from "../src/Config";
+import Environment from "../src/Environment";
+import initLocalSecretNetworkSmartContract from "./init-local-secret-document";
 
 const config = new Config();
 config.useStorage(new FakeStorage());
 const client = new SecretDocumentClient(config);
 
 test("Store Document use case", async () => {
+  if (config.getEnv() === Environment.LOCAL) {
+    const contract = await initLocalSecretNetworkSmartContract(config);
+    config.useShareDocument(contract);
+  }
   const responseUrl = await client
     .storeDocument()
     .fromUrl("https://school.truchot.co/ressources/brief-arolles-bis.pdf");
@@ -23,6 +29,10 @@ test("Store Document use case", async () => {
 });
 
 test("View Document use case", async () => {
+  if (config.getEnv() === Environment.LOCAL) {
+    const contract = await initLocalSecretNetworkSmartContract(config);
+    config.useShareDocument(contract);
+  }
   const fileIds = await client.viewDocument().all();
 
   const fileContent = await client.viewDocument().get(fileIds[0]);

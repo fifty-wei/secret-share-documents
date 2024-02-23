@@ -1,15 +1,15 @@
+import dotenv from "dotenv";
 import { jest, expect, test } from "@jest/globals";
 import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import Config from "../src/Config";
-import dotenv from "dotenv";
 import Environment from "../src/Environment";
 
 dotenv.config();
 
-// Mock IEncryptedMessage
+// Mock ISymmetricEncryptedData
 const encryptedMessageMock = jest.mock(
-  "../src/StoreDocument/IEncryptedMessage",
+  "../src/Encryption/ISymmetricEncryptedData",
   () => ({
     payload: [1, 2, 3], // Mock payload array
     public_key: [4, 5, 6], // Mock public_key array

@@ -1,4 +1,3 @@
-import { parseEther } from "viem";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
 import {

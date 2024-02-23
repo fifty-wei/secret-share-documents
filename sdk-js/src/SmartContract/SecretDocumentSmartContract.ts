@@ -1,4 +1,4 @@
-import { Permit, SecretNetworkClient, Wallet } from "secretjs";
+import { Permit, SecretNetworkClient, TxResponse, Wallet } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 
 export type Address = `0x${string}`;
@@ -33,6 +33,10 @@ class SecretDocumentSmartContract {
     this.client = client;
     this.contract = contract;
     this.wallet = wallet;
+  }
+
+  getWallet() {
+    return this.wallet;
   }
 
   async getPublicKey(): Promise<Uint8Array> {
@@ -112,7 +116,7 @@ class SecretDocumentSmartContract {
     );
   }
 
-  async store(message: any) {
+  async store(message: any): Promise<TxResponse> {
     return await this.client.tx.compute.executeContract(
       {
         sender: this.wallet.address,
@@ -120,6 +124,22 @@ class SecretDocumentSmartContract {
         code_hash: this.contract.hash,
         msg: {
           receive_message_evm: message,
+        },
+      },
+      {
+        gasLimit: 100_000,
+      },
+    );
+  }
+
+  async share(encryptedMessage: any): Promise<TxResponse> {
+    return await this.client.tx.compute.executeContract(
+      {
+        sender: this.wallet.address,
+        contract_address: this.contract.address,
+        code_hash: this.contract.hash,
+        msg: {
+          receive_message_evm: encryptedMessage,
         },
       },
       {

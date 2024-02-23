@@ -1,15 +1,15 @@
-import SymmetricKeyEncryption from "./Encryption/SymmetricKeyEncryption";
 import IUploadOptions from "./Storage/IUploadOptions";
-import ECDHEncryption from "./Encryption/ECDHEncryption";
-import IEncryptedMessage from "./IEncryptedMessage";
+import SymmetricKeyEncryption from "../Encryption/SymmetricKeyEncryption";
+import ECDHEncryption from "../Encryption/ECDHEncryption";
+import ISymmetricEncryptedData from "../Encryption/ISymmetricEncryptedData";
 import IStorage from "./Storage/IStorage";
 import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
 
 interface Props {
-    secretDocument: SecretDocumentSmartContract;
-    polygonToSecret: PolygonToSecretSmartContract;
-    storage: IStorage;
+  secretDocument: SecretDocumentSmartContract;
+  polygonToSecret: PolygonToSecretSmartContract;
+  storage: IStorage;
 }
 
 class StoreDocument {
@@ -26,7 +26,7 @@ class StoreDocument {
   async getEncryptedMessage(
     bufferData: Buffer,
     uploadOptions: IUploadOptions,
-  ): Promise<IEncryptedMessage> {
+  ): Promise<ISymmetricEncryptedData> {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKeyEncryption.generate();
 
@@ -83,7 +83,7 @@ class StoreDocument {
   }
 
   async storeEncryptedMessage(
-    encryptedMessage: IEncryptedMessage,
+    encryptedMessage: ISymmetricEncryptedData,
   ): Promise<string> {
     const payload = {
       source_chain: "test-chain",
