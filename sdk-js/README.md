@@ -20,20 +20,43 @@ ENVIRONMENT= "mainnet" | "testnet" | "local"
 npm run test
 ```
 
-## How to use
+## How to
+
+### Configure the client
+
+``` js
+const config = new Config();
+
+// You can use your Wagmi wallet from client with:
+const { data: walletClient } = useWalletClient();
+config.useEvmWallet({
+  client: walletClient
+})
+
+// Use the storage you prefer.
+// By default FakeStorage is used.
+config.useStorage(new FakeStorage()) // Do not store anything.
+config.useStorage(new IpfsStorage()) // Store files on IPFS.
+config.useStorage(new ArweaveStorage()) // Store files on Arweave.
+
+// Initialize the client.
+const client = new SecretDocumentClient(config);
+```
 
 ### Store a document
 
-``` bash
-const client = new SecretDocumentClient();
+``` js
+const config = new Config();
+const client = new SecretDocumentClient(config);
 const res = await client.storeDocument().fromFile(file); // file must be of type File.
 const res = await client.storeDocument().fromUrl('https://example.com/file.pdf');
 ```
 
 ### View a document
 
-``` bash
-const client = new SecretDocumentClient();
+``` js
+const config = new Config();
+const client = new SecretDocumentClient(config);
 // Retrieve all fileIds documents you have access to.
 const res = await client.viewDocument().all();
 // Get the content of a specific document.
