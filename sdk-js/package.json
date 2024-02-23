@@ -24,6 +24,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@axelar-network/axelarjs-sdk": "^0.14.1",
     "@cosmjs/encoding": "^0.32.2",
     "@wagmi/core": "^2.6.4",
     "dotenv": "^16.4.1",
