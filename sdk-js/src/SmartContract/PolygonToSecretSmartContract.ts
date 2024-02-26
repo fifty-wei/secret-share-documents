@@ -1,3 +1,5 @@
+import IEncryptedData from "../Encryption/IEncryptedData";
+import { IReceiveMessageEvm } from "./IQueryPayload";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
 import {
@@ -45,7 +47,7 @@ class PolygonToSecretSmartContrat {
     )) as AxelarQueryAPIFeeResponse;
   }
 
-  async send(message: any): Promise<`0x${string}`> {
+  async send(message: IReceiveMessageEvm): Promise<`0x${string}`> {
     const gasEstimate = await this.getEstimateFee();
 
     return await this.viemClient.writeContract({

@@ -1,11 +1,14 @@
 import IUploadOptions from "./Storage/IUploadOptions";
 import SymmetricKeyEncryption from "../Encryption/SymmetricKeyEncryption";
-import ECDHEncryption from "../Encryption/ECDHEncryption";
-import ISymmetricEncryptedData from "../Encryption/ISymmetricEncryptedData";
 import IStorage from "./Storage/IStorage";
 import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
 import IEncryptedData from "../Encryption/IEncryptedData";
+
+interface UploadedDocument {
+  url: string;
+  symmetricKey: Buffer;
+}
 
 interface Props {
   secretDocument: SecretDocumentSmartContract;
@@ -24,10 +27,10 @@ class StoreDocument {
     this.polygonToSecret = polygonToSecret;
   }
 
-  async getEncryptedMessage(
+  async uploadDocument(
     bufferData: Buffer,
     uploadOptions: IUploadOptions,
-  ): Promise<IEncryptedData> {
+  ): Promise<UploadedDocument> {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKeyEncryption.generate();
 
@@ -42,45 +45,25 @@ class StoreDocument {
 
     // Create a JSON file that bundles the information to be stored on Secret Network,
     // including the storage link and the symmetric key (generated locally) used to encrypt the data.
-    const payloadJson = {
+    return {
       url: storageLink,
       symmetricKey: localSymmetricKey,
     };
+  }
 
-    // Use ECDH method, to generate local asymmetric keys.
-    const ECDHKeys = ECDHEncryption.generate();
-    // Get the public key of the smart contract deployed on Secret Network
-    const shareDocumentPublicKey = await this.secretDocument.getPublicKey();
+  async getEncryptedMessage(
+    bufferData: Buffer,
+    uploadOptions: IUploadOptions,
+  ): Promise<IEncryptedData> {
+    const payloadJson = await this.uploadDocument(bufferData, uploadOptions);
 
-    const ECDHSharedKey = ECDHEncryption.generateSharedKey(
-      shareDocumentPublicKey,
-      ECDHKeys.privateKey,
-    );
+    const payloadWithPermit = await this.secretDocument.wrapPayloadWithPermit({
+      execute: this.secretDocument
+        .getExecuteFactory()
+        .storeNewFile(JSON.stringify(payloadJson)),
+    });
 
-    const shareDocumentPermit = await this.secretDocument.generatePermit();
-
-    // Build new JSON with permit + the ECDH public key.
-    const payloadWithPermit = {
-      with_permit: {
-        permit: shareDocumentPermit,
-        execute: {
-          store_new_file: {
-            payload: JSON.stringify(payloadJson),
-          },
-        },
-      },
-    };
-
-    // Encrypt the JSON with the public ECDH shared key.
-    const encryptedPayload = await ECDHEncryption.encrypt(
-      payloadWithPermit,
-      ECDHSharedKey,
-    );
-
-    return {
-      payload: Array.from(encryptedPayload),
-      public_key: Array.from(ECDHKeys.publicKey),
-    };
+    return this.secretDocument.encryptPayload(payloadWithPermit);
   }
 
   async storeEncryptedMessage(
@@ -109,16 +92,9 @@ class StoreDocument {
 
   async fromUrl(fileUrl: string): Promise<string> {
     // Fetch the document and prepare upload options.
-    // const response = await fetch(fileUrl);
     let uploadOptions: IUploadOptions = {
       contentType: "",
     };
-
-    // if (response.headers.get("content-type")) {
-    //   uploadOptions.contentType = response.headers.get(
-    //     "content-type",
-    //   ) as string;
-    // }
 
     const { data, contentType } = await this.fetchDocument(fileUrl);
     uploadOptions.contentType = contentType;
@@ -135,7 +111,6 @@ class StoreDocument {
     const encryptedMessage = await this.getEncryptedMessage(bufferData, {
       contentType: file.type,
     });
-    console.log({ encryptedMessage });
     return this.storeEncryptedMessage(encryptedMessage);
   }
 }

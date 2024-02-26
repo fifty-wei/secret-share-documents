@@ -1,4 +1,16 @@
-export async function store({ secretDocument, storeDocument, fileUrl }) {
+import SecretDocumentClient from "../src";
+import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
+import StoreDocument from "../src/StoreDocument";
+
+export async function store({
+  secretDocument,
+  storeDocument,
+  fileUrl,
+}: {
+  secretDocument: SecretDocumentSmartContract;
+  storeDocument: StoreDocument;
+  fileUrl: string;
+}) {
   let uploadOptions = {
     contentType: "toBeDefined",
   };

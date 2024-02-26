@@ -1,70 +1,57 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
 import ECDHEncryption from "../Encryption/ECDHEncryption";
+import {
+  FileRights,
+  IExecutePayload,
+  IReceiveMessageEvm,
+  ManageFileRightsPayload,
+} from "../SmartContract/IQueryPayload";
+import PolygonToSecretSmartContrat from "../SmartContract/PolygonToSecretSmartContract";
 
 interface Props {
   secretDocument: SecretDocumentSmartContract;
-}
-
-interface FileRights {
-  addViewing?: Array<string>;
-  deleteViewing?: Array<string>;
-  changeOwner?: string;
+  polygonToSecret: PolygonToSecretSmartContrat;
 }
 
 class ShareDocument {
-  secretDocument: SecretDocumentSmartContract;
+  private secretDocument: SecretDocumentSmartContract;
+  private polygonToSecret: PolygonToSecretSmartContrat;
 
-  constructor({ secretDocument }: Props) {
+  constructor({ secretDocument, polygonToSecret }: Props) {
     this.secretDocument = secretDocument;
+    this.polygonToSecret = polygonToSecret;
   }
 
-  getManagedFileRights(fileId: string, fileRights: FileRights) {
-    return {
-      file_id: fileId,
-      add_viewing: fileRights?.addViewing || [],
-      delete_viewing: fileRights?.deleteViewing || [],
-      change_owner:
-        fileRights?.changeOwner || this.secretDocument.getWallet().address,
+  async getEncryptedMessage(fileId: string, fileRights: Partial<FileRights>) {
+    const fileRightsWithOwner = {
+      ...fileRights,
+      changeOwner: fileRights?.changeOwner
+        ? fileRights.changeOwner
+        : this.secretDocument.getWallet().address,
     };
+
+    const manageFileRightsPayload = this.secretDocument
+      .getExecuteFactory()
+      .manageFileRights(fileId, fileRightsWithOwner);
+
+    const payloadWithPermit =
+      await this.secretDocument.wrapPayloadWithPermit<ManageFileRightsPayload>(
+        this.secretDocument
+          .getExecuteFactory()
+          .execute(manageFileRightsPayload),
+      );
+
+    return this.secretDocument.encryptPayload(payloadWithPermit);
   }
 
-  async getEncryptedMessage(fileId: string, fileRights: FileRights) {
-    // Use ECDH method, to generate local asymmetric keys.
-    const ECDHKeys = ECDHEncryption.generate();
-    // Get the public key of the smart contract deployed on Secret Network
-    const shareDocumentPublicKey = await this.secretDocument.getPublicKey();
-
-    const ECDHSharedKey = ECDHEncryption.generateSharedKey(
-      shareDocumentPublicKey,
-      ECDHKeys.privateKey,
-    );
-
-    const shareDocumentPermit = await this.secretDocument.generatePermit();
-
-    // Build new JSON with permit + the ECDH public key.
-    const payloadWithPermit = {
-      with_permit: {
-        permit: shareDocumentPermit,
-        execute: {
-          manage_file_rights: this.getManagedFileRights(fileId, fileRights),
-        },
-      },
+  async share(fileId: string, fileRights: Partial<FileRights>): Promise<any> {
+    const encryptedMessage = await this.getEncryptedMessage(fileId, fileRights);
+    const receiveMessageEvm: IReceiveMessageEvm = {
+      source_chain: "test-chain",
+      source_address: "test-address",
+      payload: encryptedMessage,
     };
-
-    // Encrypt the JSON with the public ECDH shared key.
-    const encryptedPayload = await ECDHEncryption.encrypt(
-      payloadWithPermit,
-      ECDHSharedKey,
-    );
-
-    return {
-      payload: Array.from(encryptedPayload),
-      public_key: Array.from(ECDHKeys.publicKey),
-    };
-  }
-
-  async share(encryptedMessage: any): Promise<any> {
-    return this.secretDocument.share(encryptedMessage);
+    return this.polygonToSecret.send(receiveMessageEvm);
   }
 }
 

@@ -52,6 +52,7 @@ function init() {
 
   const shareDocument = new ShareDocument({
     secretDocument: secretDocument,
+    polygonToSecret: polygonToSecret,
   });
 
   const viewDocument = new ViewDocument({
