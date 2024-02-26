@@ -7,50 +7,10 @@ import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSm
 import ViemClient from "../src/SmartContract/ViemClient";
 import Config from "../src/Config";
 import dotenv from "dotenv";
+import { initLocalSecretNetworkSmartContract, store } from "./utils";
 import Environment from "../src/Environment";
 
 dotenv.config();
-
-const config = new Config({
-  env: Environment.TESTNET,
-});
-
-config.useEvmWallet({
-  mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-});
-
-const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-
-const secretNetworkClient = new SecretNetworkClient({
-  url: config.getSecretNetwork().endpoint,
-  chainId: config.getSecretNetwork().chainId,
-  wallet: wallet,
-  walletAddress: wallet.address,
-});
-
-const secretDocument = new SecretDocumentSmartContract({
-  chainId: config.getSecretNetwork().chainId,
-  client: secretNetworkClient,
-  contract: config.getShareDocument(),
-  wallet: wallet,
-});
-
-const viemClient = new ViemClient({
-  chain: config.getChain(config.getChainId()),
-  walletConfig: config.getEvmWallet(),
-  contract: config.getPolygonToSecret(),
-});
-
-const polygonToSecret = new PolygonToSecretSmartContract({
-  secretContract: config.getShareDocument(),
-  viemClient: viemClient,
-});
-
-const storeDocument = new StoreDocument({
-  storage: new FakeStorage(),
-  secretDocument: secretDocument,
-  polygonToSecret: polygonToSecret,
-});
 
 const fileUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
 
@@ -58,7 +18,54 @@ const uploadOptions = {
   contentType: "application/pdf",
 };
 
+const config = new Config();
+const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+
+async function init() {
+  if (config.getEnv() === Environment.LOCAL) {
+    const contract = await initLocalSecretNetworkSmartContract(config);
+    config.useShareDocument(contract);
+  }
+
+  const secretNetworkClient = new SecretNetworkClient({
+    url: config.getSecretNetwork().endpoint,
+    chainId: config.getSecretNetwork().chainId,
+    wallet: wallet,
+    walletAddress: wallet.address,
+  });
+
+  const secretDocument = new SecretDocumentSmartContract({
+    chainId: config.getSecretNetwork().chainId,
+    client: secretNetworkClient,
+    contract: config.getShareDocument(),
+    wallet: wallet,
+  });
+
+  const viemClient = new ViemClient({
+    chain: config.getChain(config.getChainId()),
+    walletConfig: config.getEvmWallet(),
+    contract: config.getPolygonToSecret(),
+  });
+
+  const polygonToSecret = new PolygonToSecretSmartContract({
+    secretContract: config.getShareDocument(),
+    viemClient: viemClient,
+  });
+
+  const storeDocument = new StoreDocument({
+    storage: new FakeStorage(),
+    secretDocument: secretDocument,
+    polygonToSecret: polygonToSecret,
+  });
+
+  return {
+    storeDocument,
+    secretDocument,
+  };
+}
+
 test("Get Encrypted Payload from PDF", async () => {
+  const { storeDocument } = await init();
   const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
   uploadOptions.contentType = contentType;
   const bufferData = Buffer.from(data);
@@ -71,26 +78,17 @@ test("Get Encrypted Payload from PDF", async () => {
   expect(encryptedMessage).toBeDefined();
   expect(encryptedMessage).toHaveProperty("payload");
   expect(encryptedMessage).toHaveProperty("public_key");
-}, 1_000_000);
+}, 100_000);
 
-test("Store Encrypted Payload from PDF", async () => {
-  const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
-  uploadOptions.contentType = contentType;
-  const bufferData = Buffer.from(data);
+test("Store PDF from URL", async () => {
+  const { storeDocument, secretDocument } = await init();
 
-  const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
-  );
-
-  const payload = {
-    source_chain: "test-chain",
-    source_address: "test-address",
-    payload: encryptedMessage,
-  };
-
-  const response = await secretDocument.store(payload);
+  const response = await store({
+    secretDocument: secretDocument,
+    storeDocument: storeDocument,
+    fileUrl: fileUrl,
+  });
 
   expect(response).toBeDefined();
   expect(response.code).toEqual(0);
-}, 1_000_000);
+}, 100_000);

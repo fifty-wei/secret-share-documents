@@ -3,7 +3,7 @@ import SecretDocumentClient from "../src";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import Config from "../src/Config";
 import Environment from "../src/Environment";
-import initLocalSecretNetworkSmartContract from "./init-local-secret-document";
+import { initLocalSecretNetworkSmartContract } from "./utils";
 
 const config = new Config();
 config.useStorage(new FakeStorage());

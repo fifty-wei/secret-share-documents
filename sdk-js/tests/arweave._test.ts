@@ -1,4 +1,4 @@
-import SymmetricKeyEncryption from "../src/StoreDocument/Encryption/SymmetricKeyEncryption";
+import SymmetricKeyEncryption from "../src/Encryption/SymmetricKeyEncryption";
 import ArweaveStorage from "../src/StoreDocument/Storage/ArweaveStorage";
 import { test, expect, beforeAll, afterAll } from "@jest/globals";
 import fs from "fs";

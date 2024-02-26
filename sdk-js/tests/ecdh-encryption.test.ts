@@ -1,5 +1,5 @@
 import { test, expect } from "@jest/globals";
-import ECDHEncryption from "../src/StoreDocument/Encryption/ECDHEncryption";
+import ECDHEncryption from "../src/Encryption/ECDHEncryption";
 
 test("Generate ECDH Key Pairs", async () => {
   const ECDHKeys = ECDHEncryption.generate();

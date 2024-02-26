@@ -1,4 +1,4 @@
-import SymmetricKeyEncryption from "../src/StoreDocument/Encryption/SymmetricKeyEncryption";
+import SymmetricKeyEncryption from "../src/Encryption/SymmetricKeyEncryption";
 import { test, expect } from "@jest/globals";
 
 test("Generate symmetric key is not empty", async () => {
@@ -12,10 +12,12 @@ test("Text is the same after decryption", async () => {
   // Need to be converted to Buffer to be encrypted.
   const bufferData = Buffer.from(text);
   const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
-  const decryptedText = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
+  const decryptedText = SymmetricKeyEncryption.decrypt(
+    encryptedData,
+    publicKey,
+  );
   expect(decryptedText.toString()).toBe(text);
 });
-
 
 test("Image file is the same after decryption", async () => {
   const imageUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
@@ -25,10 +27,12 @@ test("Image file is the same after decryption", async () => {
   const bufferData = Buffer.from(data);
   const publicKey = SymmetricKeyEncryption.generate();
   const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
-  const decryptedImage = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
+  const decryptedImage = SymmetricKeyEncryption.decrypt(
+    encryptedData,
+    publicKey,
+  );
   expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
 });
-
 
 test("PDF file is the same after decryption", async () => {
   const imageUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
@@ -38,6 +42,9 @@ test("PDF file is the same after decryption", async () => {
   const bufferData = Buffer.from(data);
   const publicKey = SymmetricKeyEncryption.generate();
   const encryptedData = SymmetricKeyEncryption.encrypt(bufferData, publicKey);
-  const decryptedImage = SymmetricKeyEncryption.decrypt(encryptedData, publicKey);
+  const decryptedImage = SymmetricKeyEncryption.decrypt(
+    encryptedData,
+    publicKey,
+  );
   expect(Buffer.compare(decryptedImage, bufferData)).toBe(0);
 });

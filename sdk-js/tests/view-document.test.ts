@@ -4,7 +4,7 @@ import { SecretNetworkClient, Wallet } from "secretjs";
 import Config from "../src/Config";
 import dotenv from "dotenv";
 import ViewDocument from "../src/ViewDocument";
-import initLocalSecretNetworkSmartContract from "./init-local-secret-document";
+import { initLocalSecretNetworkSmartContract } from "./utils";
 import Environment from "../src/Environment";
 import ViemClient from "../src/SmartContract/ViemClient";
 import StoreDocument from "../src/StoreDocument";
@@ -64,36 +64,15 @@ async function init() {
   };
 }
 
-async function store({ secretDocument, storeDocument, fileUrl }) {
-  let uploadOptions = {
-    contentType: "application/pdf",
-  };
-  const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
-  uploadOptions.contentType = contentType;
-  const bufferData = Buffer.from(data);
-
-  const encryptedMessage = await storeDocument.getEncryptedMessage(
-    bufferData,
-    uploadOptions,
-  );
-
-  const payload = {
-    source_chain: "test-chain",
-    source_address: "test-address",
-    payload: encryptedMessage,
-  };
-
-  return await secretDocument.store(payload);
-}
-
 test("Get all files the user is allowed acces to", async () => {
   const { viewDocument, secretDocument, storeDocument } = await init();
 
-  const document = await store({
+  await store({
     secretDocument: secretDocument,
     storeDocument: storeDocument,
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   });
+
   const data = await viewDocument.all();
 
   expect(data).toBeDefined();
