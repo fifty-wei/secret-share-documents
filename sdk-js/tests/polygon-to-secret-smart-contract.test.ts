@@ -1,11 +1,6 @@
-import dotenv from "dotenv";
 import { jest, expect, test } from "@jest/globals";
 import PolygonToSecretSmartContrat from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
-import Config from "../src/Config";
-import Environment from "../src/Environment";
-
-dotenv.config();
 
 // Mock ISymmetricEncryptedData
 const encryptedMessageMock = jest.mock(
@@ -17,9 +12,7 @@ const encryptedMessageMock = jest.mock(
 );
 
 test("Send message from Polygon to Secret Network", async () => {
-  const config = new Config({
-    env: Environment.TESTNET,
-  });
+  const config = globalThis.__SECRET_DOCUMENT_CONFIG__;
 
   const viemClient = new ViemClient({
     chain: config.getChain(config.getChainId()),

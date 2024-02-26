@@ -1,42 +1,30 @@
-import { expect, test, beforeAll } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { SecretNetworkClient, Wallet } from "secretjs";
 import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
-import SecretNetworkIntegration from "../src/SmartContract/SecretNetworkIntegration";
 import ShareDocument from "../src/ShareDocument";
-import Config from "../src/Config";
-import Environment from "../src/Environment";
-import path from "node:path";
-import { initLocalSecretNetworkSmartContract, store } from "./utils";
+import { store } from "./utils";
 import ViewDocument from "../src/ViewDocument";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 
-const config = new Config({
-  env: Environment.TESTNET,
-});
-const walletOwner = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-const walletViewer = new Wallet();
+function init() {
+  const walletOwner = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+  const walletViewer = new Wallet();
 
-const secretNetworkClient = new SecretNetworkClient({
-  url: config.getSecretNetwork().endpoint,
-  chainId: config.getSecretNetwork().chainId,
-  wallet: walletOwner,
-  walletAddress: walletOwner.address,
-});
+  const config = globalThis.__SECRET_DOCUMENT_CONFIG__;
 
-const fileId =
-  "24b4bd2bd6495f74dc1fbd7473292f8fd658d6fede78e6343e2aceb0fdc2b967";
+  const secretNetworkClient = new SecretNetworkClient({
+    url: config.getSecretNetwork().endpoint,
+    chainId: config.getSecretNetwork().chainId,
+    wallet: walletOwner,
+    walletAddress: walletOwner.address,
+  });
 
-async function init() {
-  if (config.getEnv() === Environment.LOCAL) {
-    const contract = await initLocalSecretNetworkSmartContract(config);
-    config.useShareDocument(contract);
-    config.useEvmWallet({
-      mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-    });
-  }
+  config.useEvmWallet({
+    mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+  });
 
   const secretDocument = new SecretDocumentSmartContract({
     chainId: config.getSecretNetwork().chainId,
@@ -71,6 +59,8 @@ async function init() {
   });
 
   return {
+    walletOwner,
+    walletViewer,
     secretDocument,
     viewDocument,
     shareDocument,
@@ -79,8 +69,13 @@ async function init() {
 }
 
 test("Get Share Encrypted Payload", async () => {
-  const { viewDocument, secretDocument, storeDocument, shareDocument } =
-    await init();
+  const {
+    viewDocument,
+    secretDocument,
+    storeDocument,
+    shareDocument,
+    walletViewer,
+  } = init();
 
   await store({
     secretDocument: secretDocument,
@@ -102,8 +97,13 @@ test("Get Share Encrypted Payload", async () => {
 }, 100_000);
 
 test("Share Encrypted Payload", async () => {
-  const { viewDocument, secretDocument, storeDocument, shareDocument } =
-    await init();
+  const {
+    viewDocument,
+    secretDocument,
+    storeDocument,
+    shareDocument,
+    walletViewer,
+  } = init();
   await store({
     secretDocument: secretDocument,
     storeDocument: storeDocument,

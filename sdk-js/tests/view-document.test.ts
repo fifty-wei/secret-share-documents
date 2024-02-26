@@ -1,26 +1,17 @@
-import { expect, test } from "@jest/globals";
+import { expect, test, describe } from "@jest/globals";
 import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
 import { SecretNetworkClient, Wallet } from "secretjs";
-import Config from "../src/Config";
-import dotenv from "dotenv";
 import ViewDocument from "../src/ViewDocument";
-import { initLocalSecretNetworkSmartContract } from "./utils";
-import Environment from "../src/Environment";
+import { store } from "./utils";
 import ViemClient from "../src/SmartContract/ViemClient";
 import StoreDocument from "../src/StoreDocument";
 import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 
-dotenv.config();
-
-const config = new Config();
-const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
-
 async function init() {
-  if (config.getEnv() === Environment.LOCAL) {
-    const contract = await initLocalSecretNetworkSmartContract(config);
-    config.useShareDocument(contract);
-  }
+  const config = globalThis.__SECRET_DOCUMENT_CONFIG__;
+
+  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
 
   const secretNetworkClient = new SecretNetworkClient({
     url: config.getSecretNetwork().endpoint,
@@ -82,7 +73,7 @@ test("Get all files the user is allowed acces to", async () => {
 test("Find file content from fileId", async () => {
   const { viewDocument, secretDocument, storeDocument } = await init();
 
-  const document = await store({
+  await store({
     secretDocument: secretDocument,
     storeDocument: storeDocument,
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
