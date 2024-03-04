@@ -4,15 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest",
     "start:arweave": "arlocal 1934"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@babel/core": "^7.23.9",
-    "@babel/preset-env": "^7.23.9",
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
     "@babel/preset-typescript": "^7.23.3",
     "@types/node": "^20.11.16",
     "arlocal": "^1.1.65",
@@ -26,8 +26,13 @@
   "dependencies": {
     "@axelar-network/axelarjs-sdk": "^0.14.1",
     "@cosmjs/encoding": "^0.32.2",
+    "@helia/http": "^1.0.2",
+    "@helia/json": "^3.0.1",
+    "@helia/unixfs": "^3.0.1",
     "@wagmi/core": "^2.6.4",
     "dotenv": "^16.4.1",
+    "helia": "^4.0.2",
+    "kubo-rpc-client": "^3.0.4",
     "miscreant": "^0.3.2",
     "secp256k1": "^5.0.0",
     "secretjs": "^1.12.4",

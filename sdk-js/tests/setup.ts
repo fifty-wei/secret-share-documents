@@ -29,7 +29,9 @@ export default async function (
   projectConfig: Config.ProjectConfig,
 ) {
   console.log("");
-  const config = new SecretDocumentConfig();
+  const config = new SecretDocumentConfig({
+    env: process.env.ENVIRONMENT as Environment
+  });
 
   if (config.getEnv() === Environment.LOCAL) {
     console.log("Deploy Secret Network smart contract in local...");

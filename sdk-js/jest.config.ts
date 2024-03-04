@@ -5,7 +5,9 @@ const config: Config = {
   preset: "ts-jest",
   testEnvironment: "node",
   verbose: true,
-  transform: {},
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   moduleFileExtensions: [...defaults.moduleFileExtensions],
   injectGlobals: true,
