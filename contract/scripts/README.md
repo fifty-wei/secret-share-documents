@@ -1,23 +1,29 @@
 
 # Deploy Smart contract
 
+First install the dependencies.
+
 ```bash
 npm i
 ```
 
-The command works in two times
+Then, do a copy of the `.env.example` to `.env` and add your `MNEMONIC`. 
+
+Then, update the `SecretNetworkClient` parameter in `deploy.js` to match the chain where you want to deploy your smart contract. Here, we are going to deploy it on the testnet:
+
+- chainId: "pulsar-3",
+- url: "https://api.pulsar.scrttestnet.com",
+
+Then, execute the `deploy.js` script.
 
 ```bash
 node deploy.js
 ```
 
 
-References:
-- https://docs.scrt.network/secret-network-documentation/overview-ecosystem-and-technology/secret-network-overview/testnet
-- https://docs.scrt.network/secret-network-documentation/development/getting-started/interacting-with-the-testnet
+## Implementation deployed
 
-
-## Deploy Smart Contract
+We have deploy our smart contract on the testnet. Here are the parameters used:
 
 Network info:
 - chainId: "pulsar-3",
@@ -31,6 +37,13 @@ Contract address:
 > secret14tplljk8wjezkya2jcx2ynjx5udue8uj69f75q
 
 > Transaction: https://testnet.ping.pub/secret/tx/B0FF5B3C89EE1911557608FF5950AEA46511E2DDAA36EB547FF94268BFA47009
+
+
+## References:
+
+- https://docs.scrt.network/secret-network-documentation/overview-ecosystem-and-technology/secret-network-overview/testnet
+- https://docs.scrt.network/secret-network-documentation/development/getting-started/interacting-with-the-testnet
+
 
 ## Notes
 

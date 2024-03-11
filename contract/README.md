@@ -33,6 +33,10 @@ To auto-generate json schema, use
 make schema
 ```
 
+## Deploy the smart contract
+
+See `scripts` repository.
+
 # Requests 
 
 ## Instanciate message

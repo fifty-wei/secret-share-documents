@@ -13,11 +13,7 @@ const secretjs = new SecretNetworkClient({
   walletAddress: wallet.address,
 });
 
-console.log(secretjs)
-
-
-
-let upload_contract = async () => {
+const upload_contract = async () => {
   let tx = await secretjs.tx.compute.storeCode(
     {
       sender: wallet.address,
@@ -35,24 +31,22 @@ let upload_contract = async () => {
       .value
   );
 
-  console.log("codeId: ", codeId);
-
   let contractCodeHash = (
     await secretjs.query.compute.codeHashByCodeId({ code_id: codeId })
   ).code_hash;
-  console.log(`Contract hash: ${contractCodeHash}`);
-  
-  return codeId, contractCodeHash;
+
+  return [codeId, contractCodeHash];
 };
 
-// let codeId, contractCodeHash = await upload_contract();
+let [codeId, contractCodeHash] = await upload_contract();
 
-let codeId = "4890";
-let contractCodeHash = "28aa8b90638e8f47240695b4f0c4a027f7e2991373c618da6d3d8b1daf7dbc0a";
+// let codeId = "4890";
+// let contractCodeHash = "28aa8b90638e8f47240695b4f0c4a027f7e2991373c618da6d3d8b1daf7dbc0a";
 
 let instantiate_contract = async (codeId, contractCodeHash) => {
 
-  console.log(codeId, contractCodeHash)
+  console.log("Code ID: ", codeId)
+  console.log("Contract Hash: ", contractCodeHash)
 
   const initMsg = {};
   let tx = await secretjs.tx.compute.instantiateContract(
@@ -73,7 +67,7 @@ let instantiate_contract = async (codeId, contractCodeHash) => {
     (log) => log.type === "message" && log.key === "contract_address"
   ).value;
 
-  console.log(contractAddress);
+  console.log("Contract address: ", contractAddress);
 };
 
 await instantiate_contract(codeId, contractCodeHash);
