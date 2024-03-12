@@ -1,5 +1,4 @@
 
-const axios = require('axios')
 const FormData = require('form-data')
 
 import ISymmetricEncryptedData from "../../Encryption/ISymmetricEncryptedData";
@@ -7,35 +6,50 @@ import IStorage from "./IStorage";
 import IUploadOptions from "./IUploadOptions";
 
 class PinataStorage implements IStorage {
+
+  // Access token for the request
+  access_token: string;
+
+  constructor(access_token: string) {
+    this.access_token = access_token;
+  }
+
   async upload(
     encryptedData: ISymmetricEncryptedData,
     options: IUploadOptions,
   ): Promise<any> {
-    
-    const JWT = options.pinata_token;
-    
+
     const formData = new FormData();
     formData.append('file', encryptedData)
-            
+
     const pinataOptions = JSON.stringify({
-        cidVersion: 0,
+      cidVersion: 0,
     })
     formData.append('pinataOptions', pinataOptions);
 
-    try{
-        const res = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
-            maxBodyLength: "Infinity",
-            headers: {
-                'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
-                'Authorization': `Bearer ${JWT}`
-            }
-        });
-        console.log(res.data);
-    } catch (error) {
-       console.log(error);
-    }
-    
+    const requestOptions: RequestInit = {
+      method: 'POST',
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
+        'Authorization': `Bearer ${this.access_token}`
+      },
+      // maxBodyLength: "Infinity",
+      body: formData
+    };
+
+    const res = fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', requestOptions)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('There was a problem with your fetch operation:', error);
+      });
+
+    return res;
   }
 }
 
-export default IPFSStorage;
+export default PinataStorage;
