@@ -1,23 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNext", // ou une version spécifique selon vos besoins
+    "target": "ESNext",
     "module": "CommonJS",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "types": [
-      "node"
-    ], // S'assurer que les types Node sont inclus
-    "lib": [
-      "ESNext",
-      "DOM"
-    ] // ou autres librairies nécessaires
+    "types": ["node", "jest"],
+    "lib": ["ESNext", "DOM"]
   },
-  "include": [
-    "src/**/*"
-  ], // Adaptez selon la structure de votre projet
-  "exclude": [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
 }

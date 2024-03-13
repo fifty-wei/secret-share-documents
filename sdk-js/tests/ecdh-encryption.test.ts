@@ -1,10 +1,9 @@
 import { test, expect } from "@jest/globals";
-import ECDHEncryption from "../src/StoreDocument/Encryption/ECDHEncryption";
+import ECDHEncryption from "../src/Encryption/ECDHEncryption";
 
 test("Generate ECDH Key Pairs", async () => {
   const ECDHKeys = ECDHEncryption.generate();
 
-  console.log("[INFO] ECDH Keys:", { ECDHKeys });
   expect(ECDHKeys).toBeDefined();
   expect(ECDHKeys).toHaveProperty("privateKey");
   expect(ECDHKeys).toHaveProperty("publicKey");
@@ -23,7 +22,6 @@ test("Generate ECDH shared keys", async () => {
     ECDHKeysB.privateKey,
   );
 
-  console.log("[INFO] ECDH shared Keys:", { sharedKeyA }, { sharedKeyB });
   expect(sharedKeyA).toBeDefined();
   expect(sharedKeyB).toBeDefined();
   expect(sharedKeyA).toEqual(sharedKeyA);
@@ -41,6 +39,5 @@ test("Encrypt Data with ECDH shared key", async () => {
   const data = { fake: "test" };
   const encryptedData = await ECDHEncryption.encrypt(data, sharedKey);
 
-  console.log("[INFO] ECDH encryptedData:", { encryptedData });
   expect(encryptedData).toBeDefined();
 });

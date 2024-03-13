@@ -36,7 +36,10 @@ config.useEvmWallet({
 // Use the storage you prefer.
 // By default FakeStorage is used.
 config.useStorage(new FakeStorage()) // Do not store anything.
-config.useStorage(new IpfsStorage()) // Store files on IPFS.
+const ipfsStorage = new IpfsStorage({
+    gateway: 'https://your-ipfs-node.tld/',
+})
+config.useStorage(ipfsStorage) // Store files on IPFS.
 config.useStorage(new ArweaveStorage()) // Store files on Arweave.
 
 // Initialize the client.

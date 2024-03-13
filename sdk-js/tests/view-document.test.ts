@@ -1,50 +1,87 @@
-import { expect, test } from "@jest/globals";
+import { expect, test, describe } from "@jest/globals";
 import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmartContract";
 import { SecretNetworkClient, Wallet } from "secretjs";
-import Config from "../src/Config";
-import dotenv from "dotenv";
-import Environment from "../src/Environment";
 import ViewDocument from "../src/ViewDocument";
+import { store } from "./utils";
+import ViemClient from "../src/SmartContract/ViemClient";
+import StoreDocument from "../src/StoreDocument";
+import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
+import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 
-dotenv.config();
+async function init() {
+  const config = globalThis.__SECRET_DOCUMENT_CONFIG__;
 
-const config = new Config({
-  env: Environment.TESTNET,
-});
+  const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
 
-const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+  const secretNetworkClient = new SecretNetworkClient({
+    url: config.getSecretNetwork().endpoint,
+    chainId: config.getSecretNetwork().chainId,
+    wallet: wallet,
+    walletAddress: wallet.address,
+  });
 
-const secretNetworkClient = new SecretNetworkClient({
-  url: config.getSecretNetwork().endpoint,
-  chainId: config.getSecretNetwork().chainId,
-  wallet: wallet,
-  walletAddress: wallet.address,
-});
+  const secretDocument = new SecretDocumentSmartContract({
+    chainId: config.getSecretNetwork().chainId,
+    client: secretNetworkClient,
+    contract: config.getShareDocument(),
+    wallet: wallet,
+  });
 
-const secretDocument = new SecretDocumentSmartContract({
-  chainId: config.getSecretNetwork().chainId,
-  client: secretNetworkClient,
-  contract: config.getShareDocument(),
-  wallet: wallet,
-});
+  const viewDocument = new ViewDocument({
+    secretDocument: secretDocument,
+  });
 
-const viewDocument = new ViewDocument({
-  secretDocument: secretDocument,
-});
+  const viemClient = new ViemClient({
+    chain: config.getChain(config.getChainId()),
+    walletConfig: config.getEvmWallet(),
+    contract: config.getPolygonToSecret(),
+  });
+
+  const polygonToSecret = new PolygonToSecretSmartContract({
+    secretContract: config.getShareDocument(),
+    viemClient: viemClient,
+  });
+
+  const storeDocument = new StoreDocument({
+    storage: new FakeStorage(),
+    secretDocument: secretDocument,
+    polygonToSecret: polygonToSecret,
+  });
+
+  return {
+    storeDocument,
+    secretDocument,
+    viewDocument,
+  };
+}
 
 test("Get all files the user is allowed acces to", async () => {
+  const { viewDocument, secretDocument, storeDocument } = await init();
+
+  await store({
+    secretDocument: secretDocument,
+    storeDocument: storeDocument,
+    fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
+  });
+
   const data = await viewDocument.all();
 
   expect(data).toBeDefined();
-  // expect(data).toHaveProperty("payload");
-  // expect(data).toHaveProperty("public_key");
-});
+  expect(data).toHaveLength(1);
+}, 100_000);
 
 test("Find file content from fileId", async () => {
-  const data = await viewDocument.get(
-    "24b4bd2bd6495f74dc1fbd7473292f8fd658d6fede78e6343e2aceb0fdc2b967",
-  );
+  const { viewDocument, secretDocument, storeDocument } = await init();
+
+  await store({
+    secretDocument: secretDocument,
+    storeDocument: storeDocument,
+    fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
+  });
+
+  const allData = await viewDocument.all();
+  const data = await viewDocument.get(allData[0]);
 
   expect(data).toBeDefined();
   expect(data).toHaveProperty("url");
-});
+}, 100_000);

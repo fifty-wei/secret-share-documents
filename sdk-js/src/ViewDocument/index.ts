@@ -1,5 +1,4 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
-import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
 
 interface Props {
   secretDocument: SecretDocumentSmartContract;
