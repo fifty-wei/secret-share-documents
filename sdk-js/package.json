@@ -30,6 +30,7 @@
     "@helia/json": "^3.0.1",
     "@helia/unixfs": "^3.0.1",
     "@wagmi/core": "^2.6.4",
+    "axios": "^1.6.7",
     "dotenv": "^16.4.1",
     "helia": "^4.0.2",
     "kubo-rpc-client": "^3.0.4",

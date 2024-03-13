@@ -15,7 +15,7 @@ interface Props {
   viemClient: ViemClient;
 }
 
-class PolygonToSecretSmartContrat {
+class PolygonToSecretSmartContract {
   secretContract: ISecretNetworkSmartContract;
   viemClient: ViemClient;
 
@@ -58,4 +58,4 @@ class PolygonToSecretSmartContrat {
   }
 }
 
-export default PolygonToSecretSmartContrat;
+export default PolygonToSecretSmartContract;

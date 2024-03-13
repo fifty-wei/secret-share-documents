@@ -3,10 +3,17 @@ import { test, expect } from "@jest/globals";
 import IUploadOptions from "../src/StoreDocument/Storage/IUploadOptions";
 import IPFSStorage from "../src/StoreDocument/Storage/IPFSStorage";
 
+/**
+ * Before running these tests, you need to run ipfs node.
+ */
+
+const storage = new IPFSStorage({
+  gateway: 'http://localhost:5001',
+});
+
+const fileUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
 
 test("Upload encrypted image via IPFS", async () => {
-  const storage = new IPFSStorage();
-  const fileUrl = "https://school.truchot.co/ressources/sci-v2.jpg";
 
   // Fetch the document and prepare upload options.
   const response = await fetch(fileUrl);
@@ -34,9 +41,9 @@ test("Upload encrypted image via IPFS", async () => {
     res = await storage.upload(encryptedData, uploadOptions);
   } catch (e) {
     console.error(`[ERROR] Failed to store encrypted data via IPFS.`);
-    console.error(e.error);
+    console.error(e);
   }
   console.log({ res });
 
   expect(res).toBeDefined();
-});
+}, 1_000_000);
