@@ -65,3 +65,25 @@ const res = await client.viewDocument().all();
 // Get the content of a specific document.
 const res = await client.viewDocument().get('fileId');
 ```
+
+### Share documents
+
+``` js
+const config = new Config();
+const client = new SecretDocumentClient(config);
+
+// Share viewing acces to a file.
+const res = await client.shareDocument().share('fileId', {
+  addViewing: ['0x…'],
+});
+
+// Delete viewing acces to a file, only the owner of the file can delete the access.
+const res = await client.shareDocument().share('fileId', {
+  deleteViewing: ['0x…'],
+});
+
+// Transfer the ownership, onlu the actual owner can do this.
+const res = await client.shareDocument().share('fileId', {
+  changeOwner: '0x…',
+});
+```

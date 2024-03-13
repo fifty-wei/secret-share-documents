@@ -44,7 +44,7 @@ class ShareDocument {
     return this.secretDocument.encryptPayload(payloadWithPermit);
   }
 
-  async share(fileId: string, fileRights: Partial<FileRights>): Promise<any> {
+  async share(fileId: string, fileRights: Partial<FileRights>): Promise<`0x${string}`> {
     const encryptedMessage = await this.getEncryptedMessage(fileId, fileRights);
     const receiveMessageEvm: IReceiveMessageEvm = {
       source_chain: "test-chain",

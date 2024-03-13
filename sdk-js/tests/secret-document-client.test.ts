@@ -41,3 +41,16 @@ test("View Document use case", async () => {
   expect(fileIds.length).toBeGreaterThan(0);
   expect(fileContent).toBeDefined();
 });
+
+
+test("Share Document use case", async () => {
+  const { client } = init();
+
+    const fileIds = await client.viewDocument().all();
+  const fileContent = await client.viewDocument().get(fileIds[0]);
+  const tx = await client.shareDocument().share(fileIds[0], {
+    addViewing: ['0x1234']
+  });
+
+  expect(tx).toBeDefined();
+});
