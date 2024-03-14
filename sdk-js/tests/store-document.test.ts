@@ -3,6 +3,7 @@ import SecretDocumentSmartContract from "../src/SmartContract/SecretDocumentSmar
 import { SecretNetworkClient, Wallet } from "secretjs";
 import StoreDocument from "../src/StoreDocument";
 import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
+import PinataStorage from "../src/StoreDocument/Storage/PinataStorage";
 import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import { store } from "./utils";
@@ -72,4 +73,29 @@ test("Store PDF from URL", async () => {
 
   expect(response).toBeDefined();
   expect(response.code).toEqual(0);
+}, 100_000);
+
+
+test("Pinata store document", async () => {
+  expect(process.env.PINATA_TOKEN).toBeDefined();
+  
+  const storeDocument = new StoreDocument({
+    storage: new PinataStorage(process.env.PINATA_TOKEN!),
+    secretDocument: secretDocument,
+    polygonToSecret: polygonToSecret,
+  });
+
+  const { data, contentType } = await storeDocument.fetchDocument(fileUrl);
+  uploadOptions.contentType = contentType;
+  const bufferData = Buffer.from(data);
+
+  const encryptedMessage = await storeDocument.getEncryptedMessage(
+    bufferData,
+    uploadOptions,
+  );
+
+  expect(encryptedMessage).toBeDefined();
+  expect(encryptedMessage).toHaveProperty("payload");
+  expect(encryptedMessage).toHaveProperty("public_key");
+
 }, 100_000);
