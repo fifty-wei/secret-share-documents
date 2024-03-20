@@ -16,10 +16,11 @@ task('deploy', 'Deploy all contracts')
 
     let PolygonToSecretFactory = await ethers.getContractFactory('PolygonToSecret')
     let polygonToSecretFactory = await PolygonToSecretFactory.deploy(
-      '0xC249632c2D40b9001FE907806902f63038B737Ab', // axelar gateway
+      '0xBF62ef1486468a6bd26Dd669C06db43dEd5B849B', // axelar gateway
       '0xbE406F0189A0B4cf3A05C286473D23791Dd44Cc6', // axelar gas service
-      'Avalanche', // fuji chain name
+      'Polygon', // mumbai chain name
     )
+    //https://docs.axelar.dev/resources/contract-addresses/testnet
 
     console.log('polygonToSecret deployed to: ', polygonToSecretFactory.address)
 
