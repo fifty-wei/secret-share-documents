@@ -8,12 +8,10 @@ import ViewDocument from "./ViewDocument";
 import ShareDocument from "./ShareDocument";
 
 class SecretDocumentClient {
-    private config: Config;
+    private readonly config: Config;
 
     constructor(config: Config) {
         this.config = config;
-
-        console.log({config});
     }
 
     private polygonToSecret() {
@@ -75,11 +73,13 @@ class SecretDocumentClient {
         });
     }
 
-    public shareDocument() {
-        return new ShareDocument({
+    public shareDocument(fileId: string) {
+        const shareDocument = new ShareDocument({
             secretDocument: this.secretDocument(),
             polygonToSecret: this.polygonToSecret()
         });
+
+        return shareDocument.setFileId(fileId);
     }
 }
 

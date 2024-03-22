@@ -1,8 +1,6 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
-import ECDHEncryption from "../Encryption/ECDHEncryption";
 import {
   FileRights,
-  IExecutePayload,
   IReceiveMessageEvm,
   ManageFileRightsPayload,
 } from "../SmartContract/IQueryPayload";
@@ -16,10 +14,12 @@ interface Props {
 class ShareDocument {
   private secretDocument: SecretDocumentSmartContract;
   private polygonToSecret: PolygonToSecretSmartContrat;
+  private fileId?: string;
 
   constructor({ secretDocument, polygonToSecret }: Props) {
     this.secretDocument = secretDocument;
     this.polygonToSecret = polygonToSecret;
+    this.fileId = null;
   }
 
   async getEncryptedMessage(fileId: string, fileRights: Partial<FileRights>) {
@@ -44,14 +44,35 @@ class ShareDocument {
     return this.secretDocument.encryptPayload(payloadWithPermit);
   }
 
-  async share(fileId: string, fileRights: Partial<FileRights>): Promise<`0x${string}`> {
-    const encryptedMessage = await this.getEncryptedMessage(fileId, fileRights);
+  setFileId(fileId: string){
+    this.fileId = fileId;
+
+    return this;
+  }
+
+  public async share(fileRights: Partial<FileRights>): Promise<`0x${string}`> {
+    if( ! this.fileId ){
+      throw new Error("Please set the fileId before sharing a document");
+    }
+    const encryptedMessage = await this.getEncryptedMessage(this.fileId, fileRights);
     const receiveMessageEvm: IReceiveMessageEvm = {
       source_chain: "test-chain",
       source_address: "test-address",
       payload: encryptedMessage,
     };
     return this.polygonToSecret.send(receiveMessageEvm);
+  }
+
+  public async changeOwner(address: string) {
+    return this.share({changeOwner: address});
+  }
+
+  public async addViewing(addresses: string[]) {
+    return this.share({addViewing: addresses});
+  }
+
+  public async deleteViewing(addresses: string[]) {
+    return this.share({deleteViewing: addresses});
   }
 }
 
