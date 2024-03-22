@@ -75,9 +75,9 @@ const client = new SecretDocumentClient(config);
 // Share viewing acces to a file.
 const res = await client.shareDocument('fileId').addViewing(['secret1…']);
 
-// Delete viewing acces to a file, only the owner of the file can delete the access.
+// Delete viewing access to a file, only the owner of the file can delete the access.
 const res = await client.shareDocument('fileId').deleteViewing(['secret1…']);
 
-// Transfer the ownership, onlu the actual owner can do this.
+// Transfer the ownership, only the actual owner can do this.
 const res = await client.shareDocument('fileId').changeOwner('secret1…');
 ```
