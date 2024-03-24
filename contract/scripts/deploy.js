@@ -6,12 +6,28 @@ dotenv.config();
 const wallet = new Wallet(process.env.MNEMONIC);
 const contract_wasm = fs.readFileSync("../contract.wasm.gz");
 
-const secretjs = new SecretNetworkClient({
-  chainId: "pulsar-3",
-  url: "https://api.pulsar.scrttestnet.com",
-  wallet: wallet,
-  walletAddress: wallet.address,
-});
+function getSecretNetworkClient() {
+  if (process.env.DEPLOY_ENV == "testnet") {
+    console.log("[*] Deploy the smart contract on Testnet...");
+    return new SecretNetworkClient({
+      chainId: "pulsar-3",
+      url: "https://api.pulsar.scrttestnet.com",
+      wallet: wallet,
+      walletAddress: wallet.address,
+    });
+  } else if (process.env.DEPLOY_ENV == "mainnet") {
+    console.log("[*] Deploy the smart contract on Mainnet...");
+    return new SecretNetworkClient({
+      chainId: "secret-4",
+      url: "https://lcd.mainnet.secretsaturn.net",
+      wallet: wallet,
+      walletAddress: wallet.address,
+    });
+  }
+  throw new Error('Invalid parameter for `DEPLOY_ENV`. Accept `testnet` or `mainnet`.');
+}
+
+const secretjs = getSecretNetworkClient();
 
 const upload_contract = async () => {
   let tx = await secretjs.tx.compute.storeCode(

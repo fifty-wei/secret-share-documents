@@ -62,7 +62,7 @@ This project is decomposed in sevaral components:
 
 In the `contract` folder, you will find the source code of our smart contract used to store confidential information and a script to deploy yours.
 
-For testing purpose, we have deploy a smart contract on `pulsar-3` testnet of Secret Network. Here the contract address: `secret14tplljk8wjezkya2jcx2ynjx5udue8uj69f75q`.
+For testing purpose, we have deploy a smart contract on `pulsar-3` testnet of Secret Network. Here the contract address: `secret14tplljk8wjezkya2jcx2ynjx5udue8uj69f75q`. And we also deploy it on mainnet to test the Axelar implementation. You can find the contract deployed on the secret mainnet at this address: `secret10k9kpudxcan09p55lzy8er3rm6u2sp7cswdcg3`.
 
 
 

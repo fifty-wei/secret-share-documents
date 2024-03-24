@@ -9,10 +9,7 @@ npm i
 
 Then, do a copy of the `.env.example` to `.env` and add your `MNEMONIC`. 
 
-Then, update the `SecretNetworkClient` parameter in `deploy.js` to match the chain where you want to deploy your smart contract. Here, we are going to deploy it on the testnet:
-
-- chainId: "pulsar-3",
-- url: "https://api.pulsar.scrttestnet.com",
+You can select to deploy the smart contract on `mainnet` or `testnet` by specifying it in the `.env`. Or you can also update our `deploy.js` script to match your implementation. 
 
 Then, execute the `deploy.js` script.
 
@@ -37,6 +34,13 @@ Contract address:
 > secret14tplljk8wjezkya2jcx2ynjx5udue8uj69f75q
 
 > Transaction: https://testnet.ping.pub/secret/tx/B0FF5B3C89EE1911557608FF5950AEA46511E2DDAA36EB547FF94268BFA47009
+
+
+-----------
+
+We also deploy our smart contract on mainnet at this address: 
+> secret10k9kpudxcan09p55lzy8er3rm6u2sp7cswdcg3
+> See on mintscan: https://www.mintscan.io/secret/address/secret10k9kpudxcan09p55lzy8er3rm6u2sp7cswdcg3
 
 
 ## References:
