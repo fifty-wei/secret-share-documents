@@ -8,7 +8,8 @@ import {
   http,
   HDAccount,
   PrivateKeyAccount,
-  formatEther,
+  parseGwei,
+  formatGwei,
 } from "viem";
 import { mnemonicToAccount, privateKeyToAccount } from "viem/accounts";
 import IPolygonSmartContract from "./IPolygonSmartContract";
@@ -103,8 +104,8 @@ class ViemClient {
     return this.walletClient.writeContract(request);
   }
 
-  formatEther(value: bigint): bigint {
-    return BigInt(formatEther(value));
+  parseGwei(value): bigint {
+    return formatGwei(parseGwei(value));
   }
 }
 

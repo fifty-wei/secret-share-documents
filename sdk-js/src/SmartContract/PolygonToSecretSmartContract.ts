@@ -1,59 +1,35 @@
-import IEncryptedData from "../Encryption/IEncryptedData";
 import { IReceiveMessageEvm } from "./IQueryPayload";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
-import {
-  AxelarQueryAPI,
-  AxelarQueryAPIFeeResponse,
-  Environment,
-  EvmChain,
-  GasToken,
-} from "@axelar-network/axelarjs-sdk";
+import AxelarClient from "./AxelarClient";
 
 interface Props {
   secretContract: ISecretNetworkSmartContract;
   viemClient: ViemClient;
+  axelarClient: AxelarClient;
 }
 
 class PolygonToSecretSmartContract {
   secretContract: ISecretNetworkSmartContract;
   viemClient: ViemClient;
+  axelarClient: AxelarClient;
 
-  constructor({ secretContract, viemClient }: Props) {
+  constructor({ secretContract, viemClient, axelarClient }: Props) {
     this.viemClient = viemClient;
     this.secretContract = secretContract;
-  }
-
-  async getEstimateFee(): Promise<AxelarQueryAPIFeeResponse> {
-    const axelar = new AxelarQueryAPI({
-      environment: Environment.TESTNET,
-    });
-
-    const gmpParams = {
-      showDetailedFees: true,
-      destinationContractAddress: this.secretContract.address,
-      sourceContractAddress: this.viemClient.getContract().address,
-      tokenSymbol: GasToken.MATIC,
-    };
-
-    return (await axelar.estimateGasFee(
-      EvmChain.POLYGON,
-      "secret",
-      GasToken.MATIC,
-      BigInt(100000),
-      "auto",
-      "0",
-      gmpParams,
-    )) as AxelarQueryAPIFeeResponse;
+    this.axelarClient = axelarClient;
   }
 
   async send(message: IReceiveMessageEvm): Promise<`0x${string}`> {
-    const gasEstimate = await this.getEstimateFee();
+    const gasEstimate = await this.axelarClient.getEstimateFee({
+      destinationContractAddress: this.secretContract.address,
+      sourceContractAddress: this.viemClient.getContract().address
+    });
 
     return await this.viemClient.writeContract({
       functionName: "send",
-      args: ["secret", this.secretContract.address, message],
-      value: this.viemClient.formatEther(BigInt(gasEstimate.executionFee)),
+      args: [this.axelarClient.getDestinationChain(), this.secretContract.address, message],
+      value: this.viemClient.parseGwei(gasEstimate.executionFeeWithMultiplier),
     });
   }
 }

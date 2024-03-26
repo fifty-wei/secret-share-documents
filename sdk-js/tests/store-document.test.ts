@@ -6,6 +6,8 @@ import FakeStorage from "../src/StoreDocument/Storage/FakeStorage";
 import PolygonToSecretSmartContract from "../src/SmartContract/PolygonToSecretSmartContract";
 import ViemClient from "../src/SmartContract/ViemClient";
 import { store } from "./utils";
+import { AxelarAssetTransfer } from "@axelar-network/axelarjs-sdk";
+import AxelarClient from "../src/SmartContract/AxelarClient";
 
 const fileUrl = "https://school.truchot.co/ressources/brief-arolles-bis.pdf";
 
@@ -31,6 +33,10 @@ const secretDocument = new SecretDocumentSmartContract({
   wallet: wallet,
 });
 
+const axelarClient = new AxelarClient({
+  env: config.getEnv()
+})
+
 const viemClient = new ViemClient({
   chain: config.getChain(config.getChainId()),
   walletConfig: config.getEvmWallet(),
@@ -40,6 +46,7 @@ const viemClient = new ViemClient({
 const polygonToSecret = new PolygonToSecretSmartContract({
   secretContract: config.getShareDocument(),
   viemClient: viemClient,
+  axelarClient: axelarClient
 });
 
 const storeDocument = new StoreDocument({

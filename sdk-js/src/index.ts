@@ -1,9 +1,10 @@
 import {SecretNetworkClient, Wallet} from "secretjs";
 import SecretDocumentSmartContract from "./SmartContract/SecretDocumentSmartContract";
 import ViemClient from "./SmartContract/ViemClient";
-import StoreDocument from "./StoreDocument";
+import AxelarClient from "./SmartContract/AxelarClient";
 import Config from "./Config";
 import PolygonToSecretSmartContrat from "./SmartContract/PolygonToSecretSmartContract";
+import StoreDocument from "./StoreDocument";
 import ViewDocument from "./ViewDocument";
 import ShareDocument from "./ShareDocument";
 
@@ -16,17 +17,26 @@ class SecretDocumentClient {
 
     private polygonToSecret() {
         return new PolygonToSecretSmartContrat({
+            axelarClient: this.axelarClient(),
             secretContract: this.config.getShareDocument(),
             viemClient: this.viemClient(),
         });
     }
 
+    private axelarClient(){
+        return new AxelarClient({
+            env: this.config.getEnv()
+        });
+    }
+
     private secretNetworkWallet() {
+        // TODO: Create wallet from Metamask.
         return new Wallet(this.config.getSecretNetworkWallet().mnemonic);
     }
 
     private secretNetworkClient() {
         const wallet = this.secretNetworkWallet();
+
         return new SecretNetworkClient({
             url: this.config.getSecretNetwork().endpoint,
             chainId: this.config.getSecretNetwork().chainId,
@@ -69,6 +79,7 @@ class SecretDocumentClient {
 
     public viewDocument() {
         return new ViewDocument({
+            // storage: this.config.getStorage(),
             secretDocument: this.secretDocument(),
         });
     }
