@@ -84,7 +84,7 @@ test("Get Share Encrypted Payload", async () => {
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   });
 
-  const fileIds = await viewDocument.all();
+  const fileIds = await viewDocument.getAllFileIds();
   expect(fileIds.length).toBeGreaterThan(0);
 
   const encryptedMessage = await shareDocument.getEncryptedMessage(fileIds[0], {
@@ -111,7 +111,7 @@ test("Share Encrypted Payload", async () => {
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   });
 
-  const fileIds = await viewDocument.all();
+  const fileIds = await viewDocument.getAllFileIds();
   expect(fileIds.length).toBeGreaterThan(0);
 
   const encryptedMessage = await shareDocument.getEncryptedMessage(fileIds[0], {

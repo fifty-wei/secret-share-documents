@@ -64,7 +64,7 @@ test("Get all files the user is allowed acces to", async () => {
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   });
 
-  const data = await viewDocument.all();
+  const data = await viewDocument.getAllFileIds();
 
   expect(data).toBeDefined();
   expect(data).toHaveLength(1);
@@ -79,8 +79,8 @@ test("Find file content from fileId", async () => {
     fileUrl: "https://school.truchot.co/ressources/brief-arolles-bis.pdf",
   });
 
-  const allData = await viewDocument.all();
-  const data = await viewDocument.get(allData[0]);
+  const allData = await viewDocument.getAllFileIds();
+  const data = await viewDocument.download(allData[0]);
 
   expect(data).toBeDefined();
   expect(data).toHaveProperty("url");

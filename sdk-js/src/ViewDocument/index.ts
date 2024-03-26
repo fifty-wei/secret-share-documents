@@ -11,11 +11,11 @@ class ViewDocument {
     this.secretDocument = secretDocument;
   }
 
-  async all(): Promise<Array<string>> {
+  async getAllFileIds(): Promise<Array<string>> {
     return this.secretDocument.findAll();
   }
 
-  async get(fileId: string): Promise<any> {
+  async download(fileId: string): Promise<any> {
     return this.secretDocument.getFile(fileId);
   }
 }
