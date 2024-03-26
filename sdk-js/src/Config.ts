@@ -10,6 +10,7 @@ import IViemWallet from "./SmartContract/IViemWallet";
 import ISecretNewtorkWallet from "./SmartContract/ISecretNewtorkWallet";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
 import dotenv from "dotenv";
+import { MetaMaskWallet, Wallet } from "secretjs";
 
 dotenv.config();
 
@@ -31,7 +32,7 @@ interface IClientConfig {
   storage: IStorage;
   env: Environment;
   wallets: {
-    secretNetwork: ISecretNewtorkWallet;
+    secretNetwork: MetaMaskWallet;
     polygon: IViemWallet;
   };
 }
@@ -73,7 +74,7 @@ class Config {
         },
       },
     };
-    this.env = config.env || Environment.LOCAL;
+    this.env = config.env || Environment.MAINNET;
     this.config = {
       ...emptyConfig,
       ...this.defaultConfig(this.env),
@@ -128,7 +129,7 @@ class Config {
     }
 
     const chainKey = Object.keys(chains).find(
-      (key) => key === networkId.toString(),
+      key => key === networkId.toString()
     );
 
     if (!chainKey) {
@@ -204,12 +205,47 @@ class Config {
     };
   }
 
+  defaultMainnetConfig(): Partial<IClientConfig> {
+    return {
+      chains: {
+        secretNetwork: {
+          chainId: "secret-4",
+          endpoint: "https://lcd.mainnet.secretsaturn.net",
+          faucetEndpoint: "https://faucet.pulsar.scrttestnet.com",
+        },
+        polygon: {
+          chainId: Network.POLYGON.toString(),
+        },
+      },
+      contracts: {
+        PolygonToSecret: {
+          address: "0xE84274012866F4AA260f56Abe385481684FE24C2",
+          abi: PolygonToSecretAbi.abi,
+        },
+        ShareDocument: {
+          address: "secret10k9kpudxcan09p55lzy8er3rm6u2sp7cswdcg3",
+          hash: "28aa8b90638e8f47240695b4f0c4a027f7e2991373c618da6d3d8b1daf7dbc0a",
+        },
+      },
+      wallets: {
+        secretNetwork: {
+          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
+        },
+        polygon: {
+          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+        },
+      },
+    };
+  }
+
   private defaultConfig(env: Environment): Partial<IConfig> {
     switch (env) {
       case Environment.LOCAL:
         return this.defaultLocalConfig();
       case Environment.TESTNET:
         return this.defaultTestnetConfig();
+      case Environment.MAINNET:
+        return this.defaultMainnetConfig();
     }
   }
 
@@ -221,11 +257,11 @@ class Config {
     return this.config.wallets.polygon;
   }
 
-  useSecretWallet(wallet: ISecretNewtorkWallet) {
+  useSecretWallet(wallet: MetaMaskWallet) {
     this.config.wallets.secretNetwork = wallet;
   }
 
-  getSecretNetworkWallet(): ISecretNewtorkWallet {
+  getSecretNetworkWallet(): MetaMaskWallet {
     return this.config.wallets.secretNetwork;
   }
 

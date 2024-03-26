@@ -23,13 +23,21 @@ class PolygonToSecretSmartContract {
   async send(message: IReceiveMessageEvm): Promise<`0x${string}`> {
     const gasEstimate = await this.axelarClient.getEstimateFee({
       destinationContractAddress: this.secretContract.address,
-      sourceContractAddress: this.viemClient.getContract().address
+      sourceContractAddress: this.viemClient.getContract().address,
     });
+
+    console.log("Gas Estimate", gasEstimate);
 
     return await this.viemClient.writeContract({
       functionName: "send",
-      args: [this.axelarClient.getDestinationChain(), this.secretContract.address, message],
-      value: this.viemClient.parseGwei(gasEstimate.executionFeeWithMultiplier),
+      args: [
+        this.axelarClient.getDestinationChain(),
+        this.secretContract.address,
+        message,
+      ],
+      value: this.viemClient.parseGwei(
+        gasEstimate.baseFee + gasEstimate.executionFeeWithMultiplier
+      ),
     });
   }
 }

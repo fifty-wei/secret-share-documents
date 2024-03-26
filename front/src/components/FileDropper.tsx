@@ -59,7 +59,7 @@ const FileDropper = ({ fileSelected, setFileSelected }: FileDropperProps) => {
           className={"hidden"}
           type="file"
           onChange={handleFileChange}
-          value={fileSelected || undefined}
+          value={fileSelected || ""}
           id={"file"}
         />
         <label htmlFor="file">

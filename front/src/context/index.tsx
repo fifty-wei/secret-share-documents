@@ -2,12 +2,10 @@
 
 import React, { ReactNode } from "react";
 import { config, projectId } from "@/config";
-
 import { createWeb3Modal } from "@web3modal/wagmi/react";
-
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
 import { State, WagmiProvider } from "wagmi";
+import { SecretDocumentProvider } from "./SecretDocumentProvider";
 
 // Setup queryClient
 const queryClient = new QueryClient();
@@ -30,7 +28,9 @@ export function ContextProvider({
 }) {
   return (
     <WagmiProvider config={config} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <SecretDocumentProvider>{children}</SecretDocumentProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }

@@ -65,7 +65,7 @@ class ViemClient {
 
     if (config?.privateKey) {
       return this.createWalletWithAccount(
-        privateKeyToAccount(config.privateKey),
+        privateKeyToAccount(config.privateKey)
       );
     }
   }
@@ -83,12 +83,16 @@ class ViemClient {
     args,
     value,
   }: WriteContractProps) {
+    if (!this.walletClient) {
+      throw Error(
+        "Wallet Client not initialised. Please provide a valid mnemonic or client."
+      );
+    }
+
     const [address] = await this.walletClient.getAddresses();
 
     if (!address) {
-      throw Error(
-        "Wallet Client not initialised. Please provide a valid mnemonic or client.",
-      );
+      throw Error("No Address found.");
     }
 
     // @ts-ignore

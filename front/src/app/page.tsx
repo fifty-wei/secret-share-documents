@@ -1,3 +1,5 @@
+"use client";
+
 import Hero from "@/components/Hero";
 import Content from "@/components/Content";
 import Footer from "@/components/Footer";
@@ -12,8 +14,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useContext, useEffect } from "react";
+import { SecretDocumentContext } from "@/context/SecretDocumentContext";
 
 export default function Home() {
+  const { client } = useContext(SecretDocumentContext);
+
+  useEffect(() => {
+    if (!client) {
+      return;
+    }
+
+    const fetchFileIds = async () => {
+      try {
+        const res = await client.viewDocument().getAllFileIds();
+        console.log("toto", res);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    fetchFileIds();
+  }, [client]);
+
   const invoices = [
     {
       invoice: "INV001",

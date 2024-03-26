@@ -5,14 +5,16 @@ import { useAccount, useWalletClient } from "wagmi";
 import FileDropper from "./FileDropper";
 import * as Yup from "yup";
 import SubmitButton from "./SubmitButton";
-import React, { useState } from "react"; // Make sure to import React and useState
+import React, { useContext, useState } from "react"; // Make sure to import React and useState
 import { getConfig } from "../config/config";
 import { NetworkEnum } from "@/config/types";
 import PolygonToSecret from "../contracts/ABI/PolygonToSecret.json";
+import { SecretDocumentContext } from "@/context/SecretDocumentContext";
 
 export default function Hero() {
   const { address, chainId } = useAccount();
   const { data: walletClient } = useWalletClient({ chainId });
+  const { client } = useContext(SecretDocumentContext);
   const config = getConfig(chainId as NetworkEnum);
 
   interface IFormValues {
@@ -31,30 +33,30 @@ export default function Hero() {
     values: IFormValues,
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
   ) => {
-    console.log("values", values.file?.name);
-    console.log("destination chain", process.env.NEXT_PUBLIC_DESTINATION_CHAIN);
+    if (!client) {
+      console.error("No SecretDocumentClient init.");
+      return;
+    }
 
-    let tx;
-    if (isConnected && address) {
-      try {
-        tx = await walletClient?.writeContract({
-          address: config.contracts.talentLayerId,
-          abi: PolygonToSecret.abi,
-          functionName: "send",
-          args: [
-            process.env.NEXT_PUBLIC_DESTINATION_CHAIN,
-            config.contracts.polygonToSecret,
-            values.file?.name,
-          ],
-          account: address,
-        });
+    try {
+      const tx = await client.storeDocument().fromFile(values.file as File);
+      // tx = await walletClient?.writeContract({
+      //   address: config.contracts.talentLayerId,
+      //   abi: PolygonToSecret.abi,
+      //   functionName: "send",
+      //   args: [
+      //     process.env.NEXT_PUBLIC_DESTINATION_CHAIN,
+      //     config.contracts.polygonToSecret,
+      //     values.file?.name,
+      //   ],
+      //   account: address,
+      // });
 
-        console.log(tx);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setSubmitting(false);
-      }
+      console.log(tx);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -107,7 +109,7 @@ export default function Hero() {
                             setFileSelected={setFileSelected}
                             fileSelected={fileSelected}
                           />
-                          <Field type="hidden" id="file" name="file" />
+                          <Field value="" type="hidden" id="file" name="file" />
                           {/* Error messages and submit button */}
                         </div>
                         <div className="mt-4 flex justify-center">
