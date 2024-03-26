@@ -15,20 +15,25 @@ task('deploy', 'Deploy all contracts')
     console.log('Network:', network.name)
 
     let PolygonToSecretFactory = await ethers.getContractFactory('PolygonToSecret')
-    let polygonToSecretFactory = await PolygonToSecretFactory.deploy(
-      '0xBF62ef1486468a6bd26Dd669C06db43dEd5B849B', // axelar gateway
-      '0xbE406F0189A0B4cf3A05C286473D23791Dd44Cc6', // axelar gas service
-      'Polygon', // mumbai chain name
-    )
-    //https://docs.axelar.dev/resources/contract-addresses/testnet
 
-    console.log('polygonToSecret deployed to: ', polygonToSecretFactory.address)
+    // deploy on Mumbai testnet only for the hardhat test
+    //https://docs.axelar.dev/resources/contract-addresses/testnet
+    // let polygonToSecretFactory = await PolygonToSecretFactory.deploy(
+    //   '0xBF62ef1486468a6bd26Dd669C06db43dEd5B849B', // axelar gateway
+    //   '0xbE406F0189A0B4cf3A05C286473D23791Dd44Cc6', // axelar gas service
+    //   'Polygon', // mumbai chain name
+    // )
+    // console.log('polygonToSecret deployed to: ', polygonToSecretFactory.address)
 
     const [deployer] = await ethers.getSigners()
     console.log('Using address: ', deployer.address)
 
     const balance = await ethers.provider.getBalance(deployer.address)
     console.log('Balance: ', ethers.utils.formatEther(balance))
+
+    console.log('Axelar GatewayContract :', GatewayContract)
+    console.log('Axelar GasReceiverContract :', GasReceiverContract)
+    console.log('Axelar ChainName :', ChainName)
 
     const PolygonToSecret = await ethers.getContractFactory('PolygonToSecret')
     const polygonToSecretArg: [string, string, string] = [
