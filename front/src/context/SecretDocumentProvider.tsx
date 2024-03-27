@@ -42,7 +42,6 @@ export const SecretDocumentProvider = ({ config, children }: PropsWithChildren) 
       );
 
       config.useSecretWallet(wallet);
-      console.log("config", config);
       setClient(new SecretDocumentClient(config));
     };
 
