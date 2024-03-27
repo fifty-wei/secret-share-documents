@@ -11,23 +11,24 @@ import { MetaMaskWallet } from "secretjs";
 import { useClient, useAccount } from "wagmi";
 import Environment from "../../../sdk-js/src/Environment";
 
-export const SecretDocumentProvider = ({ children }: PropsWithChildren) => {
-  const wagmiClient = useClient();
+interface Props extends PropsWithChildren {
+  config: Config;
+}
+
+export const SecretDocumentProvider = ({ config, children }: PropsWithChildren) => {
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const [client, setClient] = useState<SecretDocumentClient>();
 
-  // start SDK configuration
-  const config = new Config({ env: Environment.MAINNET });
-  config.useEvmWallet({
-    client: walletClient,
-  });
+  useEffect(() => {
+    if (!walletClient) {
+      return;
+    }
+    config.useEvmWallet({
+      client: walletClient,
+    });
+  }, [walletClient]);
 
-  const ipfsStorage = new IpfsStorage({
-    gateway: "https://your-ipfs-node.tld/",
-  });
-
-  // const client = new SecretDocumentClient(config);
 
   useEffect(() => {
     if (!address) {

@@ -6,11 +6,12 @@ import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { State, WagmiProvider } from "wagmi";
 import { SecretDocumentProvider } from "./SecretDocumentProvider";
+import Environment from "../../../sdk-js/src/Environment";
+import Config from "../../../sdk-js/src/config";
+import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
 
 // Setup queryClient
 const queryClient = new QueryClient();
-
-if (!projectId) throw new Error("Project ID is not defined");
 
 // Create modal
 createWeb3Modal({
@@ -19,6 +20,16 @@ createWeb3Modal({
   enableAnalytics: true, // Optional - defaults to your Cloud configuration
 });
 
+
+// start SDK configuration
+const configSecretDocument = new Config({ env: Environment.MAINNET });
+
+const ipfsStorage = new IpfsStorage({
+  gateway: "https://dweb.link",
+});
+
+configSecretDocument.useStorage(ipfsStorage);
+
 export function ContextProvider({
   children,
   initialState,
@@ -26,10 +37,11 @@ export function ContextProvider({
   children: ReactNode;
   initialState?: State;
 }) {
+  console.log({initialState})
   return (
     <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>
-        <SecretDocumentProvider>{children}</SecretDocumentProvider>
+        <SecretDocumentProvider config={configSecretDocument}>{children}</SecretDocumentProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
