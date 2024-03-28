@@ -11,13 +11,16 @@ type IpfsResponse = {
 
 interface Props {
     gateway: string;
+    config?: axios.AxiosRequestConfig;
 }
 
 class IPFSStorage implements IStorage {
     private readonly gateway: string;
+    private readonly config: axios.AxiosRequestConfig;
 
-    constructor({ gateway }: Props) {
+    constructor({ gateway, config }: Props) {
         this.gateway = gateway;
+        this.config = config
     }
     async upload(
         encryptedData: ISymmetricEncryptedData,
@@ -29,7 +32,7 @@ class IPFSStorage implements IStorage {
         formData.append('file', dataString);
 
         const endpoint = `${this.gateway}/api/v0/add`;
-        const res = await axios.post(endpoint, formData);
+        const res = await axios.post(endpoint, formData, this.config);
 
         if (res.status !== 200) {
             throw Error(`Failed to upload file at ${endpoint}`);
