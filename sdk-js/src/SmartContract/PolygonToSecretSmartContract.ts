@@ -28,6 +28,10 @@ class PolygonToSecretSmartContract {
 
     console.log("Gas Estimate", gasEstimate);
 
+    const gasEstimateInt =
+      parseInt(gasEstimate.baseFee, 10) +
+      parseInt(gasEstimate.executionFeeWithMultiplier, 10);
+
     return await this.viemClient.writeContract({
       functionName: "send",
       args: [
@@ -35,9 +39,7 @@ class PolygonToSecretSmartContract {
         this.secretContract.address,
         message,
       ],
-      value: this.viemClient.parseGwei(
-        gasEstimate.baseFee + gasEstimate.executionFeeWithMultiplier
-      ),
+      value: this.viemClient.parseGwei(gasEstimateInt.toString()),
     });
   }
 }

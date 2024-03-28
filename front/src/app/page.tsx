@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {useContext, useEffect, useState} from "react";
+import { useContext, useEffect, useState } from "react";
 import { SecretDocumentContext } from "@/context/SecretDocumentContext";
 
 export default function Home() {
@@ -29,6 +29,8 @@ export default function Home() {
     const fetchFileIds = async () => {
       try {
         const res = await client.viewDocument().getAllFileIds();
+        console.log("res", res);
+
         setFileIds(res);
       } catch (e) {
         console.error(e);
@@ -60,9 +62,7 @@ export default function Home() {
             <TableBody>
               {fileIds.map(fileId => (
                 <TableRow key={fileId}>
-                  <TableCell className="font-medium">
-                    {fileId}
-                  </TableCell>
+                  <TableCell className="font-medium">{fileId}</TableCell>
                   {/*<TableCell>{invoice.paymentStatus}</TableCell>*/}
                   {/*<TableCell>{invoice.paymentMethod}</TableCell>*/}
                   <TableCell className="text-right">
