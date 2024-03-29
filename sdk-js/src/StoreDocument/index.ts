@@ -69,13 +69,13 @@ class StoreDocument {
   async storeEncryptedMessage(
     encryptedMessage: IEncryptedData,
   ): Promise<string> {
-    const payload = {
-      source_chain: "test-chain",
-      source_address: "test-address",
-      payload: encryptedMessage,
-    };
+    // const payload = {
+    //   source_chain: "test-chain",
+    //   source_address: "test-address",
+    //   payload: ,
+    // };
 
-    return this.polygonToSecret.send(payload);
+    return this.polygonToSecret.send(encryptedMessage);
   }
 
   async fetchDocument(fileUrl: string) {

@@ -2,6 +2,7 @@ import { IReceiveMessageEvm } from "./IQueryPayload";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import ViemClient from "./ViemClient";
 import AxelarClient from "./AxelarClient";
+import IEncryptedData from "../Encryption/IEncryptedData";
 
 interface Props {
   secretContract: ISecretNetworkSmartContract;
@@ -20,13 +21,11 @@ class PolygonToSecretSmartContract {
     this.axelarClient = axelarClient;
   }
 
-  async send(message: IReceiveMessageEvm): Promise<`0x${string}`> {
+  async send(message: IEncryptedData): Promise<`0x${string}`> {
     const gasEstimate = await this.axelarClient.getEstimateFee({
       destinationContractAddress: this.secretContract.address,
       sourceContractAddress: this.viemClient.getContract().address,
     });
-
-    console.log("Gas Estimate", gasEstimate);
 
     const gasEstimateInt =
       parseInt(gasEstimate.baseFee, 10) +
