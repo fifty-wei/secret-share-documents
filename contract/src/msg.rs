@@ -17,6 +17,11 @@ pub enum ExecuteMsg {
         source_address: String,
         payload: Binary,
     },
+    ReceiveMessageCosmos {
+        source_chain: String,
+        source_address: String,
+        payload: EncryptedExecuteMsg,
+    }
 }
 
 
