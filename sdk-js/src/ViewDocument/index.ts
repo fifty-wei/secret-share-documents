@@ -1,5 +1,5 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
-import axios from "axios/index";
+import axios from "axios";
 import SymmetricKeyEncryption from "../Encryption/SymmetricKeyEncryption";
 
 interface Props {
