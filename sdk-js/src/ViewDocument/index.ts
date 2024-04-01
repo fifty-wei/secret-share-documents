@@ -17,7 +17,7 @@ class ViewDocument {
     return this.secretDocument.findAll();
   }
 
-  async download(fileId: string): Promise<any> {
+  async download(fileId: string): Promise<Buffer> {
 
     const { url, symmetricKey } = await this.secretDocument.getFile(fileId);
     const res = await axios.get(url);
