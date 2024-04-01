@@ -44,6 +44,10 @@ export default class AxelarClient {
     );
   }
 
+  getSourceChain() {
+    return EvmChain.POLYGON;
+  }
+
   async getEstimateFee({
     destinationContractAddress,
     sourceContractAddress,
@@ -58,7 +62,7 @@ export default class AxelarClient {
     };
 
     return (await axelar.estimateGasFee(
-      EvmChain.POLYGON,
+      this.getSourceChain(),
       this.getDestinationChain(),
       GasToken.MATIC,
       BigInt(7_000_000),

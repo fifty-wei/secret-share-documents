@@ -66,18 +66,6 @@ class StoreDocument {
     return this.secretDocument.encryptPayload(payloadWithPermit);
   }
 
-  async storeEncryptedMessage(
-    encryptedMessage: IEncryptedData,
-  ): Promise<string> {
-    // const payload = {
-    //   source_chain: "test-chain",
-    //   source_address: "test-address",
-    //   payload: ,
-    // };
-
-    return this.polygonToSecret.send(encryptedMessage);
-  }
-
   async fetchDocument(fileUrl: string) {
     // Fetch the document and prepare upload options.
     const response = await fetch(fileUrl);
@@ -103,7 +91,8 @@ class StoreDocument {
       bufferData,
       uploadOptions,
     );
-    return this.storeEncryptedMessage(encryptedMessage);
+
+    return this.polygonToSecret.send(encryptedMessage);
   }
 
   async fromFile(file: File): Promise<string> {
@@ -111,7 +100,8 @@ class StoreDocument {
     const encryptedMessage = await this.getEncryptedMessage(bufferData, {
       contentType: file.type,
     });
-    return this.storeEncryptedMessage(encryptedMessage);
+
+    return this.polygonToSecret.send(encryptedMessage);
   }
 }
 

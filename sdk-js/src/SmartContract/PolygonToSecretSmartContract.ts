@@ -21,11 +21,17 @@ class PolygonToSecretSmartContract {
     this.axelarClient = axelarClient;
   }
 
-  async send(message: IEncryptedData): Promise<`0x${string}`> {
+  async send(payload: IEncryptedData): Promise<`0x${string}`> {
     const gasEstimate = await this.axelarClient.getEstimateFee({
       destinationContractAddress: this.secretContract.address,
       sourceContractAddress: this.viemClient.getContract().address,
     });
+
+    // const receiveEvmMessage = {
+    //   source_chain: this.axelarClient.getSourceChain(),
+    //   source_address: this.secretContract.address,
+    //   payload: payload,
+    // };
 
     const gasEstimateInt =
       parseInt(gasEstimate.baseFee, 10) +
@@ -36,7 +42,7 @@ class PolygonToSecretSmartContract {
       args: [
         this.axelarClient.getDestinationChain(),
         this.secretContract.address,
-        message,
+        payload,
       ],
       value: this.viemClient.parseGwei(gasEstimateInt.toString()),
     });
