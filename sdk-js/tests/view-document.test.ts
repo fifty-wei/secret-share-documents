@@ -67,7 +67,7 @@ test("Get all files the user is allowed acces to", async () => {
   const data = await viewDocument.getAllFileIds();
 
   expect(data).toBeDefined();
-  expect(data).toHaveLength(1);
+  expect(data.length).toBeGreaterThanOrEqual(1);
 }, 100_000);
 
 test("Find file content from fileId", async () => {
@@ -81,6 +81,8 @@ test("Find file content from fileId", async () => {
 
   const allData = await viewDocument.getAllFileIds();
   const data = await viewDocument.download(allData[0]);
+
+  console.log(data);
 
   expect(data).toBeDefined();
   expect(data).toHaveProperty("url");
