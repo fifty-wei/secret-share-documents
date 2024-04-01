@@ -1,5 +1,4 @@
-use cosmwasm_std::Addr;
-// use cosmwasm_std::Binary;
+use cosmwasm_std::{Addr, Binary};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -16,7 +15,7 @@ pub enum ExecuteMsg {
     ReceiveMessageEvm {
         source_chain: String,
         source_address: String,
-        payload: EncryptedExecuteMsg, 
+        payload: Binary,
     },
 }
 
