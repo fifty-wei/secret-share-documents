@@ -1,20 +1,25 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
 import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
 import {IERC20} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IERC20.sol";
+import {StringToAddress, AddressToString} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/utils/AddressString.sol";
 
 /**
  * @title CallContract
  * @notice Send a message from chain A to chain B and stores gmp message
  */
 contract PolygonToSecret is AxelarExecutable {
+    using StringToAddress for string;
+    using AddressToString for address;
+
     string public message;
     string public sourceChain;
     string public sourceAddress;
     IAxelarGasService public immutable gasService;
+    string public chainName;
 
     event Executed(string _from, string _message);
 
@@ -65,11 +70,7 @@ contract PolygonToSecret is AxelarExecutable {
         //     bytes                    abi encoded argument values
 
         // contract call arguments for ExecuteMsg::receive_message_evm{ source_chain, source_address, payload }
-        bytes memory argValues = abi.encode(
-            chainName,
-            address(this).toString(),
-            executeMsgPayload
-        );
+        bytes memory argValues = abi.encode(chainName, address(this).toString(), executeMsgPayload);
 
         string[] memory argumentNameArray = new string[](3);
         argumentNameArray[0] = "source_chain";
@@ -82,17 +83,9 @@ contract PolygonToSecret is AxelarExecutable {
         abiTypeArray[2] = "bytes";
 
         bytes memory gmpPayload;
-        gmpPayload = abi.encode(
-            "receive_message_evm",
-            argumentNameArray,
-            abiTypeArray,
-            argValues
-        );
+        gmpPayload = abi.encode("receive_message_evm", argumentNameArray, abiTypeArray, argValues);
 
-        return abi.encodePacked(
-            bytes4(0x00000001),
-            gmpPayload
-        );
+        return abi.encodePacked(bytes4(0x00000001), gmpPayload);
     }
 
     /**

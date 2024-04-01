@@ -49,6 +49,8 @@ export function ContextProvider({
   children: ReactNode;
   initialState?: State;
 }) {
+  console.log("configSecretDocument", configSecretDocument);
+
   return (
     <WagmiProvider config={config} initialState={initialState}>
       <QueryClientProvider client={queryClient}>

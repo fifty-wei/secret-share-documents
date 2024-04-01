@@ -219,12 +219,12 @@ class Config {
       },
       contracts: {
         PolygonToSecret: {
-          address: "0x179012B343Aa5d6f9c5cb88930244337ded6cA9f",
+          address: "0xE866125f9ae21098c5e621e4bE26671707CE01be",
           abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
-          address: "secret1zg9nd9dr4q6whylhxpc9m8ulnt9mqtkaef2zg8",
-          hash: "1580830cb8bee16455d77dd1e4e4b508f440657f20bb54c65d8451c96dcd9f9a",
+          address: "secret18xh2ucjqecj4t0w05zv8gkyrl9ae36mpjk9je9",
+          hash: "ab3862bd7aff7a98452381d8034b387c1a85348b3e453c73605602d8222593e2",
         },
       },
       wallets: {
