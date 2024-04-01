@@ -25,7 +25,7 @@ class IPFSStorage implements IStorage {
     async upload(
         encryptedData: ISymmetricEncryptedData,
         options: IUploadOptions,
-    ): Promise<any> {
+    ): Promise<string> {
         const formData = new FormData();
         const dataString = JSON.stringify(encryptedData);
 
@@ -41,9 +41,7 @@ class IPFSStorage implements IStorage {
         // Corresponds to the IPFS cid.
         const { Name: cid }: IpfsResponse = res.data;
 
-        console.log({cid});
-
-        return cid;
+        return `${this.gateway}/ipfs/${cid}`;
     }
 }
 
