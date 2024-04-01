@@ -1,4 +1,6 @@
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
+import axios from "axios/index";
+import SymmetricKeyEncryption from "../Encryption/SymmetricKeyEncryption";
 
 interface Props {
   secretDocument: SecretDocumentSmartContract;
@@ -16,7 +18,15 @@ class ViewDocument {
   }
 
   async download(fileId: string): Promise<any> {
-    return this.secretDocument.getFile(fileId);
+
+    const { url, symmetricKey } = await this.secretDocument.getFile(fileId);
+    const res = await axios.get(url);
+
+    if (res.status !== 200) {
+      throw Error(`Failed to download file at ${res}`);
+    }
+
+    return SymmetricKeyEncryption.decrypt(res.data, symmetricKey);
   }
 }
 

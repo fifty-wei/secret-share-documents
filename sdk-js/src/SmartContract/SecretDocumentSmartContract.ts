@@ -110,7 +110,7 @@ class SecretDocumentSmartContract {
     return res.file_ids;
   }
 
-  async getFile(fileId: string) {
+  async getFile(fileId: string): Promise<{ url: string; symmetricKey: any }> {
     const payload = this.queryFactory.getFileContent(fileId);
     const queryWithPermit = await this.wrapPayloadWithPermit(
       this.queryFactory.query(payload),

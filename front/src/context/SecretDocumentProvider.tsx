@@ -43,6 +43,8 @@ export const SecretDocumentProvider = ({
         address || ""
       );
 
+      console.log("wallet", wallet);
+
       config.useSecretWallet(wallet);
       setClient(new SecretDocumentClient(config));
     };
