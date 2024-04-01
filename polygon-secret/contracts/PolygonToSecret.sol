@@ -41,7 +41,9 @@ contract PolygonToSecret is AxelarExecutable {
     ) external payable {
         require(msg.value > 0, "Gas payment is required");
 
-        bytes memory payload = abi.encode(_message);
+        bytes memory executeMsgPayload = abi.encode(_message);
+        bytes memory payload = _encodePayloadToCosmWasm(executeMsgPayload);
+
         gasService.payNativeGasForContractCall{value: msg.value}(
             address(this),
             destinationChain,
@@ -49,7 +51,48 @@ contract PolygonToSecret is AxelarExecutable {
             payload,
             msg.sender
         );
+
         gateway.callContract(destinationChain, destinationAddress, payload);
+    }
+
+    function _encodePayloadToCosmWasm(bytes memory executeMsgPayload) internal view returns (bytes memory) {
+        // Schema
+        //   bytes4  version number (0x00000001)
+        //   bytes   ABI-encoded payload, indicating function name and arguments:
+        //     string                   CosmWasm contract method name
+        //     dynamic array of string  CosmWasm contract argument name array
+        //     dynamic array of string  argument abi type array
+        //     bytes                    abi encoded argument values
+
+        // contract call arguments for ExecuteMsg::receive_message_evm{ source_chain, source_address, payload }
+        bytes memory argValues = abi.encode(
+            chainName,
+            address(this).toString(),
+            executeMsgPayload
+        );
+
+        string[] memory argumentNameArray = new string[](3);
+        argumentNameArray[0] = "source_chain";
+        argumentNameArray[1] = "source_address";
+        argumentNameArray[2] = "payload";
+
+        string[] memory abiTypeArray = new string[](3);
+        abiTypeArray[0] = "string";
+        abiTypeArray[1] = "string";
+        abiTypeArray[2] = "bytes";
+
+        bytes memory gmpPayload;
+        gmpPayload = abi.encode(
+            "receive_message_evm",
+            argumentNameArray,
+            abiTypeArray,
+            argValues
+        );
+
+        return abi.encodePacked(
+            bytes4(0x00000001),
+            gmpPayload
+        );
     }
 
     /**
