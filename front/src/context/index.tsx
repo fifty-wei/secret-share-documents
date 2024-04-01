@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { State, WagmiProvider } from "wagmi";
 import { SecretDocumentProvider } from "./SecretDocumentProvider";
 import Environment from "../../../sdk-js/src/Environment";
-import Config from "../../../sdk-js/src/config";
+import Config from "../../../sdk-js/src/Config";
 import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
 
 // Setup queryClient
