@@ -4,51 +4,39 @@ pragma solidity ^0.8.9;
 import {AxelarExecutable} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/executable/AxelarExecutable.sol";
 import {IAxelarGateway} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGateway.sol";
 import {IAxelarGasService} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IAxelarGasService.sol";
-import {IERC20} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/interfaces/IERC20.sol";
 import {StringToAddress, AddressToString} from "@axelar-network/axelar-gmp-sdk-solidity/contracts/utils/AddressString.sol";
 
-/**
- * @title CallContract
- * @notice Send a message from chain A to chain B and stores gmp message
- */
+// import "hardhat/console.sol";
+
 contract PolygonToSecret is AxelarExecutable {
     using StringToAddress for string;
     using AddressToString for address;
 
-    string public message;
-    string public sourceChain;
-    string public sourceAddress;
     IAxelarGasService public immutable gasService;
-    string public chainName;
+    string public chainName; // name of the chain this contract is deployed to
 
-    event Executed(string _from, string _message);
-
-    /**
-     *
-     * @param _gateway address of axl gateway on deployed chain
-     * @param _gasReceiver address of axl gas service on deployed chain
-     */
-    constructor(address _gateway, address _gasReceiver) AxelarExecutable(_gateway) {
-        gasService = IAxelarGasService(_gasReceiver);
+    struct Message {
+        string sender;
+        string message;
     }
 
-    /**
-     * @notice Send message from chain A to chain B
-     * @dev message param is passed in as gmp message
-     * @param destinationChain name of the dest chain (ex. "Fantom")
-     * @param destinationAddress address on dest chain this tx is going to
-     * @param _message message to be sent
-     */
+    Message public storedMessage; // message received from _execute
+
+    constructor(address gateway_, address gasReceiver_, string memory chainName_) AxelarExecutable(gateway_) {
+        gasService = IAxelarGasService(gasReceiver_);
+        chainName = chainName_;
+    }
+
     function send(
         string calldata destinationChain,
         string calldata destinationAddress,
-        string calldata _message
+        string calldata message
     ) external payable {
-        require(msg.value > 0, "Gas payment is required");
-
-        bytes memory executeMsgPayload = abi.encode(_message);
+        // 1. Generate GMP payload
+        bytes memory executeMsgPayload = abi.encode(message);
         bytes memory payload = _encodePayloadToCosmWasm(executeMsgPayload);
 
+        // 2. Pay for gas
         gasService.payNativeGasForContractCall{value: msg.value}(
             address(this),
             destinationChain,
@@ -57,6 +45,7 @@ contract PolygonToSecret is AxelarExecutable {
             msg.sender
         );
 
+        // 3. Make GMP call
         gateway.callContract(destinationChain, destinationAddress, payload);
     }
 
@@ -88,22 +77,12 @@ contract PolygonToSecret is AxelarExecutable {
         return abi.encodePacked(bytes4(0x00000001), gmpPayload);
     }
 
-    /**
-     * @notice logic to be executed on dest chain
-     * @dev this is triggered automatically by relayer
-     * @param _sourceChain blockchain where tx is originating from
-     * @param _sourceAddress address on src chain where tx is originating from
-     * @param _payload encoded gmp message sent from src chain
-     */
     function _execute(
-        string calldata _sourceChain,
-        string calldata _sourceAddress,
-        bytes calldata _payload
+        string calldata /*sourceChain*/,
+        string calldata /*sourceAddress*/,
+        bytes calldata payload
     ) internal override {
-        (message) = abi.decode(_payload, (string));
-        sourceChain = _sourceChain;
-        sourceAddress = _sourceAddress;
-
-        emit Executed(sourceAddress, message);
+        (string memory sender, string memory message) = abi.decode(payload, (string, string));
+        storedMessage = Message(sender, message);
     }
 }
