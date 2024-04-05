@@ -36,7 +36,7 @@ export default class AxelarClient {
     const destinationChain = {
       [Environment.LOCAL]: "secret",
       [Environment.TESTNET]: "secret",
-      [Environment.MAINNET]: "secret-snip",
+      [Environment.MAINNET]: "secret",
     };
 
     return (
