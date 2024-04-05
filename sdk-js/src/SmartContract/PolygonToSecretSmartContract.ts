@@ -40,7 +40,7 @@ class PolygonToSecretSmartContract {
     return await this.viemClient.writeContract({
       functionName: "send",
       args: [
-        this.axelarClient.getDestinationChain(),
+        'secret',
         this.secretContract.address,
         payload,
       ],

@@ -32,18 +32,6 @@ export default class AxelarClient {
     return environments[this.env] || AxelarEnvironement.MAINNET;
   }
 
-  getDestinationChain() {
-    const destinationChain = {
-      [Environment.LOCAL]: "secret",
-      [Environment.TESTNET]: "secret",
-      [Environment.MAINNET]: "secret",
-    };
-
-    return (
-      destinationChain[this.getEnv()] || destinationChain[Environment.MAINNET]
-    );
-  }
-
   getSourceChain() {
     return EvmChain.POLYGON;
   }
@@ -63,7 +51,7 @@ export default class AxelarClient {
 
     return (await axelar.estimateGasFee(
       this.getSourceChain(),
-      this.getDestinationChain(),
+      'secret-snip',
       GasToken.MATIC,
       BigInt(7_000_000),
       "auto",
