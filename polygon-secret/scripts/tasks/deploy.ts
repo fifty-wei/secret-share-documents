@@ -36,7 +36,11 @@ task('deploy', 'Deploy all contracts')
     console.log('Axelar ChainName :', ChainName)
 
     const PolygonToSecret = await ethers.getContractFactory('PolygonToSecret')
-    const polygonToSecretArg: [string, string] = [GatewayContract, GasReceiverContract]
+    const polygonToSecretArg: [string, string, string] = [
+      GatewayContract,
+      GasReceiverContract,
+      ChainName,
+    ]
     const polygonToSecret = await PolygonToSecret.deploy(...polygonToSecretArg)
 
     await polygonToSecret.deployed()
