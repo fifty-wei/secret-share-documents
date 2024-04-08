@@ -42,7 +42,7 @@ class PolygonToSecretSmartContract {
       args: [
         'secret',
         this.secretContract.address,
-        payload,
+        JSON.stringify(payload), // Send a string and not an object
       ],
       value: this.viemClient.parseGwei(gasEstimateInt.toString()),
     });

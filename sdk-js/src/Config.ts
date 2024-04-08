@@ -219,7 +219,7 @@ class Config {
       },
       contracts: {
         PolygonToSecret: {
-          address: "0xE866125f9ae21098c5e621e4bE26671707CE01be",
+          address: "0xACE531E19D52DB4e485Ce894c6AfE53D60b59ca0",
           abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
