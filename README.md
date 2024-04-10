@@ -48,6 +48,18 @@ On the diagram, we can saw the different components. On the use case for storing
 
 Once the payload encrypted, the user send a transaction on Polygon [3]. The smart contract on Polygon, can do additional process regarding the user request (it is customizable) and then send the payload to Axelar. Axelar transfer the payload from Polygon to Secret Network and send it to the Secret Smart Contract where it will be process. The Secret Smart Contract decrypt the payload of the user, and store the sensitive information on the Smart Contract. Finally, is the user wants to retrive the data, he can query the Secret Smart Contract, obatin an id of the stored file and then retrieve the file information.
 
+### Features
+
+In this project, we proposed a SDK allowing you to store and share confidential documents. By using our SDK, you will have the possibility to:
+- Store a new document
+- See the content of this document
+- Grant/Revoke the access to the document to another person
+
+When using our SDK, you will have the possibility to use an EVM account. When using it, through Metamask for instance, it will generate a new secret account linked to your EVM account. So, each time you connect to your Metasmask, you will keep the same secret account, enabling you to retrieve your confidential documents. Note that when you want to share a document with someone else, you need to provide the secret address of the person you want to share it with. 
+
+> Limitation: In our SDK, we currently do not manage file editing. Additionally, when sharing a document to someone else, that person could still have access to the file, even if you revoke his access. Indeed, as we are using a IPFS storage to store the document, we cannot delete it. Thus, if the person makes a copy the symmetric key used to encrypt the document when he first has access to the encrypted data, even if you revoke the access later on, that person can still have access to the file.
+
+
 ## Getting Started
 
 This project is decomposed in sevaral components:
