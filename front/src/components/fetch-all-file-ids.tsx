@@ -18,8 +18,13 @@ export function FetchAllFileIds({children}: Props) {
         setLoading(true);
         setError(null);
 
+        if( ! client ) {
+            setLoading(false);
+            return;
+        }
+
         try {
-            const fileIds = await client?.viewDocument().getAllFileIds();
+            const fileIds = await client.viewDocument().getAllFileIds();
             setFileIds(fileIds);
         } catch (error) {
             setError(error);
@@ -37,7 +42,7 @@ export function FetchAllFileIds({children}: Props) {
     }, [client]);
 
     return children({
-        fileIds: fileIds,
+        fileIds: ['tototo'],
         loading: loading,
         error: error,
         fetchAllFileIds: fetchAllFileIds,

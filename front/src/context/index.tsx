@@ -1,8 +1,7 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { config, projectId } from "@/config";
-// import { createWeb3Modal } from "@web3modal/wagmi/react";
+import { config } from "@/config";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { State, WagmiProvider } from "wagmi";
 import { SecretDocumentProvider } from "./SecretDocumentProvider";
@@ -10,17 +9,9 @@ import Environment from "../../../sdk-js/src/Environment";
 import Config from "../../../sdk-js/src/Config";
 import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
 
-// Setup queryClient
 const queryClient = new QueryClient();
 
-// Create modal
-// createWeb3Modal({
-//   wagmiConfig: config,
-//   projectId,
-//   enableAnalytics: true, // Optional - defaults to your Cloud configuration
-// });
-
-// start SDK configuration
+// Setup SDK configuration
 const configSecretDocument = new Config({ env: Environment.MAINNET });
 
 const authorizationToken = Buffer.from(`${process.env.NEXT_PUBLIC_INFURA_ID}:${process.env.NEXT_PUBLIC_INFURA_SECRET}`).toString("base64");

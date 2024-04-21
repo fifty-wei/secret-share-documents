@@ -109,7 +109,9 @@ export default function UploadPage() {
                                         </div>
                                     )}
                                     {fileIds.length > 0 ? (
-                                        <FileIdsList fileIds={fileIds}/>
+                                        <div className="p-8">
+                                            <FileIdsList fileIds={fileIds}/>
+                                        </div>
                                     ) : (
                                         <div className="h-full w-full flex flex-col gap-4 items-center justify-center">
                                             <h2>You're not upload document yet.</h2>

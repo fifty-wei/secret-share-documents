@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { CardTitle, CardHeader, Card } from "@/components/ui/card"
@@ -8,12 +9,13 @@ import { FileIcon } from "@/components/file-icon";
 import { ArrowDownToLine, FolderPlus } from "lucide-react";
 import { SecretDocumentContext } from "@/context/SecretDocumentContext";
 
-export function UploadForm({onSubmit}) {
+export function UploadForm() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
+    const [estimatedGas, setEstimatedGas] = useState(null);
     const { client } = useContext(SecretDocumentContext);
 
-    const estimatedGas = useMemo(async () => {
+    useEffect(() => {
 
         if( ! uploadedFile ) {
             return;
@@ -24,17 +26,20 @@ export function UploadForm({onSubmit}) {
             return;
         }
 
-        const estimatedGas = await client.storeDocument().estimatedGas();
+        async function fetchEstimatedGas(){
+            const estimatedGas = await client.storeDocument().estimatedGas();
+            setEstimatedGas(estimatedGas);
+        }
 
-        return estimatedGas;
+        fetchEstimatedGas();
     }, [uploadedFile]);
     async function handleSubmit(e: FormEvent<HTMLFormElement>){
         e.preventDefault()
 
         const formData = new FormData(e.target as HTMLFormElement);
 
-        console.log(formData.get('yourFile'));
-        console.log(formaData);
+        // console.log(formData.get('yourFile'));
+        // console.log(formaData);
 
 
         if (!client) {
@@ -44,17 +49,6 @@ export function UploadForm({onSubmit}) {
 
         try {
             const tx = await client.storeDocument().fromFile(formData.get('yourFile') as File);
-            // tx = await walletClient?.writeContract({
-            //   address: config.contracts.talentLayerId,
-            //   abi: PolygonToSecret.abi,
-            //   functionName: "send",
-            //   args: [
-            //     process.env.NEXT_PUBLIC_DESTINATION_CHAIN,
-            //     config.contracts.polygonToSecret,
-            //     values.file?.name,
-            //   ],
-            //   account: address,
-            // });
 
             console.log(tx);
         } catch (error) {
@@ -135,7 +129,11 @@ export function UploadForm({onSubmit}) {
                                     Upload
                                 </Button>
 
-                                <span className="text-xs text-gray-500 dark:text-gray-400">Estimated gas: {estimatedGas}</span>
+                                {estimatedGas !== null && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        Estimated gas: {estimatedGas}
+                                    </span>
+                                )}
                             </>
                         ) }
                     </div>
