@@ -27,6 +27,10 @@ class StoreDocument {
     this.polygonToSecret = polygonToSecret;
   }
 
+  async estimatedGas(){
+    return await this.polygonToSecret.estimatedGas();
+  }
+
   async uploadDocument(
     bufferData: Buffer,
     uploadOptions: IUploadOptions,

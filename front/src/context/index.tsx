@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 import { config, projectId } from "@/config";
-import { createWeb3Modal } from "@web3modal/wagmi/react";
+// import { createWeb3Modal } from "@web3modal/wagmi/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { State, WagmiProvider } from "wagmi";
 import { SecretDocumentProvider } from "./SecretDocumentProvider";
@@ -14,22 +14,17 @@ import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
 const queryClient = new QueryClient();
 
 // Create modal
-createWeb3Modal({
-  wagmiConfig: config,
-  projectId,
-  enableAnalytics: true, // Optional - defaults to your Cloud configuration
-});
+// createWeb3Modal({
+//   wagmiConfig: config,
+//   projectId,
+//   enableAnalytics: true, // Optional - defaults to your Cloud configuration
+// });
 
 // start SDK configuration
 const configSecretDocument = new Config({ env: Environment.MAINNET });
 
-const authorization =
-  "Basic " +
-  Buffer.from(
-    process.env.NEXT_PUBLIC_INFURA_ID +
-      ":" +
-      process.env.NEXT_PUBLIC_INFURA_SECRET
-  ).toString("base64");
+const authorizationToken = Buffer.from(`${process.env.NEXT_PUBLIC_INFURA_ID}:${process.env.NEXT_PUBLIC_INFURA_SECRET}`).toString("base64");
+const authorization = `Basic ${authorizationToken}`;
 
 const ipfsStorage = new IpfsStorage({
   gateway: "https://ipfs.infura.io:5001",
