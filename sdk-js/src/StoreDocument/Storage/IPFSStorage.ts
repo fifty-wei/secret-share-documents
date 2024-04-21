@@ -43,6 +43,16 @@ class IPFSStorage implements IStorage {
 
         return `${this.gateway}/ipfs/${cid}`;
     }
+
+    async download(url: string): Promise<ISymmetricEncryptedData> {
+        const res = await axios.get(url, this.config);
+
+        if (res.status !== 200) {
+            throw Error(`Failed to download file at ${url}`);
+        }
+
+        return res.data;
+    }
 }
 
 export default IPFSStorage;

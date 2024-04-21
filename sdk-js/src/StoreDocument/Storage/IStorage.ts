@@ -6,4 +6,6 @@ export default interface IStorage {
     data: ISymmetricEncryptedData,
     options: IUploadOptions,
   ): Promise<string>;
+
+  download(url: string): Promise<ISymmetricEncryptedData>;
 }

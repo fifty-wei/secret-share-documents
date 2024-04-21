@@ -78,7 +78,7 @@ class SecretDocumentClient {
 
   public viewDocument() {
     return new ViewDocument({
-      // storage: this.config.getStorage(),
+      storage: this.config.getStorage(),
       secretDocument: this.secretDocument(),
     });
   }
