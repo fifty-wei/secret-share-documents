@@ -24,6 +24,14 @@ class SecretDocumentQueryFactory {
     };
   }
 
+  getFileAccess(fileId: string): GetFileAccessPayload {
+    return {
+      get_file_access: {
+        file_id: fileId,
+      },
+    };
+  }
+
   query(payload: QueryPayload) {
     return {
       query: payload,

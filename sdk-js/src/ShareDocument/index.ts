@@ -74,6 +74,10 @@ class ShareDocument {
   public async deleteViewing(addresses: string[]) {
     return this.share({deleteViewing: addresses});
   }
+
+  getFileAccess(){
+    return this.secretDocument.getFileAccess(this.fileId);
+  }
 }
 
 export default ShareDocument;

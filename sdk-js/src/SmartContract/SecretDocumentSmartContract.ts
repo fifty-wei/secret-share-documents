@@ -3,6 +3,7 @@ import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import SecretDocumentQueryFactory from "./SecretDocumentQueryFactory";
 import {
   GetFileContentResponse,
+  GetFileAccessResponse,
   GetFileIdsResponse,
   PublicKeyResponse,
 } from "./IQueryResponse";
@@ -44,10 +45,6 @@ interface QueryWithPermitPayload<T> {
 type PayloadWithPermit<T> =
   | ExecuteWithPermitPayload<T>
   | QueryWithPermitPayload<T>;
-
-// type WithPermitPayload<T> =
-//   | QueryWithPermitPayload<T>
-//   | ExecuWithPermittePayload<T>;
 
 class SecretDocumentSmartContract {
   private client: SecretNetworkClient;
@@ -207,6 +204,27 @@ class SecretDocumentSmartContract {
       public_key: Array.from(ECDHKeys.publicKey),
     };
   }
+
+    async getFileAccess(fileId: string): Promise<{ owner: string; viewers: Array<string> }> {
+      const payload = this.queryFactory.getFileAccess(fileId);
+      const queryWithPermit = await this.wrapPayloadWithPermit(
+          this.queryFactory.query(payload),
+      );
+
+      const res = (await this.client.query.compute.queryContract({
+        contract_address: this.contract.address,
+        code_hash: this.contract.hash,
+        query: queryWithPermit,
+      })) as GetFileAccessResponse;
+
+      if (!res?.owner) {
+        throw new Error(
+            `Query failed with the following err: ${JSON.stringify(res)}`,
+        );
+      }
+
+      return res;
+    }
 }
 
 export default SecretDocumentSmartContract;

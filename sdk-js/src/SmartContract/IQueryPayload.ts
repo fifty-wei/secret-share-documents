@@ -14,6 +14,12 @@ export interface GetFileContentPayload {
   };
 }
 
+export interface GetFileAccessPayload {
+  get_file_access: {
+    file_id: string;
+  };
+}
+
 export interface StoreNewFilePayload {
   store_new_file: {
     payload: string;
