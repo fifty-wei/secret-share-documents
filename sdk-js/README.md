@@ -60,10 +60,12 @@ const res = await client.storeDocument().fromUrl('https://example.com/file.pdf')
 ``` js
 const config = new Config();
 const client = new SecretDocumentClient(config);
+
 // Retrieve all fileIds documents you have access to.
-const res = await client.viewDocument().all();
+const res = await client.viewDocument().getAllFileIds();
+
 // Get the content of a specific document.
-const res = await client.viewDocument().get('fileId');
+const res = await client.viewDocument().download('fileId');
 ```
 
 ### Share documents
