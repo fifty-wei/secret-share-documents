@@ -22,6 +22,7 @@ export const SecretDocumentProvider = ({
   const { address } = useAccount();
   const { data: walletClient } = useWalletClient();
   const [client, setClient] = useState<SecretDocumentClient>();
+  const [secretNetworkAddress, setSecretNetworkAddress] = useState<string>('');
 
   useEffect(() => {
     if (!walletClient) {
@@ -43,9 +44,10 @@ export const SecretDocumentProvider = ({
         address || ""
       );
 
-      console.log("wallet", wallet);
 
       config.useSecretWallet(wallet);
+
+      setSecretNetworkAddress(wallet.address);
       setClient(new SecretDocumentClient(config));
     };
 
@@ -53,8 +55,11 @@ export const SecretDocumentProvider = ({
   }, [address]);
   // end SDK configuration
 
+  console.log("client", client);
+  console.log("secretNetworkAddress", secretNetworkAddress);
+
   return (
-    <SecretDocumentContext.Provider value={{ client }}>
+    <SecretDocumentContext.Provider value={{ client, secretNetworkAddress }}>
       {children}
     </SecretDocumentContext.Provider>
   );
