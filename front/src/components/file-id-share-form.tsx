@@ -38,7 +38,7 @@ import {useAccount} from "wagmi";
 
 interface Props {
     fileIds: string[];
-    defaultAccess: Array<{ address: string, permission: string }>;
+    fileAccess: Array<{ address: string, permission: string }>;
 }
 
 const FormSchema = z.object({
@@ -58,13 +58,13 @@ const accessControl = [
     { label: "Owner", value: "changeOwner" },
 ];
 
-export function FileIdShareForm({fileId, defaultAccess}: Props) {
+export function FileIdShareForm({fileId, fileAccess}: Props) {
     const { client } = useContext(SecretDocumentContext);
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
-            access: defaultAccess
+            access: fileAccess
         }
     })
 
@@ -97,12 +97,16 @@ export function FileIdShareForm({fileId, defaultAccess}: Props) {
                 return access.address
             });
 
+        const shareFileAccess = {
+            changeOwner: addressesToChangeOwner[0],
+            addViewing: addressesToAdd,
+            deleteViewing: addressesToDelete,
+        };
+
+        console.log({shareFileAccess})
+
         try{
-            client.shareDocument(fileId).share({
-                changeOwner: addressesToChangeOwner[0],
-                addViewing: addressesToAdd,
-                deleteViewing: addressesToDelete,
-            })
+            client.shareDocument(fileId).share(shareFileAccess)
         } catch (error) {
             console.error(error);
         }
