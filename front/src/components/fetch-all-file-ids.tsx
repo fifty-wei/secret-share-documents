@@ -42,7 +42,7 @@ export function FetchAllFileIds({children}: Props) {
     }, [client]);
 
     return children({
-        fileIds: ['tototo'],
+        fileIds: fileIds || [],
         loading: loading,
         error: error,
         fetchAllFileIds: fetchAllFileIds,
