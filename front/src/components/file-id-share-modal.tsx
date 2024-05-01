@@ -14,6 +14,7 @@ import {useContext} from "react";
 import {SecretDocumentContext} from "@/context/SecretDocumentContext";
 import {FetchFileAccess} from "@/components/fetch-file-access";
 import {Badge} from "@/components/ui/badge";
+import {FileIdShareForm} from "@/components/file-id-share-form";
 
 interface Props {
     fileIds: string[];
@@ -21,7 +22,7 @@ interface Props {
 
 const FormSchema = z.object({
     access: z.array(z.object({
-            address: z.string().regex(
+            address: z.string().min(1).regex(
                 /^secret1[a-z0-9]{38}$/,
                 { message: "Invalid address" }
             ),
@@ -124,17 +125,19 @@ export function FileIdShareModal({fileId, ownerAddress}: Props) {
 
                             fileAccessMapped.push({
                                 address: fileAccess.owner,
-                                permission: 'owner',
+                                permission: 'changeOwner',
                             })
 
-                            fileAccess.viewers.forEach(access => {
+                            fileAccess.viewers.forEach(address => {
                                 fileAccessMapped.push({
-                                    address: access.address,
+                                    address: address,
                                     permission: 'addViewing',
                                 })
                             });
 
-                            return fileAccess.length > 0 && (
+                            console.log({fileAccessMapped});
+
+                            return fileAccessMapped.length > 0 && (
                                 <FileIdShareForm fileId={fileId} fileAccess={fileAccessMapped} />
                             )
                         }
