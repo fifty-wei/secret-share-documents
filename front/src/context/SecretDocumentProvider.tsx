@@ -54,10 +54,7 @@ export const SecretDocumentProvider = ({
     init();
   }, [address]);
   // end SDK configuration
-
-  console.log("client", client);
-  console.log("secretNetworkAddress", secretNetworkAddress);
-
+  
   return (
     <SecretDocumentContext.Provider value={{ client, secretNetworkAddress }}>
       {children}

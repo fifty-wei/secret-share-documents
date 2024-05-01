@@ -18,7 +18,8 @@ const authorizationToken = Buffer.from(`${process.env.NEXT_PUBLIC_INFURA_ID}:${p
 const authorization = `Basic ${authorizationToken}`;
 
 const ipfsStorage = new IpfsStorage({
-  gateway: "https://ipfs.infura.io:5001",
+  gateway: "https://ipfs.infura.io",
+  port: 5001,
   config: {
     headers: {
       authorization,

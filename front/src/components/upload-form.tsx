@@ -8,12 +8,27 @@ import { FormEvent, useContext, useState, useMemo } from "react";
 import { FileIcon } from "@/components/file-icon";
 import { ArrowDownToLine, FolderPlus } from "lucide-react";
 import { SecretDocumentContext } from "@/context/SecretDocumentContext";
+import { z } from "zod"
+import {zodResolver} from "@hookform/resolvers/zod";
+import {useForm} from "react-hook-form";
+import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+
+const formSchema = z.object({
+    file: z.string(),
+})
 
 export function UploadForm() {
     const [isDragging, setIsDragging] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
     const [estimatedGas, setEstimatedGas] = useState(null);
     const { client } = useContext(SecretDocumentContext);
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            file: '',
+        },
+    });
+
 
     useEffect(() => {
 
@@ -33,13 +48,23 @@ export function UploadForm() {
 
         fetchEstimatedGas();
     }, [uploadedFile]);
-    async function handleSubmit(e: FormEvent<HTMLFormElement>){
-        e.preventDefault()
 
-        const formData = new FormData(e.target as HTMLFormElement);
+
+    // async function handleSubmit(e: FormEvent<HTMLFormElement>){
+    async function handleSubmit(values: z.infer<typeof formSchema>){
+        // e.preventDefault()
+
+        // const formData = new FormData(e.target as HTMLFormElement);
 
         // console.log(formData.get('yourFile'));
         // console.log(formaData);
+
+        if( ! uploadedFile){
+            form.setError('file', {
+                type: 'manual',
+                message: 'Please upload a file',
+            });
+        }
 
 
         if (!client) {
@@ -48,11 +73,15 @@ export function UploadForm() {
         }
 
         try {
-            const tx = await client.storeDocument().fromFile(formData.get('yourFile') as File);
+            const tx = await client.storeDocument().fromFile(uploadedFile);
 
             console.log(tx);
         } catch (error) {
             console.error(error);
+            form.setError('file', {
+                type: 'manual',
+                message: 'An error occurred. Please try again.'
+            });
         }
     }
 
@@ -70,6 +99,7 @@ export function UploadForm() {
         e.preventDefault();
         e.stopPropagation();
         setIsDragging(false);
+        form.clearErrors('file');
 
         if (e.dataTransfer.files.length < 1) {
             return;
@@ -90,9 +120,17 @@ export function UploadForm() {
         }
     }
 
+    function handleChange(selectorFiles: FileList)
+    {
+        form.clearErrors('file');
+        setUploadedFile(selectorFiles[0]);
+    }
+
     return (
+        <Form {...form}>
             <form
-                onSubmit={handleSubmit}
+                onSubmit={form.handleSubmit(handleSubmit)}
+                // onSubmit={handleSubmit}
                 className={`flex flex-col p-8 h-full relative ${isDragging ? "bg-indigo-50 dark:bg-gray-900" : ""}`}
                 method="post"
                 onDragEnter={handleDrag}
@@ -106,12 +144,28 @@ export function UploadForm() {
                             <h2 className="text-sm font-medium leading-none">Drag and drop your file</h2>
                             <span className="text-xs text-gray-500 dark:text-gray-400">or</span>
                         </div>
-                        <div className="w-full">
-                            <Button variant="outline" type="button" asChild>
-                                <label htmlFor="toto" className="w-full">Browse Files</label>
-                            </Button>
-                            <Input className="sr-only" type="file" id="toto" name="your-file"/>
-                        </div>
+                        <FormField
+                            control={form.control}
+                            name="file"
+                            className="w-full"
+                            render={({ field }) => (
+                                <FormItem className="w-full">
+                                    <Button className="w-full" variant="outline" type="button" asChild>
+                                        <FormLabel>Browse Files</FormLabel>
+                                    </Button>
+                                    <FormControl>
+                                        <Input {...field} className="sr-only" type="file" placeholder="shadcn" onChange={ (e) => handleChange(e.target.files) } />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        {/*{ !! watchFile && (*/}
+                        {/*    <Button type="submit" className="gap-2">*/}
+                        {/*        <ArrowDownToLine className="w-5 h-5" />*/}
+                        {/*        Upload*/}
+                        {/*    </Button>*/}
+                        {/*)}*/}
                         { !! uploadedFile && (
                             <>
                                 <Card className="w-full flex flex-row items-center">
@@ -148,5 +202,6 @@ export function UploadForm() {
                     ></div>
                 )}
             </form>
+        </Form>
     )
 }

@@ -9,16 +9,6 @@ import {FileIdsList} from "@/components/file-ids-list";
 import {ConnectWallet} from "@/components/connect-wallet";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
-import {Account} from "@/components/account";
-import {DisconnectWallet} from "@/components/disconnect-wallet";
-import {cn} from "@/lib/utils";
 
 
 export default function UploadPage() {

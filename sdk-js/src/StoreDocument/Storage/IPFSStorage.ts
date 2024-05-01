@@ -11,15 +11,16 @@ type IpfsResponse = {
 
 interface Props {
     gateway: string;
+    port?: number;
     config?: axios.AxiosRequestConfig;
 }
 
 class IPFSStorage implements IStorage {
     private readonly gateway: string;
-    private readonly port: string;
+    private readonly port: number;
     private readonly config: axios.AxiosRequestConfig;
 
-    constructor({ gateway, port = '', config }: Props) {
+    constructor({ gateway, port, config }: Props) {
         this.gateway = gateway;
         this.port = port;
         this.config = config
@@ -34,7 +35,7 @@ class IPFSStorage implements IStorage {
         formData.append('file', dataString);
         let baseUrl = this.gateway;
         if(!! this.port){
-            baseUrl = `${this.gateway}:${this.port}`
+            baseUrl = `${this.gateway}:${this.port.toString()}`
         }
 
         const endpoint = `${baseUrl}/api/v0/add`;
@@ -53,8 +54,8 @@ class IPFSStorage implements IStorage {
     async download(url: string): Promise<ISymmetricEncryptedData> {
         let urlToDownload = url;
 
-        if( url.includes(this.port)){
-            urlToDownload = url.replace(`${this.gateway}:${this.port}`, this.gateway);
+        if( url.includes(this.port.toString())){
+            urlToDownload = url.replace(`${this.gateway}:${this.port.toString()}`, this.gateway);
         }
 
         const res = await axios.get(urlToDownload, this.config);
