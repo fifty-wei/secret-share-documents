@@ -1,4 +1,5 @@
 
+use bech32::{ToBase32, Variant};
 use cosmwasm_std::{
     entry_point, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdError,
     StdResult,
@@ -12,9 +13,10 @@ use secp256k1::{PublicKey, Secp256k1, SecretKey};
 
 use cosmwasm_storage::ReadonlyPrefixedStorage;
 
-use secret_toolkit::permit::Permit;
+use secret_toolkit::permit::{pubkey_to_account, Permit, RevokedPermits, SignedPermit};
 use secret_toolkit::serialization::{Json, Serde};
-
+use serde::Serialize;
+use sha3;
 
 use crate::error::ContractError;
 use crate::msg::{
@@ -162,6 +164,16 @@ pub fn execute_msg(
     };
 }
 
+fn to_binary_pretty<T>(data: &T) -> StdResult<Binary>
+where
+    T: Serialize + ?Sized,
+{
+    const INDENT: &[u8; 4] = b"    ";
+    super::pretty::to_vec_pretty(data, INDENT)
+        .map_err(|e| StdError::serialize_err(std::any::type_name::<T>(), e))
+        .map(Binary)
+}
+
 
 /// Verify the permit and check if it is the right users.
 /// Returns: verified user address.
@@ -171,18 +183,72 @@ fn _verify_permit(
     contract_address: Addr
 ) -> Result<Addr, ContractError> {
 
-    // Get and validate user address
-    let account = secret_toolkit::permit::validate(
-        deps,
-        PREFIX_REVOKED_PERMITS,
-        &permit,
-        contract_address.into_string(),
-        None,
-    )?;
+    let account_hrp = "secret";
+    let contract_address_str = contract_address.into_string();
+    let storage_prefix = PREFIX_REVOKED_PERMITS;
 
-    let account = Addr::unchecked(account);
+    if !permit.check_token(&contract_address_str) {
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "Permit doesn't apply to token {:?}, allowed tokens: {:?}",
+            contract_address_str,
+            permit
+                .params
+                .allowed_tokens
+                .iter()
+                .map(|a| a.as_str())
+                .collect::<Vec<&str>>()
+        ))));
+    }
 
-    return Ok(account);
+    // Derive account from pubkey
+    let pubkey = &permit.signature.pub_key.value;
+
+    let base32_addr = pubkey_to_account(pubkey).0.as_slice().to_base32();
+    let account: String = bech32::encode(account_hrp, base32_addr, Variant::Bech32).unwrap();
+
+    // Validate permit_name
+    let permit_name = &permit.params.permit_name;
+    let is_permit_revoked =
+        RevokedPermits::is_permit_revoked(deps.storage, storage_prefix, &account, permit_name);
+    if is_permit_revoked {
+        return Err(ContractError::Std(StdError::generic_err(format!(
+            "Permit {:?} was revoked by account {:?}",
+            permit_name,
+            account.as_str()
+        ))));
+    }
+
+    let user_data = &SignedPermit::from_params(&permit.params);
+
+    let mut signed_bytes = vec![];
+    signed_bytes.extend_from_slice(b"\x19Ethereum Signed Message:\n");
+
+    let signed_tx_pretty_amino_json = to_binary_pretty(user_data)?;
+
+    signed_bytes.extend_from_slice(signed_tx_pretty_amino_json.len().to_string().as_bytes());
+    signed_bytes.extend_from_slice(signed_tx_pretty_amino_json.as_slice());
+
+    let mut hasher = sha3::Keccak256::new();
+
+    hasher.update(&signed_bytes);
+
+    let signed_bytes_hash = hasher.finalize();
+    
+    let verified = deps
+        .api
+        .secp256k1_verify(&signed_bytes_hash, &permit.signature.signature.0, &pubkey.0)
+        .map_err(|err| StdError::generic_err(err.to_string()))?;
+
+    if !verified {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Failed to verify signatures for the given permit",
+        )));
+    }
+
+
+    let account_address = Addr::unchecked(account);
+
+    Ok(account_address)
 }
 
 
@@ -683,14 +749,14 @@ mod tests {
     /// Generate a valid address and a valid permit
     fn generate_user_1(deps: DepsMut) -> (Addr, Permit) {
 
+        // cosmos2contract
         let token_address = CONFIG.load(deps.storage).unwrap().contract_address;
 
-        let user_address = "secret18mdrja40gfuftt5yx6tgj0fn5lurplezyp894y";
-        let permit_name = "default";
-        let chain_id = "secretdev-1";
-        let pub_key = "AkZqxdKMtPq2w0kGDGwWGejTAed0H7azPMHtrCX0XYZG";
-        let signature = "ZXyFMlAy6guMG9Gj05rFvcMi5/JGfClRtJpVTHiDtQY3GtSfBHncY70kmYiTXkKIxSxdnh/kS8oXa+GSX5su6Q==";
-
+        let user_address = "secret1f0pcrxqsgm3ss598nreq3lryv45xa8w7cq55df";
+        let permit_name = "SECRET_DOCUMENT_PERMIT_3812";
+        let chain_id = "secret-4";
+        let pub_key = "A1kUPltujGDLo0vr5M/26mdQF+9cnx8MROF/bL772HDc";
+        let signature = "xt42IhS4k4sb2P1ZNIK6zDWfgaNGB/p9SnHyY9OVNXw1ioGmtMkSVQ/3iBR9gfdFf4K98vyCazg+95n3UrWSNA==";
 
         let user_permit = Permit {
             params: PermitParams {
@@ -718,11 +784,11 @@ mod tests {
 
         let token_address = CONFIG.load(deps.storage).unwrap().contract_address;
 
-        let user_address = "secret1ncgrta0phcl5t4707sg0qkn0cd8agr95nytfpy";
-        let permit_name = "default";
+        let user_address = "secret1u69n2nxq3495t8lw2usn0qgg685ad7d9j0w6lq";
+        let permit_name = "SECRET_DOCUMENT_PERMIT_7616";
         let chain_id = "secret-4";
-        let pub_key = "A9vpITCF1VTnIi+3x8g+IqNV2LAiFyqt4SlaYD+fk+SH";
-        let signature = "11zOqv1CKkXodChCLhMVQ2Hqkp1zj/IqyvgjMX55wLpG95c8iZO9Nmo+DgSBBBZVb7sfuApKBFSxPxueoAHu2Q==";
+        let pub_key = "A7bPvqlFfe3BccQzfpbRm12RJGnvEy3K+SUDviYs5qWz";
+        let signature = "Znn1BdQreny83DX+sy9JjZMxeU8LtMlnBkt4YKp/FOkZvu6afB5wm+H/d8sThA/DdBkUBbTPk2bD6UgPsuifUA==";
 
 
         let user_permit = Permit {
@@ -1310,6 +1376,48 @@ mod tests {
         assert_eq!(user_2_file[0], updated_user_id);
 
     
+    }
+
+
+
+    #[test]
+    fn test_verify_permit_from_metamask() {
+        let mut deps = mock_dependencies();
+            
+        setup_contract(deps.as_mut());
+
+        let contract_address = deps.as_mut().api.addr_validate("secret1pjerlz7enlvyw5lj2xtpqwzrkn2ffvzf6vruxg").unwrap();
+
+        let user_address = "secret1u69n2nxq3495t8lw2usn0qgg685ad7d9j0w6lq";
+        let permit_name = "SECRET_DOCUMENT_PERMIT_4426";
+        let chain_id = "secret-4";
+        let pub_key = "A7bPvqlFfe3BccQzfpbRm12RJGnvEy3K+SUDviYs5qWz";
+        let signature = "VKzpM7CfdUqfTc/3zDrHmQkKZ7Tq0iy64tPjE3mXsfxGzvU57HSbJ+5/aLmvAoW/XZh0H5CIvocxE33KV6ojRA==";
+
+        let user_address = deps.as_mut().api.addr_validate(user_address).unwrap();
+
+
+        let user_permit = Permit {
+            params: PermitParams {
+                allowed_tokens: vec![String::from(&contract_address)],
+                permit_name: permit_name.to_string(),
+                chain_id: chain_id.to_string(),
+                permissions: vec![TokenPermissions::Owner],
+            },
+            signature: PermitSignature {
+                pub_key: PubKey {
+                    r#type: "tendermint/PubKeySecp256k1".to_string(),
+                    value: Binary::from_base64(pub_key).unwrap(),
+                },
+                signature: Binary::from_base64(signature).unwrap(),
+            }
+        };
+
+        let data = _verify_permit(deps.as_ref(), user_permit, contract_address);
+        
+        assert!(data.is_ok());
+        assert!(data.unwrap() == user_address);
+
     }
         
 }
