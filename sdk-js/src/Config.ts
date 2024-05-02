@@ -223,8 +223,8 @@ class Config {
           abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
-          address: "secret18xh2ucjqecj4t0w05zv8gkyrl9ae36mpjk9je9",
-          hash: "ab3862bd7aff7a98452381d8034b387c1a85348b3e453c73605602d8222593e2",
+          address: "secret1kkjqnaw5gydcv68et6qdjemvld9xrp7ykqe2da",
+          hash: "2bc9ba5f8e97b922f61f6466b340763da373d50a2884937f3f9084718ba9efd5",
         },
       },
       wallets: {
