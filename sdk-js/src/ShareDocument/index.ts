@@ -55,12 +55,8 @@ class ShareDocument {
       throw new Error("Please set the fileId before sharing a document");
     }
     const encryptedMessage = await this.getEncryptedMessage(this.fileId, fileRights);
-    const receiveMessageEvm: IReceiveMessageEvm = {
-      source_chain: "test-chain",
-      source_address: "test-address",
-      payload: encryptedMessage,
-    };
-    return this.polygonToSecret.send(receiveMessageEvm);
+    
+    return this.polygonToSecret.send(encryptedMessage);
   }
 
   public async changeOwner(address: string) {

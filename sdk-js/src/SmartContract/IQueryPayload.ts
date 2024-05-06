@@ -60,7 +60,8 @@ export interface IExecutePayload<T extends ExecutePayload> {
 export type QueryPayload =
   | GetContractKeyPayload
   | GetFileIdsPayload
-  | GetFileContentPayload;
+  | GetFileContentPayload
+  | GetFileAccessPayload;
 
 export interface IQueryPayload<T extends QueryPayload> {
   query: T;
