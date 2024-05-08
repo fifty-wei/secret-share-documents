@@ -87,43 +87,16 @@ export default function Hero() {
                   Secret Network - Privacy as a Service
                 </span>
               </h1>
-              <p className="mx-auto mt-6 max-w-lg text-center text-xl text-indigo-200 sm:max-w-3xl">
-                {!isConnected && (
-                  <span className="text-white">
-                    Please connect your wallet to be able to depose, protect,
-                    and share a file with Secret Network
-                  </span>
-                )}
-              </p>
-              {isConnected && (
-                <div className="mt-10 mx-auto lg:w-1/3">
-                  <Formik
-                    initialValues={initialValues}
-                    onSubmit={onSubmit}
-                    validationSchema={validationSchema}
+              <div className="mt-4 flex justify-center">
+                <div className="mt-6">
+                  <a
+                    href="/upload"
+                    className="inline-flex rounded-md border border-transparent bg-gradient-to-r from-purple-600 to-indigo-600 bg-origin-border px-4 py-2 text-base font-medium text-white shadow-sm hover:from-purple-700 hover:to-indigo-700"
                   >
-                    {({ isSubmitting, dirty, isValid }) => (
-                      <Form className="justify-center">
-                        <div className="flex justify-center gap-6 border border-gray-200 rounded-md p-8">
-                          <FileDropper
-                            setFileSelected={setFileSelected}
-                            fileSelected={fileSelected}
-                          />
-                          <Field value="" type="hidden" id="file" name="file" />
-                          {/* Error messages and submit button */}
-                        </div>
-                        <div className="mt-4 flex justify-center">
-                          <SubmitButton
-                            isSubmitting={isSubmitting}
-                            disabled={!isValid || !dirty}
-                            label="Submit your file"
-                          />
-                        </div>
-                      </Form>
-                    )}
-                  </Formik>
+                    Dashboard
+                  </a>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
