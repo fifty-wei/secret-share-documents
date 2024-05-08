@@ -3,23 +3,18 @@
 import {useFieldArray, useForm} from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Plus, Share2} from "lucide-react";
+import { Plus, Share2 } from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {Separator} from "@/components/ui/separator";
 import {Input} from "@/components/ui/input";
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
 import {
-    Dialog,
-    DialogTrigger,
-    DialogContent,
     DialogHeader,
     DialogTitle,
     DialogDescription,
@@ -32,9 +27,9 @@ import {
     SelectValue,
     SelectContent
 } from "@/components/ui/select"
-import {useContext} from "react";
-import {SecretDocumentContext} from "@/context/SecretDocumentContext";
-import {useAccount} from "wagmi";
+import {useContext, useState} from "react";
+import { SecretDocumentContext } from "@/context/SecretDocumentContext";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Props {
     fileIds: string[];
@@ -60,6 +55,8 @@ const accessControl = [
 
 export function FileIdShareForm({fileId, fileAccess}: Props) {
     const { client } = useContext(SecretDocumentContext);
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(false);
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
@@ -70,6 +67,7 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
 
 
     function onSubmit(data: z.infer<typeof FormSchema>) {
+        setLoading(true);
 
         const addressesToDelete = data.access
             .filter(access => access.permission === "deleteViewing")
@@ -99,11 +97,10 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
 
         try{
             client.shareDocument(fileId).share(shareFileAccess);
-            toast({
-                title: "Your changes have been saved",
-            })
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -190,7 +187,9 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
                 </div>
                 <DialogFooter>
 
-                    <Button type="submit">Save Changes</Button>
+                    <Button disabled={loading} type="submit">{
+                        loading ? "Saving…" : "Save changes"
+                    }</Button>
                 </DialogFooter>
             </form>
         </Form>

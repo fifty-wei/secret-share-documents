@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { cookieToInitialState } from "wagmi";
 import { config } from "@/config";
 import { ContextProvider } from "@/context";
-import {ReactNode} from "react";
+import { ReactNode } from "react";
+import { Toaster } from "@/components/ui/toaster"
 
 export default function RootLayout({
   children,
@@ -16,7 +17,8 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex flex-col min-h-screen">
         <ContextProvider initialState={initialState}>
-          {children}
+            {children}
+            <Toaster />
         </ContextProvider>
       </body>
     </html>
