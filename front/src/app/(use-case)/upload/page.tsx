@@ -47,7 +47,7 @@ export default function UploadPage() {
                                         </div>
                                     ) : (
                                         <div className="h-full w-full flex flex-col gap-4 items-center justify-center">
-                                            <h2>You're not upload document yet.</h2>
+                                            <h2>You&apos;re not upload document yet.</h2>
                                             <p>Please drag and drop your first document on the left side.</p>
                                         </div>
                                     )}

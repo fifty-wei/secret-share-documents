@@ -182,7 +182,7 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
                             Add new account
                         </Button>
                     <DialogDescription>
-                        Make changes to your shares here. You can edit addresses with access ad click save when you're done.
+                        Make changes to your shares here. You can edit addresses with access ad click save when you&apos;re done.
                     </DialogDescription>
                 </div>
                 <DialogFooter>
