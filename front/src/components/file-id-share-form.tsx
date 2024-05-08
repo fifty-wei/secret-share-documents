@@ -70,17 +70,9 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
 
 
     function onSubmit(data: z.infer<typeof FormSchema>) {
-        // toast({
-        //     title: "You submitted the following values:",
-        //     description: (
-        //         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-        //   <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        // </pre>
-        //     ),
-        // })
-        console.log('onsubmit');
+
         const addressesToDelete = data.access
-            .filter(access => access.permission === "changeOwner")
+            .filter(access => access.permission === "deleteViewing")
             .map(access => {
                 return access.address
             });
@@ -106,7 +98,10 @@ export function FileIdShareForm({fileId, fileAccess}: Props) {
         console.log({shareFileAccess})
 
         try{
-            client.shareDocument(fileId).share(shareFileAccess)
+            client.shareDocument(fileId).share(shareFileAccess);
+            toast({
+                title: "Your changes have been saved",
+            })
         } catch (error) {
             console.error(error);
         }
