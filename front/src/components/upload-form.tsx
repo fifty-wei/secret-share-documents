@@ -160,12 +160,6 @@ export function UploadForm() {
                                 </FormItem>
                             )}
                         />
-                        {/*{ !! watchFile && (*/}
-                        {/*    <Button type="submit" className="gap-2">*/}
-                        {/*        <ArrowDownToLine className="w-5 h-5" />*/}
-                        {/*        Upload*/}
-                        {/*    </Button>*/}
-                        {/*)}*/}
                         { !! uploadedFile && (
                             <>
                                 <Card className="w-full flex flex-row items-center">

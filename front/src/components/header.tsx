@@ -11,7 +11,8 @@ import {
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import {Badge} from "@/components/ui/badge";
-import {Account} from "@/components/account";
+import {AccountSecretNetwork} from "@/components/account-secret-network";
+import {AccountMetamask} from "@/components/account-metamask";
 import {DisconnectWallet} from "@/components/disconnect-wallet";
 import {cn} from "@/lib/utils";
 
@@ -77,7 +78,8 @@ export function Header({children, fileIds}: Props) {
             </Breadcrumb>
 
             <div className="flex items-center gap-4">
-                <Account />
+                <AccountSecretNetwork />
+                <AccountMetamask />
                 <DisconnectWallet>
                     Disconnect
                 </DisconnectWallet>
