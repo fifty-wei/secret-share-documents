@@ -26,10 +26,17 @@ function decrypt(
   encryptedData: ISymmetricEncryptedData,
   publicKey: Buffer,
 ): Buffer {
+
+  // FIXME: publicKey refer to the symmetric key use to encrypt the document. 
+  // Naming is confusing here.
+  
+  // Note: Buffer data is an Buffer object. We need to passed the `.data` which
+  // correspond to the actual array of the key (32 bytes)
+  
   const initialVectorBuffer = Buffer.from(encryptedData.initialVector, "hex");
   const encryptedBuffer = Buffer.from(encryptedData.data);
   const authTag = Buffer.from(encryptedData.authTag, "hex");
-  let decipher = createDecipheriv(algorithm, publicKey, initialVectorBuffer);
+  let decipher = createDecipheriv(algorithm, publicKey.data, initialVectorBuffer);
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encryptedBuffer);
   decrypted = Buffer.concat([decrypted, decipher.final()]);

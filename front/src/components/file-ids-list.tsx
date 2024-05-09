@@ -61,7 +61,17 @@ export function FileIdsList({fileIds}: Props) {
         }
 
         try {
-            const blob = await client.viewDocument().download(fileId);
+            // Get Raw buffer from the file deciphered
+            const bufferData = await client.viewDocument().download(fileId);
+
+            // Create a blob to download it
+            // FIXME: Can't get the extention from it, maybe need to save it in the information
+            // we store
+            // const blob = new Blob([bufferData]);
+
+            // Get the file instead, we still do not have the proper extention from it.
+            const blob = new File([bufferData], fileId, {type: "octet/stream"});
+            
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
