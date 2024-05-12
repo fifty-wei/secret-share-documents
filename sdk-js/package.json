@@ -32,6 +32,7 @@
     "@wagmi/core": "^2.6.4",
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
+    "form-data": "^4.0.0",
     "helia": "^4.0.2",
     "kubo-rpc-client": "^3.0.4",
     "miscreant": "^0.3.2",

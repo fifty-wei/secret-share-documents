@@ -8,6 +8,7 @@ import { SecretDocumentProvider } from "./SecretDocumentProvider";
 import Environment from "../../../sdk-js/src/Environment";
 import Config from "../../../sdk-js/src/Config";
 import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
+import PinataStorage from "../../../sdk-js/src/StoreDocument/Storage/PinataStorage";
 
 const queryClient = new QueryClient();
 
@@ -27,7 +28,12 @@ const ipfsStorage = new IpfsStorage({
   },
 });
 
-configSecretDocument.useStorage(ipfsStorage);
+const pinataStorage = new PinataStorage(
+  process.env.NEXT_PUBLIC_PINATA_GATEWAY || "",
+  process.env.NEXT_PUBLIC_PINATA_STORAGE || "",
+)
+
+configSecretDocument.useStorage(pinataStorage);
 
 export function ContextProvider({
   children,

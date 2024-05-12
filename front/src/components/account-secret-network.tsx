@@ -5,7 +5,7 @@ import {useContext} from "react";
 import {CopyToClipboardButton} from "@/components/copy-to-clipboard-button";
 
 const formatAddress = (address: string) => {
-    return `${address.slice(0, 9)}…${address.slice(-9)}`;
+    return `${address.slice(0, 7)}…${address.slice(-3)}`;
 };
 
 export function AccountSecretNetwork() {
