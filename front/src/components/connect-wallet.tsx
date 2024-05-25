@@ -1,8 +1,8 @@
 'use client';
 
 import { Connector, useConnect } from 'wagmi'
-import {useEffect, useState} from "react";
-import {Button} from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function ConnectWallet() {
     const { connectors, connect } = useConnect()
@@ -17,16 +17,16 @@ export function ConnectWallet() {
 }
 
 function WalletOption({
-                          connector,
-                          onClick,
-                      }: {
+    connector,
+    onClick,
+}: {
     connector: Connector
     onClick: () => void
 }) {
     const [ready, setReady] = useState<boolean>(false)
 
     useEffect(() => {
-        ;(async () => {
+        ; (async () => {
             const provider = await connector.getProvider()
             setReady(!!provider)
         })()
