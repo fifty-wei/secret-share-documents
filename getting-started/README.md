@@ -37,7 +37,7 @@ For this project, we have created a smart contract on Polygon that interacts wit
 
 You can find the smart contract in the polygon-secret/contract folder. feel free to deploy your own contract on Polygon. then you can add the address of your contract in the sdk-js/Config.ts file.
 
-## redeploying the Secret Network contract
+## Redeploying the Secret Network contract
 
 If you want to redeploy the Secret Network contract, you can find the contract in the contract folder. You can deploy the contract using the deploy.ts script.
 
