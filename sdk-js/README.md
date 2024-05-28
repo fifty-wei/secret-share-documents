@@ -1,9 +1,7 @@
 # Installation
 
-## Download dependencies
-
 ``` bash
-npm install
+npm i @secret-network/share-document
 ```
 
 ## Environnement

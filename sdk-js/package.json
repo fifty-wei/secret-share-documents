@@ -1,5 +1,5 @@
 {
-  "name": "secret-network-share-document",
+  "name": "@secret-network/share-document",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
