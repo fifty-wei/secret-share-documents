@@ -39,7 +39,10 @@ You can find the smart contract in the polygon-secret/contract folder. feel free
 
 ## Redeploying the Secret Network contract
 
-If you want to redeploy the Secret Network contract, you can find the contract in the contract folder. You can deploy the contract using the deploy.ts script.
+In order to keep sensitive information (as the symmetric key used to decypher the data encrypted on IPFS), we are using Secret Network. You could use an existing smart contract by using the one deployed on this address `secret1kkjqnaw5gydcv68et6qdjemvld9xrp7ykqe2da` with the following hash `2bc9ba5f8e97b922f61f6466b340763da373d50a2884937f3f9084718ba9efd5` on `secret-4` mainnet.
+
+Or if you want to modify/adapth the smart contract logic or if you want to redeploy this smart contract on your own, you can find it in the [`contract` folder](https://github.com/fifty-wei/secret-share-documents/tree/main/contract). Also, we provided a deployment script that you could use [here](https://github.com/fifty-wei/secret-share-documents/tree/main/contract/scripts).
+
 
 # Configure the client
 
