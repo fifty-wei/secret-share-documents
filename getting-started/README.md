@@ -35,7 +35,10 @@ You can find the `Storage` strategies in the sdk-js/StoreDocument/Storage.
 
 For this project, we have created a smart contract on Polygon that interacts with the Secret Network. The smart contract on Polygon manages the process of storing and retrieving documents on Secret Network. The smart contract sends a message to Axelar GMP, which bridges the message from the Polygon chain to the Secret Network chain, enabling the storage of confidential information.
 
-You can find the smart contract in the polygon-secret/contract folder. feel free to deploy your own contract on Polygon. then you can add the address of your contract in the sdk-js/Config.ts file.
+You can find the smart contract in the [`polygon-secret/contract`](https://github.com/fifty-wei/secret-share-documents/blob/main/polygon-secret/contracts/PolygonToSecret.sol) folder. feel free to deploy your own contract on Polygon. then you can add the address of your contract in the [`sdk-js/src/Config.ts`](https://github.com/fifty-wei/secret-share-documents/blob/main/sdk-js/src/Config.ts) file. In our example, we have deploy a smart contract at this address `0xACE531E19D52DB4e485Ce894c6AfE53D60b59ca0`.
+
+Note that this implementation is customizable. It can be used as a proof on Polygon to validate a process or other ideas you may have. Note that in our current implementation, anyone with another contract on Polygon can call the Secret smart contract through Axelar to store information. No checks are performed on the secret smart contract side to verify the original address from Polygon.
+
 
 ## Redeploying the Secret Network contract
 
