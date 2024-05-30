@@ -11,7 +11,7 @@ This project introduces an SDK that enables anyone to store and share confidenti
 ## Download dependencies
 
 ```bash
-npm install
+npm i @secret-network/share-document
 ```
 
 ## Environnement
@@ -73,9 +73,9 @@ const client = new SecretDocumentClient(config);
 
 ## Front end example
 
-You can find an example of how to store confidential documents in the front folder. This example demonstrates how to store a document, view its content, and grant or revoke access to the document.
+You can find an example of how to store confidential documents in the [`front` folder](https://github.com/fifty-wei/secret-share-documents/tree/main/front). This example demonstrates how to store a document, view its content, and grant or revoke access to the document.
 
-The Storage instanciation is done in the xxxxxxxxxxxxxxxxxxx.
+The Storage instanciation is done in [`front/src/context/index.tsx`](https://github.com/fifty-wei/secret-share-documents/blob/main/front/src/context/index.tsx). And more globally you can see how we configure and integrate in react the secret sharing document SDK in the [`front/src/context`](https://github.com/fifty-wei/secret-share-documents/tree/main/front/src/context).
 
 # Features
 
