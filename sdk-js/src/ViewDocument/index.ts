@@ -5,6 +5,7 @@ import IStorage from "../StoreDocument/Storage/IStorage";
 
 interface Props {
   secretDocument: SecretDocumentSmartContract;
+  storage: IStorage;
 }
 
 class ViewDocument {

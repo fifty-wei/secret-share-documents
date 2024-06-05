@@ -1,4 +1,4 @@
-import { Permission, Permit, SecretNetworkClient, TxResponse, Wallet, stringToCoins } from "secretjs";
+import { Permission, Permit, SecretNetworkClient, TxResponse, MetaMaskWallet, stringToCoins } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 import SecretDocumentQueryFactory from "./SecretDocumentQueryFactory";
 import {
@@ -20,13 +20,12 @@ import {
 } from "./IQueryPayload";
 import { StdSignDoc } from "secretjs/dist/wallet_amino";
 
-export type Address = `0x${string}`;
 
 interface Props {
   chainId: string;
   client: SecretNetworkClient;
   contract: ISecretNetworkSmartContract;
-  wallet: Wallet;
+  wallet: MetaMaskWallet;
 }
 
 interface ExecuteWithPermitPayload<T> {
@@ -50,7 +49,7 @@ type PayloadWithPermit<T> =
 class SecretDocumentSmartContract {
   private client: SecretNetworkClient;
   private contract: ISecretNetworkSmartContract;
-  private wallet: Wallet;
+  private wallet: MetaMaskWallet;
   private chainId: string;
   private queryFactory: SecretDocumentQueryFactory;
   private executeFactory: SecretDocumentExecuteFactory;
@@ -127,7 +126,7 @@ class SecretDocumentSmartContract {
 
     return JSON.parse(res.payload);
   }
-  
+
   async generatePermit(): Promise<Permit> {
 
     const permitName = "SECRET_DOCUMENT_PERMIT_" + Math.ceil(Math.random() * 10000);
@@ -147,7 +146,7 @@ class SecretDocumentSmartContract {
         msgs: [
           {
             type: "query_permit", // Must be "query_permit"
-            value: {              
+            value: {
               permit_name: permitName,
               allowed_tokens: [this.contract.address],
               permissions
@@ -159,7 +158,7 @@ class SecretDocumentSmartContract {
     );
 
     const signDoc = createSignDoc();
-  
+
     // Note: we signed with amino instead of permit as it is "not safe transaction" from metamask
     // and allow us to use `personal_sign` instead.
     // Notice that though that, we will have to handle this signature schema inside the
@@ -167,7 +166,7 @@ class SecretDocumentSmartContract {
     // Note that it prefix the content by "\x19Ethereum Signed Message:\n" + len(msg) + msg
     // Note also that the msg is json prettyfied !
     const signature = (await this.wallet.signAmino(this.wallet.address, signDoc)).signature;
-    
+
     return {
       params: {
         chain_id: chainId,
@@ -177,7 +176,7 @@ class SecretDocumentSmartContract {
       },
       signature: signature,
     };
-        
+
   }
 
   async receiveMessageEvm(message: IReceiveMessageEvm): Promise<TxResponse> {
