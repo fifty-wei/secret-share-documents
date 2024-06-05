@@ -31,7 +31,7 @@ import { mainnet, polygon, polygonMumbai, sepolia } from "wagmi/chains";
 // });
 
 export const config = createConfig({
-  chains: [mainnet, sepolia, polygon, polygonMumbai],
+  chains: [polygon],
   // connectors: {
   //   metamask: true,
   // },

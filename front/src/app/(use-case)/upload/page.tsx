@@ -1,7 +1,6 @@
 'use client';
 
-import Image from "next/image";
-import {useAccount} from "wagmi";
+import {useAccount, useSwitchChain} from "wagmi";
 import {Header} from "@/components/header";
 import {UploadForm} from "@/components/upload-form";
 import {FetchAllFileIds} from "@/components/fetch-all-file-ids";
@@ -12,12 +11,24 @@ import {Button} from "@/components/ui/button";
 
 
 export default function UploadPage() {
-    const { isConnected } = useAccount();
+    const { chainId, isConnected } = useAccount();
+    const { chains, switchChain } = useSwitchChain();
 
     if( ! isConnected ) {
         return(
             <main className="flex-1 flex justify-center items-center">
                 <ConnectWallet />
+            </main>
+        )
+    }
+
+    // Switch to polygon network
+    if (chains[0].id !== chainId) {
+        return (
+            <main className="flex-1 flex justify-center items-center">
+                 <Button key={chains[0].id} onClick={() => switchChain({ chainId: chains[0].id })}>
+                    Switch to {chains[0].name}
+                </Button>
             </main>
         )
     }
