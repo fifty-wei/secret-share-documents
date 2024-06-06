@@ -53,7 +53,12 @@ Or if you want to modify/adapth the smart contract logic or if you want to redep
 
 # Configure the client
 
+Here a sample on how to configure the SDK. We recommand to import it on your front end, as we did in the `Front end example` section. Notice in our front end example implementation, we have done relative import, as we wanted to have the last version of the SDK.
+
 ```js
+
+import { Config, FakeStorage, IPFSStorage, SecretDocumentClient } from "@secret-network/share-document/src"
+
 const config = new Config();
 
 // You can use your Wagmi wallet from client with:
@@ -62,13 +67,21 @@ config.useEvmWallet({
   client: walletClient,
 });
 
+// Or, you can use a private key directly as 
+config.useEvmWallet({
+  privateKey: "0x..."
+})
+
+
 // Use the storage you prefer.
 // By default FakeStorage is used.
 config.useStorage(new FakeStorage()); // Do not store anything.
-const ipfsStorage = new IpfsStorage({
+const ipfsStorage = new IPFSStorage({
   gateway: "https://your-ipfs-node.tld/",
 });
 config.useStorage(ipfsStorage); // Store files on IPFS.
+
+// Create your own storage class and import it !
 config.useStorage(new ArweaveStorage()); // Store files on Arweave.
 
 // Initialize the client.
@@ -88,6 +101,8 @@ The SDK provides the following features:
 ### Store new document
 
 ```js
+import { Config, SecretDocumentClient } from "@secret-network/share-document/src"
+
 const config = new Config();
 const client = new SecretDocumentClient(config);
 const res = await client.storeDocument().fromFile(file); // file must be of type File.
@@ -99,6 +114,8 @@ const res = await client
 ### View documents
 
 ```js
+import { Config, SecretDocumentClient } from "@secret-network/share-document/src"
+
 const config = new Config();
 const client = new SecretDocumentClient(config);
 
