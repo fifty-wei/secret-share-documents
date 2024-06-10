@@ -2,6 +2,9 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "CommonJS",
+    "outDir": "build",
+    "sourceMap": true,
+    "declaration": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
@@ -9,5 +12,5 @@
     "lib": ["ESNext", "DOM"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": ["node_modules", "build", "tests"]
 }
