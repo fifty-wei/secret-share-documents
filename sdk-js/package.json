@@ -1,11 +1,10 @@
 {
   "name": "@secret-network/share-document",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "",
   "main": "build/index.js",
   "scripts": {
-    "build": "tsc src/index.ts --outDir build",
-    "publish": "npm run build && npm publish",
+    "build": "tsc",
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest",
     "start:arweave": "arlocal 1934"
   },
@@ -34,7 +33,6 @@
     "@helia/unixfs": "^3.0.1",
     "@wagmi/core": "^2.6.4",
     "axios": "^1.6.7",
-    "dotenv": "^16.4.1",
     "form-data": "^4.0.0",
     "helia": "^4.0.2",
     "kubo-rpc-client": "^3.0.4",
