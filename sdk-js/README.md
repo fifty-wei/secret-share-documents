@@ -57,7 +57,7 @@ Here a sample on how to configure the SDK. We recommand to import it on your fro
 
 ```js
 
-import { Config, FakeStorage, IPFSStorage, SecretDocumentClient } from "@secret-network/share-document/src"
+import { Config, FakeStorage, IPFSStorage, SecretDocumentClient } from "@secret-network/share-document"
 
 const config = new Config();
 
@@ -101,7 +101,7 @@ The SDK provides the following features:
 ### Store new document
 
 ```js
-import { Config, SecretDocumentClient } from "@secret-network/share-document/src"
+import { Config, SecretDocumentClient } from "@secret-network/share-document"
 
 const config = new Config();
 const client = new SecretDocumentClient(config);
@@ -114,7 +114,7 @@ const res = await client
 ### View documents
 
 ```js
-import { Config, SecretDocumentClient } from "@secret-network/share-document/src"
+import { Config, SecretDocumentClient } from "@secret-network/share-document"
 
 const config = new Config();
 const client = new SecretDocumentClient(config);
