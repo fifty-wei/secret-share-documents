@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "CommonJS",
-    "outDir": "build",
+    "rootDir": "./src",
+    "outDir": "./build",
     "sourceMap": true,
     "declaration": true,
     "esModuleInterop": true,
