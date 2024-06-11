@@ -4,12 +4,17 @@ import IPFSStorage from "./StoreDocument/Storage/IPFSStorage";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
 import SecretDocumentClient from "./SecretDocumentClient";
 import Environment from "./Environment";
+import Network from "./Network";
+import {MetaMaskWallet, Wallet} from "secretjs";
 
 export {
-  Environment,
-  SecretDocumentClient,
-  Config,
-  PinataStorage,
-  IPFSStorage,
-  FakeStorage,
+    Network,
+    Environment,
+    SecretDocumentClient,
+    Config,
+    PinataStorage,
+    IPFSStorage,
+    FakeStorage,
+    Wallet,
+    MetaMaskWallet
 }

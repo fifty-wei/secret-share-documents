@@ -245,7 +245,7 @@ class Config {
     return this.config.wallets.polygon;
   }
 
-  useSecretWallet(wallet: MetaMaskWallet) {
+  useSecretWallet(wallet: MetaMaskWallet | Wallet) {
     this.config.wallets.secretNetwork = wallet;
   }
 
