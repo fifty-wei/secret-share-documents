@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import SecretDocumentClient from "../../../sdk-js/src";
+import { SecretDocumentClient } from "../../../sdk-js/src";
 
 interface SecretDocumentContextType {
   client: SecretDocumentClient | undefined;

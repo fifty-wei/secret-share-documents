@@ -2,14 +2,11 @@
 
 import React, { PropsWithChildren, ReactNode, useState } from "react";
 import { SecretDocumentContext } from "./SecretDocumentContext";
-import Config from "../../../sdk-js/src/Config";
 import { useWalletClient } from "wagmi";
-import IpfsStorage from "../../../sdk-js/src/StoreDocument/Storage/IPFSStorage";
-import SecretDocumentClient from "../../../sdk-js/src";
+import { Config, SecretDocumentClient } from "../../../sdk-js/src";
 import { useEffect } from "react";
 import { MetaMaskWallet } from "secretjs";
 import { useClient, useAccount } from "wagmi";
-import Environment from "../../../sdk-js/src/Environment";
 
 interface Props extends PropsWithChildren {
   config: Config;
