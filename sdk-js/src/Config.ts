@@ -7,12 +7,8 @@ import PolygonToSecretAbi from "./abis/PolygonToSecret.json";
 import Network from "./Network";
 import IStorage from "./StoreDocument/Storage/IStorage";
 import IViemWallet from "./SmartContract/IViemWallet";
-import ISecretNewtorkWallet from "./SmartContract/ISecretNewtorkWallet";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
-import dotenv from "dotenv";
 import { MetaMaskWallet, Wallet } from "secretjs";
-
-dotenv.config();
 
 interface IClientConfig {
   chains: {
@@ -32,7 +28,7 @@ interface IClientConfig {
   storage: IStorage;
   env: Environment;
   wallets: {
-    secretNetwork: MetaMaskWallet;
+    secretNetwork: MetaMaskWallet | Wallet;
     polygon: IViemWallet;
   };
 }
@@ -66,9 +62,7 @@ class Config {
         },
       },
       wallets: {
-        secretNetwork: {
-          mnemonic: "",
-        },
+        secretNetwork: null,
         polygon: {
           mnemonic: "",
         },
@@ -162,11 +156,9 @@ class Config {
         },
       },
       wallets: {
-        secretNetwork: {
-          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
-        },
+        secretNetwork: null,
         polygon: {
-          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+          mnemonic: '',
         },
       },
     };
@@ -195,11 +187,9 @@ class Config {
         },
       },
       wallets: {
-        secretNetwork: {
-          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
-        },
+        secretNetwork: null,
         polygon: {
-          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+          mnemonic: '',
         },
       },
     };
@@ -228,11 +218,9 @@ class Config {
         },
       },
       wallets: {
-        secretNetwork: {
-          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
-        },
+        secretNetwork: null,
         polygon: {
-          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+          mnemonic: '',
         },
       },
     };
@@ -261,7 +249,7 @@ class Config {
     this.config.wallets.secretNetwork = wallet;
   }
 
-  getSecretNetworkWallet(): MetaMaskWallet {
+  getSecretNetworkWallet(): MetaMaskWallet | Wallet {
     return this.config.wallets.secretNetwork;
   }
 
