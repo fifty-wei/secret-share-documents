@@ -53,7 +53,7 @@ Or if you want to modify/adapth the smart contract logic or if you want to redep
 
 # Configure the client
 
-Here a sample on how to configure the SDK. We recommand to import it on your front end, as we did in the `Front end example` section. Notice in our front end example implementation, we have done relative import, as we wanted to have the last version of the SDK.
+Here a sample on how to configure the SDK. We recommand to import it on your front end, as we did in the `Front end example` section. Notice in our front end example implementation, we have done relative import, as we wanted to have the last version of the SDK. If you want to have more info, check out our getting started section.
 
 ```js
 
@@ -93,6 +93,81 @@ const client = new SecretDocumentClient(config);
 You can find an example of how to store confidential documents in the [`front` folder](https://github.com/fifty-wei/secret-share-documents/tree/main/front). This example demonstrates how to store a document, view its content, and grant or revoke access to the document.
 
 The Storage instanciation is done in [`front/src/context/index.tsx`](https://github.com/fifty-wei/secret-share-documents/blob/main/front/src/context/index.tsx). And more globally you can see how we configure and integrate in react the secret sharing document SDK in the [`front/src/context`](https://github.com/fifty-wei/secret-share-documents/tree/main/front/src/context).
+
+
+## Getting started
+
+To add this SDK to a new project, we can use a front end application as React / Vite / Angular... 
+To begin with, we are going to create an app with wagmi by selecting React & Next. Then, we can install our secret storage package 
+
+```bash
+pnpm create wagmi
+cd my_project
+pnpm install
+pnpm i @secret-network/share-document
+```
+
+Then, to use our SDK, you can modify the main page in `src/app/page.tsx`. First, you will need to import our SDK, and configure the connection with the wagmi wallet.
+
+```ts
+
+import { useAccount, useConnect, useDisconnect, useWalletClient } from 'wagmi'
+import { Config, SecretDocumentClient, Environment, MetaMaskWallet } from "@secret-network/share-document";
+import { useEffect, useState } from 'react';
+
+
+function App() {
+  ...
+
+  // Defined wagmi wallet
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const [client, setClient] = useState<SecretDocumentClient>();
+  
+  // Defined the SDK configuration
+  let config = new Config({ env: Environment.MAINNET });
+
+  // Create effect to retrieve and initialize user wallet for the SDK
+  useEffect(() => {
+    if (!walletClient) { return; }
+    config.useEvmWallet({client: walletClient});
+  }, [walletClient]);
+
+  useEffect(() => {
+    if (!address) { return; }
+    const init = async () => {
+      const wallet = await MetaMaskWallet.create(
+        window.ethereum,
+        address || ""
+      );
+      config.useSecretWallet(wallet);
+      setClient(new SecretDocumentClient(config));
+    };
+    init();
+  }, [address]);
+
+  ...
+
+  // Do what you want with the SDK
+  // Here for the demo, we are going to retrive the list files stored by the user
+  // when he has connected his wallet
+  async function getFiles() {
+    const filedIds = await client.viewDocument().getAllFileIds()
+    console.log({ filedIds });
+  }
+
+  useEffect(() => {
+    if (!client) { return; }
+      getFiles();
+  }, [client]);
+
+  return (...)
+
+}
+```
+
+Then, when the `page.tsx` is ready, you can run it with `pnpm run dev` and go to your web browser. 
+Based on the previous code, when your metamask will be connected, you will have to sign a permits and see in the logs the files stored on Secret Network based on your address. 
 
 # Features
 
