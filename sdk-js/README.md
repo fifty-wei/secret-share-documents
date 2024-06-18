@@ -169,6 +169,28 @@ function App() {
 Then, when the `page.tsx` is ready, you can run it with `pnpm run dev` and go to your web browser. 
 Based on the previous code, when your metamask will be connected, you will have to sign a permits and see in the logs the files stored on Secret Network based on your address. 
 
+Note: Do not forget to update `wagmi.ts` configuration. Indeed, by default, it is configure on ethereum and sepolia. However, in the SDK, we are using Polygon. You can modify it direclty inside the `wagmi.ts` file by adding Polygon configuration:
+
+```ts
+import { http, createConfig } from 'wagmi'
+import { polygon } from 'wagmi/chains'
+import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors'
+
+export const config = createConfig({
+  chains: [polygon], // Add Polygon chain
+  connectors: [
+    injected(),
+    coinbaseWallet({ appName: 'Create Wagmi' }),
+    walletConnect({ projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID }),
+  ],
+  ssr: true,
+  transports: {
+    [polygon.id]: http(), // Add polygon chain
+  },
+})
+...
+```
+
 # Features
 
 The SDK provides the following features:
