@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: build-artifacts
           path: ./contract
