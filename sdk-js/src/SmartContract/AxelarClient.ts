@@ -9,14 +9,17 @@ import Environment from "../Environment";
 
 interface Props {
   env: Environment;
+  sourceChain?: EvmChain;
 }
 
 export default class AxelarClient {
   private env: Environment;
   private axelar: AxelarQueryAPI;
+  private sourceChain: EvmChain;
 
-  constructor({ env }: Props) {
+  constructor({ env, sourceChain = EvmChain.POLYGON }: Props) {
     this.env = env;
+    this.sourceChain = sourceChain;
     this.axelar = new AxelarQueryAPI({
       environment: this.getEnv(),
     });
@@ -33,7 +36,7 @@ export default class AxelarClient {
   }
 
   getSourceChain() {
-    return EvmChain.POLYGON;
+    return this.sourceChain;
   }
 
   async getEstimateFee({

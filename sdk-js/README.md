@@ -56,8 +56,7 @@ Or if you want to modify/adapth the smart contract logic or if you want to redep
 Here a sample on how to configure the SDK. We recommand to import it on your front end, as we did in the `Front end example` section. Notice in our front end example implementation, we have done relative import, as we wanted to have the last version of the SDK. If you want to have more info, check out our getting started section.
 
 ```js
-
-import { Config, FakeStorage, IPFSStorage, SecretDocumentClient } from "@secret-network/share-document"
+import { Config, FakeStorage, IPFSStorage, SecretDocumentClient, EvmChain } from "@secret-network/share-document"
 
 const config = new Config();
 
@@ -72,7 +71,6 @@ config.useEvmWallet({
   privateKey: "0x..."
 })
 
-
 // Use the storage you prefer.
 // By default FakeStorage is used.
 config.useStorage(new FakeStorage()); // Do not store anything.
@@ -86,6 +84,20 @@ config.useStorage(new ArweaveStorage()); // Store files on Arweave.
 
 // Initialize the client.
 const client = new SecretDocumentClient(config);
+```
+
+## Custom chain
+
+You can use a custom chain to communicate with Secret Network through Axelar GMP.
+
+```js
+import { scroll } from "viem/chains";
+import { Config, EvmChain } from "@secret-network/share-document"
+
+const config = new Config({
+  sourceChain: EvmChain.SCROLL,
+  customChain: scroll  
+});
 ```
 
 ## Front end example

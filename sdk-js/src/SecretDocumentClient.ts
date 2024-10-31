@@ -26,6 +26,7 @@ class SecretDocumentClient {
   private axelarClient() {
     return new AxelarClient({
       env: this.config.getEnv(),
+      sourceChain: this.config.getSourceChain(),
     });
   }
 
@@ -46,7 +47,7 @@ class SecretDocumentClient {
 
   private viemClient() {
     return new ViemClient({
-      chain: this.config.getChain(this.config.getChainId()),
+      chain: this.config.getViemChain(),
       walletConfig: this.config.getEvmWallet(),
       contract: this.config.getPolygonToSecret(),
     });

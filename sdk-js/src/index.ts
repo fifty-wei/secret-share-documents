@@ -5,7 +5,8 @@ import FakeStorage from "./StoreDocument/Storage/FakeStorage";
 import SecretDocumentClient from "./SecretDocumentClient";
 import Environment from "./Environment";
 import Network from "./Network";
-import {MetaMaskWallet, Wallet} from "secretjs";
+import { MetaMaskWallet, Wallet } from "secretjs";
+import { EvmChain } from "@axelar-network/axelarjs-sdk";
 
 export {
     Network,
@@ -16,5 +17,6 @@ export {
     IPFSStorage,
     FakeStorage,
     Wallet,
-    MetaMaskWallet
+    MetaMaskWallet,
+    EvmChain
 }

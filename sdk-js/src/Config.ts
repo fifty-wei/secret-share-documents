@@ -1,3 +1,4 @@
+import { Chain } from "viem";
 import { polygon, polygonMumbai } from "viem/chains";
 import IConfig from "./IConfig";
 import IPolygonSmartContract from "./SmartContract/IPolygonSmartContract";
@@ -9,6 +10,7 @@ import IStorage from "./StoreDocument/Storage/IStorage";
 import IViemWallet from "./SmartContract/IViemWallet";
 import FakeStorage from "./StoreDocument/Storage/FakeStorage";
 import { MetaMaskWallet, Wallet } from "secretjs";
+import { EvmChain } from "@axelar-network/axelarjs-sdk";
 
 interface IClientConfig {
   chains: {
@@ -31,6 +33,8 @@ interface IClientConfig {
     secretNetwork: MetaMaskWallet | Wallet;
     polygon: IViemWallet;
   };
+  sourceChain?: EvmChain;
+  customChain?: Chain;
 }
 
 class Config {
@@ -61,6 +65,8 @@ class Config {
           chainId: "",
         },
       },
+      sourceChain: EvmChain.POLYGON,
+      customChain: polygon,
       wallets: {
         secretNetwork: null,
         polygon: {
@@ -74,6 +80,10 @@ class Config {
       ...this.defaultConfig(this.env),
       ...config,
     };
+  }
+
+  getSourceChain() {
+    return this.config.sourceChain;
   }
 
   getEnv() {
@@ -241,6 +251,10 @@ class Config {
     this.config.wallets.polygon = wallet;
   }
 
+  useSourceChain(chain: EvmChain) {
+    this.config.sourceChain = chain;
+  }
+
   getEvmWallet(): IViemWallet {
     return this.config.wallets.polygon;
   }
@@ -267,6 +281,20 @@ class Config {
 
   getShareDocument(): ISecretNetworkSmartContract {
     return this.config.contracts.ShareDocument;
+  }
+
+  getCustomChain(): Chain {
+    return this.config.customChain;
+  }
+
+  getViemChain(): Chain {
+    let defaultChain = this.getChain(this.getChainId());
+
+    if (!!this.getCustomChain()) {
+      defaultChain = this.getCustomChain();
+    }
+
+    return defaultChain;
   }
 }
 
